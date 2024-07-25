@@ -3,6 +3,7 @@ module.exports = {
     preset: "ts-jest",
     testEnvironment: "node",
     testTimeout: 200000,
+    testSequencer: './custom-sequencer.js',
     //setupFilesAftexrEnv: ["<rootDir>/jestSetup.ts"],
     transform: {
       '^.+\\.ts$': ['ts-jest', {

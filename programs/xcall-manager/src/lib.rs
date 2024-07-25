@@ -36,16 +36,16 @@ pub mod xcall_manager {
         instructions::set_protocols(ctx, sources, destinations)
     }
 
-    pub fn verify_protocols<'info>(ctx: Context<'_, '_, '_, 'info, VerifyProtocols<'info>>, protocols: Vec<String>) -> Result<()> {
-        let _ = instructions::verify_protocols(ctx, &protocols);
-        Ok(())
+    pub fn verify_protocols<'info>(ctx: Context<'_, '_, '_, 'info, VerifyProtocols<'info>>, protocols: Vec<String>) -> Result<bool> {
+        instructions::verify_protocols(ctx, &protocols)
     }
 
-    // pub fn execute_call(
-    //     ctx: Context<ExecuteCall>,
-    //     request_id: u128,
-    //     data: Vec<u8>,
-    // ) -> Result<()> {
-    //     instructions::execute_call(ctx, request_id, data)
-    // }
+    pub fn handle_call_message<'info>(
+        ctx: Context<'_, '_, '_, 'info, HandleCallMessage<'info>>,
+        from: String,
+        data: Vec<u8>,
+        protocols: Vec<String>,
+    ) -> Result<()> {
+        instructions::handle_call_message(ctx, from, data, protocols)
+    }
 }

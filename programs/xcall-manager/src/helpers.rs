@@ -1,6 +1,6 @@
 use rlp::{DecoderError, Rlp};
 
-use crate::{errors::XCallManagerError, states::Protocols};
+use crate::{errors::XCallManagerError, configure_protocols::ConfigureProtocols};
 
 pub const CONFIGURE_PROTOCOLS: &str = "ConfigureProtocols";
 
@@ -15,7 +15,7 @@ pub fn decode_method(data: &[u8]) -> std::result::Result<String, XCallManagerErr
     Ok(method)
 }
 
-pub fn decode_execute_call_msg(data: &[u8]) -> std::result::Result<Protocols, XCallManagerError> {
+pub fn decode_handle_call_msg(data: &[u8]) -> std::result::Result<ConfigureProtocols, XCallManagerError> {
     let rlp = Rlp::new(data);
     if !rlp.is_list() {
         return Err(DecoderError::RlpExpectedToBeList.into());
@@ -25,15 +25,9 @@ pub fn decode_execute_call_msg(data: &[u8]) -> std::result::Result<Protocols, XC
     if method != CONFIGURE_PROTOCOLS {
         return Err(DecoderError::RlpInvalidLength.into());
     }
-    // let sources = rlp.val_at(1)?;
-    // let destinations = rlp.val_at(2)?;
 
-    let sources = vec!["sources".to_string()];
-    let destinations = vec!["destinations".to_string()];
-
-    let protocols: Protocols = Protocols {
-        sources,
-        destinations,
-    };
-    Ok(protocols)
+    Ok(ConfigureProtocols {
+            sources: rlp.list_at::<String>(1)?,
+            destinations: rlp.list_at::<String>(2)?,
+        })
 }

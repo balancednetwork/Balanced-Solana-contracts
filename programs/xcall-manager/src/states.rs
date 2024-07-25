@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 
+use crate::errors::XCallManagerError;
+
 #[derive(Accounts)]
 pub struct Initialize<'info> {
      #[account(init, payer = admin, seeds=["state".as_bytes()], bump, space = 8 + XmState::INIT_SPACE)]
@@ -28,7 +30,7 @@ pub struct XmState {
 
 #[derive(Accounts)]
 pub struct AdminAction<'info> {
-    #[account(mut, seeds=["state".as_bytes()], bump)]
+    #[account(mut, seeds=["state".as_bytes()], bump, has_one=admin)]
     pub state: Account<'info, XmState>,
     pub admin: Signer<'info>,
 }
@@ -48,4 +50,6 @@ pub struct VerifyProtocols<'info> {
 pub struct HandleCallMessage<'info> {
     #[account(mut)]
     pub state: Account<'info, XmState>,
+    #[account(constraint=*xcall.owner==state.xcall@XCallManagerError::UnauthorizedCaller)]
+    pub xcall: Signer<'info>
 }

@@ -9,12 +9,13 @@ use xcall_lib::message::{AnyMessage, call_message_rollback::CallMessageWithRollb
 use xcall_lib::network_address::NetworkAddress;
 use std::str::FromStr;
 
-use crate::helpers::{decode_deposit_revert_msg, decode_method, decode_withdraw_to_msg };
+use crate::helpers::{decode_deposit_revert_msg, decode_method, decode_token_address, decode_withdraw_to_msg };
 use crate::{
-        errors::CustomError, states::*, structs::{
+        errors::CustomError, states::*, params_builder::*, structs::{
         deposit_message::*,
         withdraw_message::*,
         deposit_revert::*,
+        
     }
 };
 
@@ -26,11 +27,13 @@ pub fn initialize(
     xcall: Pubkey,
     icon_asset_manager: String,
     xcall_manager: Pubkey,
+    xcall_manager_state: Pubkey
 ) -> Result<()> {
     let state: &mut Account<State> = &mut ctx.accounts.state;
     state.xcall = xcall;
     state.icon_asset_manager = icon_asset_manager;
     state.xcall_manager = xcall_manager;
+    state.xcall_manager_state = xcall_manager_state;
     state.admin = ctx.accounts.admin.key();
     Ok(())
 }
@@ -42,9 +45,6 @@ pub fn configure_rate_limit(
     percentage: u64,
 ) -> Result<()> {
     require!(percentage <= POINTS, CustomError::PercentageTooHigh);
-    let state = &mut ctx.accounts.state;
-
-     require!(ctx.accounts.admin.key() == state.admin.key(), CustomError::Unauthorized);
 
      let token_state = &mut ctx.accounts.token_state;
      let current_limit = 0;
@@ -78,24 +78,25 @@ pub fn get_withdraw_limit(ctx: Context<GetWithdrawLimit>) -> Result<u64> {
     calculate_limit(state, balance)
 }
 
-
 pub fn deposit_token<'info>(
     ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>,
     amount: u64,
     to: Option<String>,
     data: Option<Vec<u8>>,
 ) -> Result<()> {
+    let from  = ctx.accounts.from.as_ref().ok_or(CustomError::InvalidFromAddress)?;
+    let vault_token_account  = ctx.accounts.vault_token_account.as_ref().ok_or(CustomError::ValultTokenAccountIsRequired)?;
     let cpi_accounts = Transfer {
-        from: ctx.accounts.user_token_account.to_account_info(),
-        to: ctx.accounts.vault_token_account.to_account_info(),
-        authority: ctx.accounts.user.to_account_info(),
+        from: from.to_account_info(),
+        to: vault_token_account.to_account_info(),
+        authority: ctx.accounts.from_authority.to_account_info(),
     };
     let cpi_program = ctx.accounts.token_program.clone().unwrap().to_account_info();
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     token::transfer(cpi_ctx, amount)?;
 
     let token_addr = ctx.accounts.token_program.clone().unwrap().key().to_string();
-    let from: Pubkey = ctx.accounts.user.key();
+    let from: Pubkey = from.key();
     let _ = send_deposit_message(
         ctx,
         token_addr,
@@ -113,14 +114,16 @@ pub fn deposit_native<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>
 
 fn _deposit<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: u64, to: Option<String>, data: Option<Vec<u8>>) -> Result<()> {
     require!(amount > 0, CustomError::InvalidAmount);
-    
-    let user = &ctx.accounts.user;
-    let deposit_account = &mut ctx.accounts.vault_token_account;
+    //let from_native  = ctx.accounts.from_native.as_ref().ok_or(CustomError::InvalidFromAddress)?;
+    let mut vault_native_account  = ctx.accounts.vault_native_account.as_ref().ok_or(CustomError::ValultTokenAccountIsRequired)?;
 
+    let user_authority = &ctx.accounts.from_authority;
+    let deposit_account = &mut vault_native_account;
+
+    **user_authority.try_borrow_mut_lamports()? -= amount;
     **deposit_account.to_account_info().try_borrow_mut_lamports()? += amount;
-    **user.try_borrow_mut_lamports()? -= amount;
 
-    let from: Pubkey = ctx.accounts.user.key();
+    let from: Pubkey = user_authority.key();
     let _ = send_deposit_message(ctx, String::from_str( _NATIVE_ADDRESS).unwrap(), from, amount, to, data);
     Ok(())
 }
@@ -198,72 +201,148 @@ pub fn verify_protocols<'info>(
     Ok(true)
 }
 
+pub fn get_handle_call_message_params<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
+    let mut accounts: Vec<ParamAccountProps>  = Vec::new();
+    let method = decode_method(&data).unwrap();
+    let token_address = decode_token_address(&data).unwrap();
+    if method==WITHDRAW_TO && token_address !=_NATIVE_ADDRESS.to_string() {
+        accounts.append(&mut get_withdraw_to_token_param(ctx, data)?);
+    } else if method==DEPOSIT_REVERT && token_address !=_NATIVE_ADDRESS.to_string() {
+        accounts.append(&mut get_withdraw_to_token_param(ctx, data)?);
+    } else if method==WITHDRAW_TO && token_address ==_NATIVE_ADDRESS.to_string() {
+        accounts.append(&mut get_withdraw_to_token_param(ctx, data)?);
+    } else if method==DEPOSIT_REVERT && token_address ==_NATIVE_ADDRESS.to_string() {
+        accounts.append(&mut get_withdraw_to_token_param(ctx, data)?);
+    }
+
+    Ok(ParamAccounts{
+        accounts,
+    })
+
+}
+
 pub fn handle_call_message<'info>(
     ctx: Context<'_, '_, '_, 'info, HandleCallMessage<'info>>,
     from: String,
     data: Vec<u8>,
-    protocols: Vec<String>,
+    protocols: Vec<String>
+) -> Result<()> {
+    let token_address = decode_token_address(&data).unwrap();
+    msg!("token addres: {}", token_address);
+    msg!("token addres: {}", _NATIVE_ADDRESS.to_string());
+    if  token_address != _NATIVE_ADDRESS.to_string() {
+        return  handle_token_call_message(ctx, from, data, protocols);
+    }else {
+        return handle_native_call_message(ctx, from, data, protocols);
+    }
+}
+
+fn handle_token_call_message<'info>(
+    ctx: Context<'_, '_, '_, 'info, HandleCallMessage<'info>>,
+    from: String,
+    data: Vec<u8>,
+    protocols: Vec<String>
 ) -> Result<()> {
     let state = ctx.accounts.state.clone();
-    require!(state.xcall == *ctx.accounts.signer.key, CustomError::UnauthorizedCaller);
+    let bump = ctx.bumps.valult_authority.unwrap();
+    //require!(ctx.accounts.xcall.key() == ctx.accounts.state.xcall, CustomError::UnauthorizedCaller);
 
     require!(
         verify_protocols(ctx.accounts.xcall_manager.clone(), ctx.accounts.xcall_manager_state.clone(), &protocols)?,
         CustomError::ProtocolMismatch
     );
-
     let method = decode_method(&data).unwrap();
+    let to  = ctx.accounts.to.as_ref().ok_or(CustomError::InvalidToAddress)?;
+    let mint  = ctx.accounts.mint.as_ref().ok_or(CustomError::MintIsRequired)?;
+    let token_program  = ctx.accounts.token_program.as_ref().ok_or(CustomError::TokenProgramIsRequired)?;
+    let vault_token_account = ctx.accounts.vault_token_account.as_ref().ok_or(CustomError::ValultTokenAccountIsRequired)?;
+    let vault_authority = ctx.accounts.valult_authority.as_ref().ok_or(CustomError::ValultAuthorityIsRequired)?;
     if method == WITHDRAW_TO {
         require!(from == state.icon_asset_manager, CustomError::NotIconAssetManager);
         let  message  = decode_withdraw_to_msg(&data).unwrap();
-        let token_pubkey = Pubkey::from_str(&message.token_address).map_err(|_| anchor_lang::error::ErrorCode::AccountDidNotDeserialize)?;
-        let recipient_pubkey = Pubkey::from_str(&message.user_address).map_err(|_| anchor_lang::error::ErrorCode::AccountDidNotDeserialize)?;
-        require!(recipient_pubkey==ctx.accounts.to_address.key(), CustomError::InvalidToAddress);
-        require!(token_pubkey==ctx.accounts.token_program.clone().unwrap().key(), CustomError::InvalidToAddress);
-        let token_program = ctx.accounts.token_program.clone().unwrap();
+        let token_pubkey = Pubkey::from_str(&message.token_address).map_err(|_| CustomError::NotAnAddress)?;
+        let recipient_pubkey = Pubkey::from_str(&message.user_address).map_err(|_| CustomError::NotAnAddress)?;
+        require!(recipient_pubkey==to.key(), CustomError::InvalidToAddress);
+        require!(token_pubkey==mint.key(), CustomError::InvalidToAddress);
         withdraw_token(
-            ctx.accounts.vault_token_account.to_account_info(),
-            ctx.accounts.to_address.to_account_info(),
+            vault_token_account.to_account_info(),
+            to.to_account_info(),
             message.amount as u64,
-            token_program.clone().to_account_info(),
-            token_program.clone().to_account_info(),
+            mint.key(),
+            token_program.to_account_info(),
+            vault_authority.clone(), bump
         )?;
 
-    } if method == WITHDRAW_TO_NATIVE {
+    } else if method == DEPOSIT_REVERT {
+        require!(from == state.xcall.key().to_string(), CustomError::UnauthorizedCaller);
+
+        let  message  = decode_deposit_revert_msg(&data).unwrap();
+        let recipient_pubkey = Pubkey::from_str(&message.account).map_err(|_| CustomError::NotAnAddress)?;
+        require!(recipient_pubkey==to.key(), CustomError::InvalidToAddress);
+        
+        msg!("from the deposit revert");
+        withdraw_token(
+            vault_token_account.to_account_info(),
+            to.to_account_info(),
+            message.amount as u64,
+            mint.key(),
+            token_program.to_account_info(),
+            vault_authority.clone(), bump
+        )?;
+        
+    } else {
+        msg!("on unknown message");
+        return Err(CustomError::UnknownMessage.into());
+    }
+
+    Ok(())
+}
+
+fn handle_native_call_message<'info>(
+    ctx: Context<'_, '_, '_, 'info, HandleCallMessage<'info>>,
+    from: String,
+    data: Vec<u8>,
+    protocols: Vec<String>
+) -> Result<()> {
+    let state = ctx.accounts.state.clone();
+    require!(ctx.accounts.xcall.key() == ctx.accounts.state.xcall, CustomError::UnauthorizedCaller);
+
+    require!(
+        verify_protocols(ctx.accounts.xcall_manager.clone(), ctx.accounts.xcall_manager_state.clone(), &protocols)?,
+        CustomError::ProtocolMismatch
+    );
+    let bump = ctx.bumps.vault_native_account.unwrap();
+    let method = decode_method(&data).unwrap();
+    let to_native  = ctx.accounts.to_native.as_ref().ok_or(CustomError::InvalidToAddress)?;
+    let vault_native_account  = ctx.accounts.vault_native_account.as_ref().ok_or(CustomError::ValultTokenAccountIsRequired)?;
+    let valut_authority = ctx.accounts.valult_native_authority.as_ref().ok_or(CustomError::ValultAuthorityIsRequired)?;
+    if method == WITHDRAW_TO_NATIVE {
         require!(from == state.icon_asset_manager, CustomError::NotIconAssetManager);
         let  message  = decode_withdraw_to_msg(&data).unwrap();
-        let recipient_pubkey = Pubkey::from_str(&message.user_address).map_err(|_| anchor_lang::error::ErrorCode::AccountDidNotDeserialize)?;
-        require!(recipient_pubkey==ctx.accounts.to_address.key(), CustomError::InvalidToAddress);
+        let recipient_pubkey = Pubkey::from_str(&message.user_address).map_err(|_| CustomError::NotAnAddress)?;
+        require!(recipient_pubkey==to_native.key(), CustomError::InvalidToAddress);
         require!(message.token_address==_NATIVE_ADDRESS, CustomError::InvalidToAddress);
         withdraw_native_token(
-            ctx.accounts.vault_token_account.to_account_info(),
-            ctx.accounts.to_address.to_account_info(),
-            message.amount as u64,
+            vault_native_account.clone(),
+            valut_authority.clone(),
+            to_native.clone(),
+            message.amount as u64, bump
         )?;
 
     } else if method == DEPOSIT_REVERT {
         require!(from == state.xcall.key().to_string(), CustomError::NotIconAssetManager);
-
         let  message  = decode_deposit_revert_msg(&data).unwrap();
-        let recipient_pubkey = Pubkey::from_str(&message.account).map_err(|_| anchor_lang::error::ErrorCode::AccountDidNotDeserialize)?;
-        require!(recipient_pubkey==ctx.accounts.to_address.key(), CustomError::InvalidToAddress);
-        if message.token_address == _NATIVE_ADDRESS {
-            withdraw_native_token(
-                ctx.accounts.vault_token_account.to_account_info(),
-                ctx.accounts.to_address.to_account_info(),
-                message.amount as u64,
-            )?;
-        }else{
-            let token_program = ctx.accounts.token_program.clone().unwrap();
-            withdraw_token(
-                ctx.accounts.vault_token_account.to_account_info(),
-                ctx.accounts.to_address.to_account_info(),
-                message.amount as u64,
-                token_program.clone().to_account_info(),
-                token_program.clone().to_account_info(),
-            )?;
-        }
+        let recipient_pubkey = Pubkey::from_str(&message.account).map_err(|_| CustomError::NotAnAddress)?;
+        require!(recipient_pubkey==to_native.key(), CustomError::InvalidToAddress);
+        withdraw_native_token(
+            vault_native_account.clone(),
+            valut_authority.clone(),
+            to_native.clone(),
+            message.amount as u64, bump
+
+        )?;
     } else {
+        msg!("on unknown message");
         return Err(CustomError::UnknownMessage.into());
     }
 
@@ -274,41 +353,69 @@ fn withdraw_token<'info>(
     vault_token_account: AccountInfo<'info>,
     recipient: AccountInfo<'info>,
     amount: u64,
+    mint: Pubkey,
     token_program: AccountInfo<'info>,
-    authority: AccountInfo<'info>
+    authority: AccountInfo<'info>,
+    bump: u8
 ) -> Result<()> {
     let account_data = spl_token::state::Account::unpack(&vault_token_account.data.borrow())?;
     let vault_balance = account_data.amount;
+    
     require!(vault_balance >= amount, CustomError::InsufficientBalance);
-
 
     let cpi_accounts = Transfer {
         from: vault_token_account,
         to: recipient,
-        authority: authority,
+        authority,
     };
-
-    token::transfer(CpiContext::new(token_program, cpi_accounts), amount)?;
-
+    let mint_bytes = mint.to_bytes();
+    let seeds = &[
+        b"vault".as_ref(),
+        mint_bytes.as_ref(),
+        &[bump],
+    ];
+    let signer = &[&seeds[..]];
+    msg!("before token transfer");
+    token::transfer(CpiContext::new_with_signer(token_program, cpi_accounts, signer), amount)?;
+    msg!("after token transfer");
     Ok(())
 }
 
 fn withdraw_native_token<'info>(
     vault_token_account: AccountInfo<'info>,
+    vault_native_authority: AccountInfo<'info>,
     recipient: AccountInfo<'info>,
     amount: u64,
+    bump: u8
 ) -> Result<()> {
-    let ix = anchor_lang::solana_program::system_instruction::transfer(
-        &vault_token_account.key(),
-        &recipient.key(),
-        amount,
-    );
-    anchor_lang::solana_program::program::invoke(
-        &ix,
-        &[
-            vault_token_account,
-            recipient,
-        ],
+    // let ix = anchor_lang::solana_program::system_instruction::transfer(
+    //     &vault_token_account.key(),
+    //     &recipient.key(),
+    //     amount,
+    // );
+    // anchor_lang::solana_program::program::invoke(
+    //     &ix,
+    //     &[
+    //         vault_token_account,
+    //         recipient,
+    //     ],
+    // )?;
+    let binding = vault_native_authority.key();
+    let seeds = &[b"vault_native".as_ref(), binding.as_ref(), &[bump]];
+    let signer = &[&seeds[..]];
+
+    require!(amount<=vault_token_account.lamports(), CustomError::InsufficientBalance);
+    **vault_token_account.try_borrow_mut_lamports()? -= amount;
+    **recipient.try_borrow_mut_lamports()? += amount;
+
+    anchor_lang::solana_program::program::invoke_signed(
+        &anchor_lang::solana_program::system_instruction::transfer(
+            &vault_token_account.key(),
+            &recipient.key(),
+            amount,
+        ),
+        &[vault_token_account.to_account_info(), recipient.to_account_info()],
+        signer,
     )?;
     Ok(())
 }

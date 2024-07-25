@@ -9,7 +9,6 @@ asset_manager = "5A4zc47C8yRf94szVu4DBF45mwm8uWprbXAcYbESUzmm"
 balanced_dollar = "AZ8nHSx5wmhz8mo5VSPBxKaZAQLtrf268WraTPxELCSd"
 centralized_connection = "Dfx4tMiqHAPzRrcdxR25n1Dyrjwsozc8D5PQukiiV9H8"
 xcall = "3489r9oW63a8MRk5CXD2Lv8YTFQ9iGjaXxgGnaoccPhc"
-xcall-mock = "9o1V95yT3xGBANHFGYWdx5zrxMUPS64ajTMeS3Rtt8Ap"
 xcall_manager = "E8YhCgRvjfjeoGZxrpf7oQVwKeA3ra67EbzcvJcMPrKg"
 
 [registry]
@@ -20,4 +19,4 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run jest --detectOpenHandles --forceExit --watch"
+test = "yarn run jest --runTestsByPath --detectOpenHandles --forceExit --watch"

@@ -1,6 +1,6 @@
 use rlp::{DecoderError, Rlp};
 
-use crate::{errors::BalancedDollarError, structs::{cross_transfer::{CrossTranfer, CROSS_TRANSFER}, cross_transfer_revert::{CrossTransferRevert, CROSS_TRANSFER_REVERT}}};
+use crate::{errors::BalancedDollarError, structs::{cross_transfer::{CrossTransferMsg, CROSS_TRANSFER}, cross_transfer_revert::{CrossTransferRevert, CROSS_TRANSFER_REVERT}}};
 
 
 pub fn decode_method(data: &[u8]) -> std::result::Result<String, DecoderError> {
@@ -16,7 +16,7 @@ pub fn decode_method(data: &[u8]) -> std::result::Result<String, DecoderError> {
 
 }
 
-pub fn decode_cross_transfer(data: &[u8]) -> std::result::Result<CrossTranfer, BalancedDollarError> {
+pub fn decode_cross_transfer(data: &[u8]) -> std::result::Result<CrossTransferMsg, BalancedDollarError> {
     // Decode RLP bytes into an Rlp object
     let rlp = Rlp::new(data);
 
@@ -29,7 +29,7 @@ pub fn decode_cross_transfer(data: &[u8]) -> std::result::Result<CrossTranfer, B
         return Err(DecoderError::RlpInvalidLength.into());
     }
    
-    if rlp.item_count()? != 4 {
+    if rlp.item_count()? != 9 {
         return Err(DecoderError::RlpInvalidLength.into());
     }
 
@@ -38,7 +38,7 @@ pub fn decode_cross_transfer(data: &[u8]) -> std::result::Result<CrossTranfer, B
     let value: u64 = rlp.val_at(3)?;
     let data: Vec<u8> = rlp.at(4)?.data()?.to_vec();
 
-    let cross_transfer = CrossTranfer {
+    let cross_transfer = CrossTransferMsg {
         from,
         to,
         value,

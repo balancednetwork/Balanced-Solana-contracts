@@ -67,5 +67,17 @@ pub enum CustomError {
     #[msg["test error"]]
     TestError,
     #[msg["invalid to address"]]
-    InvalidToAddress
+    InvalidToAddress,
+    #[msg["invalid from address"]]
+    InvalidFromAddress,
+    #[msg["Mint is required"]]
+    MintIsRequired,
+    #[msg["Token program is required"]]
+    TokenProgramIsRequired,
+    #[msg["Vault Token Program is required"]]
+    ValultTokenAccountIsRequired,
+    #[msg["Vault authority is required"]]
+    ValultAuthorityIsRequired,
+    #[msg["Not an address"]]
+    NotAnAddress
 }

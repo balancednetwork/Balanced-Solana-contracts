@@ -1,6 +1,6 @@
 
 use anchor_lang::prelude::*;
-use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
+use rlp::{Encodable, RlpStream};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Default, Debug, PartialEq, Clone)]
 pub struct DepositMessage {
@@ -23,23 +23,6 @@ impl Encodable for DepositMessage {
         s.append(&self.to);
         s.append(&self.amount);
         s.append(&self.data);
-    }
-}
-
-impl Decodable for DepositMessage {
-    fn decode(rlp: &Rlp) -> std::prelude::v1::Result<Self, DecoderError> {
-
-        if rlp.item_count()? != 5 {
-            return Err(DecoderError::RlpIncorrectListLen);
-        }
-
-        Ok(DepositMessage {
-            token_address: rlp.at(1)?.as_val()?,
-            from: rlp.at(2)?.as_val()?,
-            to: rlp.at(3)?.as_val()?,
-            amount: rlp.at(4)?.as_val()?,
-            data: rlp.at(5)?.data()?.to_vec(),
-        })
     }
 }
 

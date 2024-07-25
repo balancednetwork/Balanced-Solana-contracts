@@ -1,14 +1,15 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Keypair,  } from "@solana/web3.js";
-import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
+import * as rlp from 'rlp';
 
 import { XcallManager } from "../../target/types/xcall_manager";
 
 import { TransactionHelper, sleep } from "../utils";
 import { TestContext, XcallManagerPDA } from "./setup";
+import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 const program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
 
-describe("balanced_solana", () => {
+describe("balanced xcall manager", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const connection = provider.connection;
@@ -22,19 +23,19 @@ describe("balanced_solana", () => {
   });
 
   it("Test initialized!", async () => {
-    let xcallKeyPair = Keypair.generate();
+        let xcallKeyPair = Keypair.generate();
         let source1 = Keypair.generate();
         let source2 = Keypair.generate();
 
         await ctx.initialize(
-            xcallKeyPair.publicKey,
+            SYSTEM_PROGRAM_ID,
             "icon/hxcnjsd",
             [source1.publicKey.toString(), source2.publicKey.toString()],
             ["icon/cxjkefnskdjfe", "icon/cxjdkfndjwk"]
         );
 
     const stateAccount = await program.account.xmState.fetch(XcallManagerPDA.state().pda);
-    expect(stateAccount.xcall.toString()).toBe(xcallKeyPair.publicKey.toString());
+    expect(stateAccount.xcall.toString()).toBe(SYSTEM_PROGRAM_ID.toString());
     expect(stateAccount.iconGovernance).toBe("icon/hxcnjsd");
     expect(stateAccount.admin.toString()).toBe( wallet.payer.publicKey.toString());
   });
@@ -143,11 +144,54 @@ describe("balanced_solana", () => {
 
     let verified = await program.methods
       .verifyProtocols(sources)
-      .accountsStrict({
+      .accounts({
         state: XcallManagerPDA.state().pda,
       }).view();
-      console.log(verified);
       expect(verified).toBe(true);
+  });
+
+  it("Test handle call message", async () => {
+    const stateAccount = await program.account.xmState.fetch(XcallManagerPDA.state().pda);
+    let sources = stateAccount.sources;
+   
+    let source1 = Keypair.generate();
+    let source2 = Keypair.generate();
+    const data = ["ConfigureProtocols", [source1.publicKey.toString(), source2.publicKey.toString()], ["icon/jsdvnskjdfn", "icon/klnvjkdsnfjk"]];
+
+    const rlpEncodedData = rlp.encode(data);
+
+    //const rlpBytes = new Uint8Array(rlpEncodedData);
+
+    let whitelistActionIx = await program.methods
+      .whitelistAction(Buffer.from(rlpEncodedData))
+      .accountsStrict({
+        state: XcallManagerPDA.state().pda,
+        admin: ctx.admin.publicKey,
+      }).instruction();
+
+    let tx = await ctx.txnHelpers.buildV0Txn([whitelistActionIx], [ctx.admin]);
+    await ctx.connection.sendTransaction(tx);
+    await sleep(3);
+
+    let icon_gov = stateAccount.iconGovernance;
+    let signer = Keypair.generate();
+    let handle_call_message = await program.methods.handleCallMessage(icon_gov, Buffer.from(rlpEncodedData), sources)
+      .accountsStrict({
+        state: XcallManagerPDA.state().pda,
+        xcall: ctx.admin.publicKey
+      }).instruction();
+
+    tx = await ctx.txnHelpers.buildV0Txn([handle_call_message], [ctx.admin]);
+    let txSig =  await ctx.connection.sendTransaction(tx);
+    //await txnHelpers.logParsedTx(txSig);
+    await sleep(3);
+
+    const updatedStateAccount = await program.account.xmState.fetch(XcallManagerPDA.state().pda);
+    let updatedSources = updatedStateAccount.sources;
+
+    expect(updatedSources[0]).toBe(source1.publicKey.toString());
+    expect(updatedSources[1]).toBe(source2.publicKey.toString());
+
   });
   
 });

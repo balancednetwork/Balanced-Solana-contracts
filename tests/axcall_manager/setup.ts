@@ -30,7 +30,6 @@ export class TestContext {
         systemProgram: SYSTEM_PROGRAM_ID
       }).instruction();
 
-    console.log(`admin address is: `, this.admin.publicKey);
     let tx = await this.txnHelpers.buildV0Txn([initializeIx], [this.admin]);
     await this.connection.sendTransaction(tx);
     await sleep(3);

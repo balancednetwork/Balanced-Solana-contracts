@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, Mint, TokenAccount};
-use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
 
 #[derive(Accounts)]
@@ -18,7 +17,7 @@ pub struct ConfigureRateLimit<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
 
-    #[account(mut, seeds=[b"state"], bump)]
+    #[account(mut, has_one=admin, seeds=[b"state"], bump)]
     pub state: Account<'info, State>,
 
     #[account(init_if_needed, payer=admin, space = 8 + TokenState::INIT_SPACE, seeds=[b"token_state", token.as_ref()], bump)]
@@ -59,12 +58,15 @@ pub struct GetWithdrawLimit<'info> {
 #[derive(Accounts)]
 pub struct DepositToken<'info> {
     #[account(mut)]
-    pub user: Signer<'info>,
-    pub token_program: Option<Program<'info, Token>>,
-    pub mint: Option<Account<'info, Mint>>,
-    pub user_token_account: Account<'info, TokenAccount>,
-    #[account(mut, has_one = mint)]
-    pub vault_token_account: Account<'info, TokenAccount>,
+    pub from: Option<Account<'info, TokenAccount>>,
+    ///CHECK: is also the signer
+    #[account(mut, signer)]
+    pub from_authority: AccountInfo<'info>,
+    
+    #[account(mut)]
+    pub vault_token_account: Option<Account<'info, TokenAccount>>,
+    #[account(mut)]
+    pub vault_native_account: Option<AccountInfo<'info>>,
     #[account(mut)]
     pub state: Account<'info, State>,
     #[account(mut)]
@@ -73,21 +75,12 @@ pub struct DepositToken<'info> {
     /// CHECK: xcall_manager_state is validated in the method
     #[account(mut, seeds = [b"asset_manager_signer"], bump)]
     pub asset_manager: AccountInfo<'info>,
-    pub xcall: Program<'info, Xcall>,
+    pub xcall: Program<'info, XcallManager>,
+    // pub xcall: Program<'info, Xcall>,
     pub xcall_manager: Program<'info, XcallManager>,
-
+    pub token_program: Option<Program<'info, Token>>,
     pub system_program: Program<'info, System>
 }
-
-// #[derive(Accounts)]
-// pub struct DepositNative<'info> {
-//     #[account(mut)]
-//     pub user: Signer<'info>,
-//     pub vault_token_account: Account<'info, TokenAccount>,
-//     #[account(mut)]
-//     pub state: Account<'info, State>,
-    
-// }
 
 #[account]
 #[derive(InitSpace)]
@@ -96,6 +89,7 @@ pub struct State {
     #[max_len(50)]
     pub icon_asset_manager: String,
     pub xcall_manager: Pubkey,
+    pub xcall_manager_state: Pubkey,
     pub admin: Pubkey,
 }
 
@@ -112,31 +106,49 @@ pub struct TokenState {
 #[derive(Accounts)]
 pub struct HandleCallMessage<'info> {
     #[account(mut)]
+    pub to: Option<Account<'info, TokenAccount>>,
+    #[account(mut)]
+    pub to_native: Option<AccountInfo<'info>>,
     pub state: Account<'info, State>,
-    #[account(mut, has_one = mint)]
-    pub vault_token_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub vault_token_account: Option<Account<'info, TokenAccount>>,
+    #[account(mut, seeds = [b"vault_native", valult_native_authority.clone().unwrap().key().as_ref()], bump)]
+    pub vault_native_account: Option<AccountInfo<'info>>,
+    #[account(mut)]
     pub mint: Option<Account<'info, Mint>>,
+    
+    ///CHECK: not required
+    #[account(seeds = [b"vault", mint.clone().unwrap().key().as_ref()], bump)]
+    pub valult_authority: Option<AccountInfo<'info>>,
+    ///CHECK: not required
+    
+    pub valult_native_authority: Option<AccountInfo<'info>>,
+    
     pub token_program: Option<Program<'info, Token>>,
     pub xcall_manager: Program<'info, XcallManager>,
-    #[account(mut)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
-    /// CHECK: xcall_manager_state is validated in the method
-    #[account(mut, seeds = [b"asset_manager_signer"], bump)]
-    pub asset_manager: AccountInfo<'info>,
-    pub to_address: Account<'info, TokenAccount>,
-    #[account(mut)]
-    pub signer: Signer<'info>,
+    pub xcall: Program<'info, XcallManager>,
 }
 
-#[account]
-pub struct Asset {
-    pub asset_type: AssetType,
+#[derive(Accounts)]
+pub struct GetParams<'info> {
+    pub state: Account<'info, State>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
-pub enum AssetType {
-    Native,
-    Token,
+#[derive(Debug)]
+pub struct ParamAccountProps{
+    pub pubkey: Pubkey,
+    pub is_writable: bool,
+    pub is_signer: bool
 }
+
+#[derive(Debug)]
+pub struct ParamAccounts{
+    pub accounts: Vec<ParamAccountProps>
+}
+
+
+
+
 
 

@@ -1,9 +1,9 @@
 
 use anchor_lang::prelude::*;
-use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
+use rlp::{Encodable, RlpStream};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Default, Debug, PartialEq, Clone)]
-pub struct CrossTranfer {
+pub struct CrossTransferMsg {
     pub from: String,
     pub to: String,
     pub value: u64,
@@ -13,7 +13,7 @@ pub struct CrossTranfer {
 pub const CROSS_TRANSFER: &str = "xCrossTransfer";
 
 // impl Encodeable and Decodeable
-impl Encodable for CrossTranfer {
+impl Encodable for CrossTransferMsg {
     fn rlp_append(&self, s: &mut RlpStream) {
         s.begin_list(5);
         s.append(&CROSS_TRANSFER);
@@ -24,23 +24,7 @@ impl Encodable for CrossTranfer {
     }
 }
 
-impl Decodable for CrossTranfer {
-    fn decode(rlp: &Rlp) -> std::prelude::v1::Result<Self, DecoderError> {
-
-        if rlp.item_count()? != 5 {
-            return Err(DecoderError::RlpIncorrectListLen);
-        }
-
-        Ok(CrossTranfer {
-            from: rlp.at(1)?.as_val()?,
-            to: rlp.at(2)?.as_val()?,
-            value: rlp.at(3)?.as_val()?,
-            data: rlp.at(4)?.data()?.to_vec(),
-        })
-    }
-}
-
-impl CrossTranfer {
+impl CrossTransferMsg {
     pub fn create(
         from: String,
         to: String,

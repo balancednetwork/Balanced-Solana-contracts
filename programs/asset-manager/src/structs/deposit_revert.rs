@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
-use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
+use rlp::{ Encodable, RlpStream};
 
-use crate::errors::CustomError;
 #[derive(AnchorSerialize, AnchorDeserialize, Default, Debug, PartialEq, Clone)]
 pub struct DepositRevert {
     pub token_address: String,
@@ -19,20 +18,6 @@ impl Encodable for DepositRevert {
         s.append(&self.token_address);
         s.append(&self.account);
         s.append(&self.amount);
-    }
-}
-
-impl Decodable for DepositRevert {
-    fn decode(rlp: &Rlp) -> std::result::Result<Self, DecoderError> {
-        if rlp.item_count()? != 4 {
-            return Err(DecoderError::RlpIncorrectListLen);
-        }
-
-        Ok(DepositRevert {
-            token_address: rlp.at(1)?.as_val()?,
-            account: rlp.at(2)?.as_val()?,
-            amount: rlp.at(3)?.as_val()?,
-        })
     }
 }
 
@@ -61,10 +46,4 @@ impl DepositRevert {
         rlp::encode(&self.clone()).to_vec()
     }
 
-    pub fn decode_from(data: &[u8]) -> std::result::Result<Self, CustomError> {
-        let rlp = Rlp::new(data);
-
-        DepositRevert::decode(&rlp).map_err(|_| CustomError::DecodeError)
-        
-    }
 }

@@ -38,8 +38,9 @@ pub mod balanced_dollar {
         from: String,
         data: Vec<u8>,
         protocols: Vec<String>,
+        bump: u8
     ) -> Result<()> {
-        let _ = instructions::handle_call_message(ctx, from, data, protocols);
+        let _ = instructions::handle_call_message(ctx, from, data, protocols, bump);
         Ok(())
     }
 

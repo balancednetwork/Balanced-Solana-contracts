@@ -1,6 +1,6 @@
 use rlp::{DecoderError, Rlp};
 
-use crate::{errors::AssetManagerError, structs::{deposit_revert::{DepositRevert, DEPOSIT_REVERT}, withdraw_message::{WithdrawTo, WITHDRAW_TO, WITHDRAW_TO_NATIVE}}};
+use crate::{errors::AssetManagerError, structs::{deposit_revert::{DepositRevert, DEPOSIT_REVERT}, withdraw_message::WithdrawTo}};
 
 
 
@@ -25,9 +25,21 @@ pub fn decode_method(data: &[u8]) -> std::result::Result<String, DecoderError> {
 
 }
 
+pub fn decode_token_address(data: &[u8]) -> std::result::Result<String, DecoderError> {
+    let rlp: Rlp = Rlp::new(data);
+
+    if !rlp.is_list() {
+        return Err(DecoderError::RlpExpectedToBeList.into());
+    }
+
+    let method: String = rlp.val_at(1).unwrap();
+
+    Ok(method)
+
+}
+
 pub fn decode_withdraw_to_msg(data: &[u8]) -> std::result::Result<WithdrawTo, AssetManagerError> {
     let rlp = Rlp::new(data);
-
     if !rlp.is_list() {
         return Err(DecoderError::RlpExpectedToBeList.into());
     }

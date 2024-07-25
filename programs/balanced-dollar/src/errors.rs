@@ -13,8 +13,10 @@ pub enum BalancedDollarError {
     UnknownMessageType,
     #[msg("Method Decode Error")]
     DecoderError,
-    #[msg("NotBalancedDollar")]
-    NotBalancedDollar
+    #[msg("Not Balanced Dollar")]
+    NotBalancedDollar,
+    #[msg("Not the xcall program")]
+    NotXcall
 }
 
 impl From<DecoderError> for BalancedDollarError {

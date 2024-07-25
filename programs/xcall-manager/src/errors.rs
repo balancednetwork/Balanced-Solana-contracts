@@ -22,7 +22,9 @@ pub enum XCallManagerError {
     #[msg("No proposal for removal exists")]
     NoProposalForRemovalExists,
     #[msg["Invalid Sender"]]
-    InvalidSender
+    InvalidSender,
+    #[msg["Not the Icon Governance"]]
+    NotTheIconGovernance
 }
 
 impl From<DecoderError> for XCallManagerError {

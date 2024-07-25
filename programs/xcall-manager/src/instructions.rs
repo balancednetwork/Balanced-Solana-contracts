@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
-use crate::configure_protocols::{CONFIGURE_PROTOCOLS, ConfigureProtocols};
+use crate::configure_protocols::CONFIGURE_PROTOCOLS;
+use crate::helpers::{decode_handle_call_msg, decode_method};
 use crate::states::*;
 use crate::errors::*;
 
@@ -60,6 +61,8 @@ pub fn verify_protocols(
      Ok(verified)
  }
 
+
+
 fn verify_protocol_recovery(proposal_to_remove: String, sources: &Vec<String>, protocols: &Vec<String>) -> Result<bool> {
     require!(proposal_to_remove != "".to_string(), XCallManagerError::NoProposalForRemovalExists);
     let mut modified_sources = Vec::new();
@@ -99,11 +102,15 @@ pub fn handle_call_message<'info>(
     data: Vec<u8>,
     protocols: Vec<String>,
 ) -> Result<()> {
-    let verified = verify_protocol_recovery(ctx.accounts.state.proposed_protocol_to_remove.clone(), &ctx.accounts.state.sources, &protocols.to_vec())?;
+    require!(from == ctx.accounts.state.icon_governance, XCallManagerError::NotTheIconGovernance);
+    require!(ctx.accounts.state.whitelisted_actions.contains(&data), XCallManagerError::ActionNotWhitelisted);
+
+    let verified: bool = verify_protocol_recovery(ctx.accounts.state.proposed_protocol_to_remove.clone(), &ctx.accounts.state.sources, &protocols.to_vec())?;
     require!(verified, XCallManagerError::ProtocolMismatch);
-    
-    let method = String::from_utf8(data[0..4].to_vec()).map_err(|_| XCallManagerError::DecoderError)?;
-    let message = ConfigureProtocols::decode_from(&data)?;
+
+    let method = decode_method(&data)?;
+    //let message = ConfigureProtocols::decode_from(&data)?;
+    let message = decode_handle_call_msg(&data)?;
     if method == CONFIGURE_PROTOCOLS {
         require!(from == ctx.accounts.state.icon_governance, XCallManagerError::InvalidSender);
         let xcall_manager = &mut ctx.accounts.state;
