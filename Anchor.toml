@@ -19,4 +19,4 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run jest --runTestsByPath --detectOpenHandles --forceExit --watch"
+test = "yarn run jest --runTestsByPath --detectOpenHandles --forceExit --watchAll"

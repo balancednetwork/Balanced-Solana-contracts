@@ -22,13 +22,13 @@ export class TestContext {
     this.fee_handler = admin;
   }
 
-  async initialize(xcall: PublicKey, icon_asset_manager: string, xcall_manager: PublicKey) {
+  async initialize(xcall: PublicKey, icon_asset_manager: string, xcall_manager: PublicKey, xcall_manager_state: PublicKey) {
     let initializeIx = await assetManagerProgram.methods
-        .initialize(xcall, icon_asset_manager, xcall_manager)
+        .initialize(xcall, icon_asset_manager, xcall_manager, xcall_manager_state )
         .accountsStrict({
           state: AssetManagerPDA.state().pda,
           admin: this.admin.publicKey,
-          systemProgram: SYSTEM_PROGRAM_ID
+          systemProgram: SYSTEM_PROGRAM_ID,
         }).instruction();
 
       let tx = await this.txnHelpers.buildV0Txn([initializeIx], [this.admin]);
@@ -67,9 +67,9 @@ export class AssetManagerPDA {
     return { bump, pda };
   }
 
-  static vault_native(key: PublicKey){
+  static vault_native(){
     let [pda, bump] =  PublicKey.findProgramAddressSync(
-      [Buffer.from("vault_native"), key.toBuffer()],
+      [Buffer.from("vault_native")],
       assetManagerProgram.programId
     );
 

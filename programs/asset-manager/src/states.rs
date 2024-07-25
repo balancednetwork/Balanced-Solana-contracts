@@ -60,8 +60,8 @@ pub struct DepositToken<'info> {
     #[account(mut)]
     pub from: Option<Account<'info, TokenAccount>>,
     ///CHECK: is also the signer
-    #[account(mut, signer)]
-    pub from_authority: AccountInfo<'info>,
+    #[account(mut)]
+    pub from_authority:  Signer<'info>,
     
     #[account(mut)]
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
@@ -112,7 +112,7 @@ pub struct HandleCallMessage<'info> {
     pub state: Account<'info, State>,
     #[account(mut)]
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
-    #[account(mut, seeds = [b"vault_native", valult_native_authority.clone().unwrap().key().as_ref()], bump)]
+    #[account(mut, seeds = [b"vault_native"], bump)]
     pub vault_native_account: Option<AccountInfo<'info>>,
     #[account(mut)]
     pub mint: Option<Account<'info, Mint>>,
@@ -120,14 +120,12 @@ pub struct HandleCallMessage<'info> {
     ///CHECK: not required
     #[account(seeds = [b"vault", mint.clone().unwrap().key().as_ref()], bump)]
     pub valult_authority: Option<AccountInfo<'info>>,
-    ///CHECK: not required
-    
-    pub valult_native_authority: Option<AccountInfo<'info>>,
     
     pub token_program: Option<Program<'info, Token>>,
     pub xcall_manager: Program<'info, XcallManager>,
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
     pub xcall: Program<'info, XcallManager>,
+    pub system_program: Program<'info, System>
 }
 
 #[derive(Accounts)]

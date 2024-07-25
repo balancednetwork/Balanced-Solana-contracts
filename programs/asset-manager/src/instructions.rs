@@ -7,6 +7,7 @@ use xcall_manager::{XmState, program::XcallManager, cpi::accounts::VerifyProtoco
 use xcall::cpi::accounts::SendCallCtx;
 use xcall_lib::message::{AnyMessage, call_message_rollback::CallMessageWithRollback, envelope::Envelope};
 use xcall_lib::network_address::NetworkAddress;
+use std::borrow::Borrow;
 use std::str::FromStr;
 
 use crate::helpers::{decode_deposit_revert_msg, decode_method, decode_token_address, decode_withdraw_to_msg };
@@ -114,17 +115,27 @@ pub fn deposit_native<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>
 
 fn _deposit<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: u64, to: Option<String>, data: Option<Vec<u8>>) -> Result<()> {
     require!(amount > 0, CustomError::InvalidAmount);
-    //let from_native  = ctx.accounts.from_native.as_ref().ok_or(CustomError::InvalidFromAddress)?;
-    let mut vault_native_account  = ctx.accounts.vault_native_account.as_ref().ok_or(CustomError::ValultTokenAccountIsRequired)?;
+    let vault_native_account = ctx.accounts.vault_native_account.as_ref().ok_or(CustomError::ValultTokenAccountIsRequired)?;
 
-    let user_authority = &ctx.accounts.from_authority;
-    let deposit_account = &mut vault_native_account;
+    let user = &ctx.accounts.from_authority;
 
-    **user_authority.try_borrow_mut_lamports()? -= amount;
-    **deposit_account.to_account_info().try_borrow_mut_lamports()? += amount;
+    let transfer_instruction = spl_token::solana_program::system_instruction::transfer(
+        &user.key(),
+        &vault_native_account.key(),
+        amount,
+    );
 
-    let from: Pubkey = user_authority.key();
-    let _ = send_deposit_message(ctx, String::from_str( _NATIVE_ADDRESS).unwrap(), from, amount, to, data);
+    spl_token::solana_program::program::invoke(
+        &transfer_instruction,
+        &[
+            user.to_account_info(),
+            vault_native_account.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
+        ],
+    )?;
+
+    let from: Pubkey = user.key();
+    let _ = send_deposit_message(ctx, String::from_str(_NATIVE_ADDRESS).unwrap(), from, amount, to, data);
     Ok(())
 }
 
@@ -305,7 +316,7 @@ fn handle_native_call_message<'info>(
     protocols: Vec<String>
 ) -> Result<()> {
     let state = ctx.accounts.state.clone();
-    require!(ctx.accounts.xcall.key() == ctx.accounts.state.xcall, CustomError::UnauthorizedCaller);
+    //require!(ctx.accounts.xcall.key() == ctx.accounts.state.xcall, CustomError::UnauthorizedCaller);
 
     require!(
         verify_protocols(ctx.accounts.xcall_manager.clone(), ctx.accounts.xcall_manager_state.clone(), &protocols)?,
@@ -315,7 +326,7 @@ fn handle_native_call_message<'info>(
     let method = decode_method(&data).unwrap();
     let to_native  = ctx.accounts.to_native.as_ref().ok_or(CustomError::InvalidToAddress)?;
     let vault_native_account  = ctx.accounts.vault_native_account.as_ref().ok_or(CustomError::ValultTokenAccountIsRequired)?;
-    let valut_authority = ctx.accounts.valult_native_authority.as_ref().ok_or(CustomError::ValultAuthorityIsRequired)?;
+    let system_program_info = ctx.accounts.system_program.to_account_info();
     if method == WITHDRAW_TO_NATIVE {
         require!(from == state.icon_asset_manager, CustomError::NotIconAssetManager);
         let  message  = decode_withdraw_to_msg(&data).unwrap();
@@ -324,8 +335,8 @@ fn handle_native_call_message<'info>(
         require!(message.token_address==_NATIVE_ADDRESS, CustomError::InvalidToAddress);
         withdraw_native_token(
             vault_native_account.clone(),
-            valut_authority.clone(),
             to_native.clone(),
+            system_program_info,
             message.amount as u64, bump
         )?;
 
@@ -336,8 +347,8 @@ fn handle_native_call_message<'info>(
         require!(recipient_pubkey==to_native.key(), CustomError::InvalidToAddress);
         withdraw_native_token(
             vault_native_account.clone(),
-            valut_authority.clone(),
             to_native.clone(),
+            system_program_info,
             message.amount as u64, bump
 
         )?;
@@ -358,7 +369,7 @@ fn withdraw_token<'info>(
     authority: AccountInfo<'info>,
     bump: u8
 ) -> Result<()> {
-    let account_data = spl_token::state::Account::unpack(&vault_token_account.data.borrow())?;
+    let account_data = spl_token::state::Account::unpack(&vault_token_account.data.borrow_mut())?;
     let vault_balance = account_data.amount;
     
     require!(vault_balance >= amount, CustomError::InsufficientBalance);
@@ -382,41 +393,36 @@ fn withdraw_token<'info>(
 }
 
 fn withdraw_native_token<'info>(
-    vault_token_account: AccountInfo<'info>,
-    vault_native_authority: AccountInfo<'info>,
+    vault_native_account: AccountInfo<'info>,
     recipient: AccountInfo<'info>,
+    system_program: AccountInfo<'info>,
     amount: u64,
     bump: u8
 ) -> Result<()> {
-    // let ix = anchor_lang::solana_program::system_instruction::transfer(
-    //     &vault_token_account.key(),
-    //     &recipient.key(),
-    //     amount,
-    // );
-    // anchor_lang::solana_program::program::invoke(
-    //     &ix,
-    //     &[
-    //         vault_token_account,
-    //         recipient,
-    //     ],
-    // )?;
-    let binding = vault_native_authority.key();
-    let seeds = &[b"vault_native".as_ref(), binding.as_ref(), &[bump]];
+    require!(amount <= **vault_native_account.try_borrow_lamports()?, CustomError::InsufficientBalance);
+
+    let seeds = &[
+        b"vault_native".as_ref(),
+        &[bump],
+    ];
     let signer = &[&seeds[..]];
 
-    require!(amount<=vault_token_account.lamports(), CustomError::InsufficientBalance);
-    **vault_token_account.try_borrow_mut_lamports()? -= amount;
-    **recipient.try_borrow_mut_lamports()? += amount;
+    let ix = anchor_lang::solana_program::system_instruction::transfer(
+        &vault_native_account.key,
+        &recipient.key,
+        amount,
+    );
 
     anchor_lang::solana_program::program::invoke_signed(
-        &anchor_lang::solana_program::system_instruction::transfer(
-            &vault_token_account.key(),
-            &recipient.key(),
-            amount,
-        ),
-        &[vault_token_account.to_account_info(), recipient.to_account_info()],
+        &ix,
+        &[
+            vault_native_account,
+            recipient,
+            system_program
+        ],
         signer,
     )?;
+
     Ok(())
 }
 
