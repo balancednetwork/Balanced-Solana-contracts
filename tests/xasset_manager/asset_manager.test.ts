@@ -9,14 +9,14 @@ import { TestContext as xCallManagerContext } from "../axcall_manager/setup";
 
 import { AssetManager } from "../../target/types/asset_manager";
 import { XcallManager } from "../../target/types/xcall_manager";
-import { Xcall } from "../../types/xcall";
-import xcallIdlJson from "../../target/idl/xcall.json";
-import { CentralizedConnection } from "../../types/centralized_connection";
-const connectionProgram: anchor.Program<CentralizedConnection> =
-  anchor.workspace.CentralizedConnection;
+//import { Xcall } from "../../types/xcall";
+//import xcallIdlJson from "../../types/xcall.json";
+//import { CentralizedConnection } from "../../types/centralized_connection";
+// const connectionProgram: anchor.Program<CentralizedConnection> =
+//   anchor.workspace.CentralizedConnection;
 import * as rlp from 'rlp';
 
-const xcallIdl = xcallIdlJson as anchor.Idl;
+//const xcallIdl = xcallIdlJson as anchor.Idl;
 import {
   TOKEN_PROGRAM_ID,
   createMint,
@@ -35,7 +35,7 @@ describe("xx asset manager test", () => {
   const wallet = provider.wallet as anchor.Wallet;
   const program: anchor.Program<AssetManager> = anchor.workspace.AssetManager;
   const xcall_manager_program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
-  const xcall_program =  new anchor.Program(xcallIdl, provider);
+  //const xcall_program =  new anchor.Program(xcallIdl, provider);
 
   let txnHelpers = new TransactionHelper(connection, wallet.payer);
   let ctx = new TestContext(connection, txnHelpers, wallet.payer);
@@ -136,7 +136,7 @@ describe("xx asset manager test", () => {
     );
     await  sleep(3);
 
-    console.log("xcall program id is: ", xcall_program.programId)
+    //console.log("xcall program id is: ", xcall_program.programId)
     await txnHelpers.airdrop(depositorKeyPair.publicKey, 5000000000);
     await  sleep(3);
     let bytes = Buffer.alloc(0);
@@ -182,7 +182,7 @@ describe("xx asset manager test", () => {
         },
         //connection params
         {
-          pubkey: connectionProgram.programId,
+          pubkey: xcall_manager_program.programId,
           isSigner: false,
           isWritable: true,
         },
@@ -210,7 +210,7 @@ describe("xx asset manager test", () => {
 
   it("deposit native token", async() => {
     let depositorKeyPair = Keypair.generate();
-    console.log("xcall program id is: ", xcall_program.programId)
+    //console.log("xcall program id is: ", xcall_program.programId)
     await txnHelpers.airdrop(depositorKeyPair.publicKey, 5000000000);
     await  sleep(3);
     let bytes = Buffer.alloc(0);
@@ -256,7 +256,7 @@ describe("xx asset manager test", () => {
         },
         //connection params
         {
-          pubkey: connectionProgram.programId,
+          pubkey: xcall_manager_program.programId,
           isSigner: false,
           isWritable: true,
         },

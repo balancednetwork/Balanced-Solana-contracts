@@ -4,7 +4,7 @@ import * as rlp from 'rlp';
 
 import { BalancedDollar } from "../../target/types/balanced_dollar";
 import { XcallManager } from "../../target/types/xcall_manager";
-import xcallIdlJson from "../../target/idl/xcall.json";
+//import xcallIdlJson from "../../types/xcall.json";
 
 import { TransactionHelper, sleep } from "../utils";
 import { TestContext, BalancedDollarPDA } from "./setup";
@@ -12,10 +12,10 @@ import { XcallPDA, ConnectionPDA } from "../utils/xcall_pda";
 const program: anchor.Program<BalancedDollar> = anchor.workspace.BalancedDollar;
 const xcall_manager_program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
-import { CentralizedConnection } from "../../types/centralized_connection";
-const xcallIdl = xcallIdlJson as anchor.Idl;
-const connectionProgram: anchor.Program<CentralizedConnection> =
-  anchor.workspace.CentralizedConnection;
+//import { CentralizedConnection } from "../../types/centralized_connection";
+//const xcallIdl = xcallIdlJson as anchor.Idl;
+// const connectionProgram: anchor.Program<CentralizedConnection> =
+//   anchor.workspace.CentralizedConnection;
 import {
     TOKEN_PROGRAM_ID,
     createMint,
@@ -34,7 +34,7 @@ describe("balanced dollar manager", () => {
 
   let txnHelpers = new TransactionHelper(connection, wallet.payer);
   let ctx = new TestContext(connection, txnHelpers, wallet.payer);
-  const xcall_program =  new anchor.Program(xcallIdl, provider);
+  //const xcall_program =  new anchor.Program(xcallIdl, provider);
 
   let xcallKeyPair = Keypair.generate();
   let xcallManagerKeyPair = Keypair.generate();
@@ -131,7 +131,7 @@ describe("balanced dollar manager", () => {
         },
         //connection params
         {
-          pubkey: connectionProgram.programId,
+          pubkey: xcall_manager_program.programId,
           isSigner: false,
           isWritable: true,
         },

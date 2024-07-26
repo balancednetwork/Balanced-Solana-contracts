@@ -7,12 +7,12 @@ use xcall_manager::{XmState, program::XcallManager, cpi::accounts::VerifyProtoco
 use xcall::cpi::accounts::SendCallCtx;
 use xcall_lib::message::{AnyMessage, call_message_rollback::CallMessageWithRollback, envelope::Envelope};
 use xcall_lib::network_address::NetworkAddress;
-use std::borrow::Borrow;
 use std::str::FromStr;
 
+use crate::errors::*;
+
 use crate::helpers::{decode_deposit_revert_msg, decode_method, decode_token_address, decode_withdraw_to_msg };
-use crate::{
-        errors::CustomError, states::*, params_builder::*, structs::{
+use crate::{states::*, params_builder::*, structs::{
         deposit_message::*,
         withdraw_message::*,
         deposit_revert::*,
@@ -45,7 +45,7 @@ pub fn configure_rate_limit(
     period: u64,
     percentage: u64,
 ) -> Result<()> {
-    require!(percentage <= POINTS, CustomError::PercentageTooHigh);
+    require!(percentage <= POINTS, AssetManagerError::PercentageTooHigh);
 
      let token_state = &mut ctx.accounts.token_state;
      let current_limit = 0;
@@ -85,8 +85,8 @@ pub fn deposit_token<'info>(
     to: Option<String>,
     data: Option<Vec<u8>>,
 ) -> Result<()> {
-    let from  = ctx.accounts.from.as_ref().ok_or(CustomError::InvalidFromAddress)?;
-    let vault_token_account  = ctx.accounts.vault_token_account.as_ref().ok_or(CustomError::ValultTokenAccountIsRequired)?;
+    let from  = ctx.accounts.from.as_ref().ok_or(AssetManagerError::InvalidFromAddress)?;
+    let vault_token_account  = ctx.accounts.vault_token_account.as_ref().ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
     let cpi_accounts = Transfer {
         from: from.to_account_info(),
         to: vault_token_account.to_account_info(),
@@ -114,8 +114,8 @@ pub fn deposit_native<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>
 }
 
 fn _deposit<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: u64, to: Option<String>, data: Option<Vec<u8>>) -> Result<()> {
-    require!(amount > 0, CustomError::InvalidAmount);
-    let vault_native_account = ctx.accounts.vault_native_account.as_ref().ok_or(CustomError::ValultTokenAccountIsRequired)?;
+    require!(amount > 0, AssetManagerError::InvalidAmount);
+    let vault_native_account = ctx.accounts.vault_native_account.as_ref().ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
 
     let user = &ctx.accounts.from_authority;
 
@@ -147,7 +147,7 @@ fn send_deposit_message<'info>(
     to: Option<String>,
     data: Option<Vec<u8>>,
 ) -> Result<()> {
-    require!(false, CustomError::TestError);
+    require!(false, AssetManagerError::TestError);
     let deposit_message = DepositMessage::create(
         token_address.clone(),
         from.to_string(),
@@ -171,7 +171,7 @@ fn send_deposit_message<'info>(
     let icon_asset_manager = NetworkAddress::from_str(&ctx.accounts.state.icon_asset_manager).unwrap(); //todo: get network address without unwrap
 
     let (signer_pda, _bump) = Pubkey::find_program_address(&[b"asset_manager_signer"], &ctx.program_id);
-    require!(ctx.accounts.asset_manager.key() == signer_pda, CustomError::NotAssetManager);
+    require!(ctx.accounts.asset_manager.key() == signer_pda, AssetManagerError::NotAssetManager);
     
     let xcall_config = &ctx.remaining_accounts[0];
     let xcall_reply = &ctx.remaining_accounts[1];
@@ -260,21 +260,21 @@ fn handle_token_call_message<'info>(
 
     require!(
         verify_protocols(ctx.accounts.xcall_manager.clone(), ctx.accounts.xcall_manager_state.clone(), &protocols)?,
-        CustomError::ProtocolMismatch
+        AssetManagerError::ProtocolMismatch
     );
     let method = decode_method(&data).unwrap();
-    let to  = ctx.accounts.to.as_ref().ok_or(CustomError::InvalidToAddress)?;
-    let mint  = ctx.accounts.mint.as_ref().ok_or(CustomError::MintIsRequired)?;
-    let token_program  = ctx.accounts.token_program.as_ref().ok_or(CustomError::TokenProgramIsRequired)?;
-    let vault_token_account = ctx.accounts.vault_token_account.as_ref().ok_or(CustomError::ValultTokenAccountIsRequired)?;
-    let vault_authority = ctx.accounts.valult_authority.as_ref().ok_or(CustomError::ValultAuthorityIsRequired)?;
+    let to  = ctx.accounts.to.as_ref().ok_or(AssetManagerError::InvalidToAddress)?;
+    let mint  = ctx.accounts.mint.as_ref().ok_or(AssetManagerError::MintIsRequired)?;
+    let token_program  = ctx.accounts.token_program.as_ref().ok_or(AssetManagerError::TokenProgramIsRequired)?;
+    let vault_token_account = ctx.accounts.vault_token_account.as_ref().ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
+    let vault_authority = ctx.accounts.valult_authority.as_ref().ok_or(AssetManagerError::ValultAuthorityIsRequired)?;
     if method == WITHDRAW_TO {
-        require!(from == state.icon_asset_manager, CustomError::NotIconAssetManager);
+        require!(from == state.icon_asset_manager, AssetManagerError::NotIconAssetManager);
         let  message  = decode_withdraw_to_msg(&data).unwrap();
-        let token_pubkey = Pubkey::from_str(&message.token_address).map_err(|_| CustomError::NotAnAddress)?;
-        let recipient_pubkey = Pubkey::from_str(&message.user_address).map_err(|_| CustomError::NotAnAddress)?;
-        require!(recipient_pubkey==to.key(), CustomError::InvalidToAddress);
-        require!(token_pubkey==mint.key(), CustomError::InvalidToAddress);
+        let token_pubkey = Pubkey::from_str(&message.token_address).map_err(|_| AssetManagerError::NotAnAddress)?;
+        let recipient_pubkey = Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
+        require!(recipient_pubkey==to.key(), AssetManagerError::InvalidToAddress);
+        require!(token_pubkey==mint.key(), AssetManagerError::InvalidToAddress);
         withdraw_token(
             vault_token_account.to_account_info(),
             to.to_account_info(),
@@ -285,11 +285,11 @@ fn handle_token_call_message<'info>(
         )?;
 
     } else if method == DEPOSIT_REVERT {
-        require!(from == state.xcall.key().to_string(), CustomError::UnauthorizedCaller);
+        require!(from == state.xcall.key().to_string(), AssetManagerError::UnauthorizedCaller);
 
         let  message  = decode_deposit_revert_msg(&data).unwrap();
-        let recipient_pubkey = Pubkey::from_str(&message.account).map_err(|_| CustomError::NotAnAddress)?;
-        require!(recipient_pubkey==to.key(), CustomError::InvalidToAddress);
+        let recipient_pubkey = Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
+        require!(recipient_pubkey==to.key(), AssetManagerError::InvalidToAddress);
         
         msg!("from the deposit revert");
         withdraw_token(
@@ -303,7 +303,7 @@ fn handle_token_call_message<'info>(
         
     } else {
         msg!("on unknown message");
-        return Err(CustomError::UnknownMessage.into());
+        return Err(AssetManagerError::UnknownMessage.into());
     }
 
     Ok(())
@@ -320,19 +320,19 @@ fn handle_native_call_message<'info>(
 
     require!(
         verify_protocols(ctx.accounts.xcall_manager.clone(), ctx.accounts.xcall_manager_state.clone(), &protocols)?,
-        CustomError::ProtocolMismatch
+        AssetManagerError::ProtocolMismatch
     );
     let bump = ctx.bumps.vault_native_account.unwrap();
     let method = decode_method(&data).unwrap();
-    let to_native  = ctx.accounts.to_native.as_ref().ok_or(CustomError::InvalidToAddress)?;
-    let vault_native_account  = ctx.accounts.vault_native_account.as_ref().ok_or(CustomError::ValultTokenAccountIsRequired)?;
+    let to_native  = ctx.accounts.to_native.as_ref().ok_or(AssetManagerError::InvalidToAddress)?;
+    let vault_native_account  = ctx.accounts.vault_native_account.as_ref().ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
     let system_program_info = ctx.accounts.system_program.to_account_info();
     if method == WITHDRAW_TO_NATIVE {
-        require!(from == state.icon_asset_manager, CustomError::NotIconAssetManager);
+        require!(from == state.icon_asset_manager, AssetManagerError::NotIconAssetManager);
         let  message  = decode_withdraw_to_msg(&data).unwrap();
-        let recipient_pubkey = Pubkey::from_str(&message.user_address).map_err(|_| CustomError::NotAnAddress)?;
-        require!(recipient_pubkey==to_native.key(), CustomError::InvalidToAddress);
-        require!(message.token_address==_NATIVE_ADDRESS, CustomError::InvalidToAddress);
+        let recipient_pubkey = Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
+        require!(recipient_pubkey==to_native.key(), AssetManagerError::InvalidToAddress);
+        require!(message.token_address==_NATIVE_ADDRESS, AssetManagerError::InvalidToAddress);
         withdraw_native_token(
             vault_native_account.clone(),
             to_native.clone(),
@@ -341,10 +341,10 @@ fn handle_native_call_message<'info>(
         )?;
 
     } else if method == DEPOSIT_REVERT {
-        require!(from == state.xcall.key().to_string(), CustomError::NotIconAssetManager);
+        require!(from == state.xcall.key().to_string(), AssetManagerError::NotIconAssetManager);
         let  message  = decode_deposit_revert_msg(&data).unwrap();
-        let recipient_pubkey = Pubkey::from_str(&message.account).map_err(|_| CustomError::NotAnAddress)?;
-        require!(recipient_pubkey==to_native.key(), CustomError::InvalidToAddress);
+        let recipient_pubkey = Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
+        require!(recipient_pubkey==to_native.key(), AssetManagerError::InvalidToAddress);
         withdraw_native_token(
             vault_native_account.clone(),
             to_native.clone(),
@@ -354,7 +354,7 @@ fn handle_native_call_message<'info>(
         )?;
     } else {
         msg!("on unknown message");
-        return Err(CustomError::UnknownMessage.into());
+        return Err(AssetManagerError::UnknownMessage.into());
     }
 
     Ok(())
@@ -372,7 +372,7 @@ fn withdraw_token<'info>(
     let account_data = spl_token::state::Account::unpack(&vault_token_account.data.borrow_mut())?;
     let vault_balance = account_data.amount;
     
-    require!(vault_balance >= amount, CustomError::InsufficientBalance);
+    require!(vault_balance >= amount, AssetManagerError::InsufficientBalance);
 
     let cpi_accounts = Transfer {
         from: vault_token_account,
@@ -399,7 +399,7 @@ fn withdraw_native_token<'info>(
     amount: u64,
     bump: u8
 ) -> Result<()> {
-    require!(amount <= **vault_native_account.try_borrow_lamports()?, CustomError::InsufficientBalance);
+    require!(amount <= **vault_native_account.try_borrow_lamports()?, AssetManagerError::InsufficientBalance);
 
     let seeds = &[
         b"vault_native".as_ref(),
@@ -428,7 +428,7 @@ fn withdraw_native_token<'info>(
 
 pub fn verify_withdraw(token_state: &mut TokenState, amount: u64, balance: u64) -> Result<()> {
     let limit = calculate_limit(&token_state, balance)?;
-    require!(balance.saturating_sub(amount) >= limit, CustomError::ExceedsWithdrawLimit);
+    require!(balance.saturating_sub(amount) >= limit, AssetManagerError::ExceedsWithdrawLimit);
 
     token_state.current_limit = limit;
     token_state.last_update = Clock::get()?.unix_timestamp;

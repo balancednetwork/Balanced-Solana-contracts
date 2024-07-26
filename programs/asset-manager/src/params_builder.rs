@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::{errors::CustomError, helpers::decode_withdraw_to_msg, states::*};
+use crate::{errors::*, helpers::decode_withdraw_to_msg, states::*};
 use std::str::FromStr;
  // #[account(mut)]
 // pub to: Option<Account<'info, TokenAccount>>,
@@ -47,11 +47,11 @@ pub fn get_withdraw_to_token_param<'info>(ctx: Context<'_, '_, '_, 'info, GetPar
         is_signer: false,
     });
     accounts.push(ParamAccountProps{
-        pubkey: Pubkey::from_str(&message.user_address).map_err(|_| CustomError::NotAnAddress)?,
+        pubkey: Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?,
         is_writable: true,
         is_signer: false,
     });
-    let mint = Pubkey::from_str(&message.token_address).map_err(|_| CustomError::NotAnAddress)?;
+    let mint = Pubkey::from_str(&message.token_address).map_err(|_| AssetManagerError::NotAnAddress)?;
     accounts.push(ParamAccountProps{
         pubkey: mint,
         is_writable: true,
