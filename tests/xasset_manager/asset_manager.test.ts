@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey, Connection } from "@solana/web3.js";
 
 import { TransactionHelper, sleep } from "../utils";
 import { TestContext, AssetManagerPDA } from "./setup";
@@ -31,7 +31,7 @@ import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 describe("xx asset manager test", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const connection = provider.connection;
+  const connection = new Connection("http://127.0.0.1:8899", "confirmed");
   const wallet = provider.wallet as anchor.Wallet;
   const program: anchor.Program<AssetManager> = anchor.workspace.AssetManager;
   const xcall_manager_program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;

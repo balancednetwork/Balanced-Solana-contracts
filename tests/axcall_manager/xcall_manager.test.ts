@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Keypair,  } from "@solana/web3.js";
+import { Keypair, Connection  } from "@solana/web3.js";
 import * as rlp from 'rlp';
 
 import { XcallManager } from "../../target/types/xcall_manager";
@@ -12,7 +12,7 @@ const program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
 describe("balanced xcall manager", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const connection = provider.connection;
+  const connection = new Connection("http://127.0.0.1:8899", "confirmed");
   const wallet = provider.wallet as anchor.Wallet;
 
   let txnHelpers = new TransactionHelper(connection, wallet.payer);

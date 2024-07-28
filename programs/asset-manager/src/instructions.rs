@@ -193,7 +193,7 @@ fn send_deposit_message<'info>(
 
     let xcall_program = ctx.accounts.xcall.to_account_info();
     let cpi_ctx:CpiContext<'_, '_, '_, 'info, SendCallCtx<'info>>  = CpiContext::new(xcall_program, cpi_accounts).with_remaining_accounts(remaining_accounts.to_vec());
-    #[cfg(not(test))]
+    //#[cfg(not(test))]
     let _result: std::result::Result<xcall::cpi::Return<u128>, Error> = xcall::cpi::send_call(cpi_ctx, envelope_encoded, icon_asset_manager);
     Ok(())
 }

@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey, Connection } from "@solana/web3.js";
 import * as rlp from 'rlp';
 
 import { BalancedDollar } from "../../target/types/balanced_dollar";
@@ -29,7 +29,7 @@ import { BN, min } from "bn.js";
 describe("balanced dollar manager", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const connection = provider.connection;
+  const connection = new Connection("http://127.0.0.1:8899", "confirmed");
   const wallet = provider.wallet as anchor.Wallet;
 
   let txnHelpers = new TransactionHelper(connection, wallet.payer);

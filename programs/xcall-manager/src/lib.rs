@@ -7,7 +7,7 @@ pub mod configure_protocols;
 use anchor_lang::prelude::*;
 pub use states::*;
 
-declare_id!("E8YhCgRvjfjeoGZxrpf7oQVwKeA3ra67EbzcvJcMPrKg");
+declare_id!("BLtyB6K2yu942PRJSZEyKm4fzjX8RofB3CHmx3brzU6p");
 
 #[program]
 pub mod xcall_manager {

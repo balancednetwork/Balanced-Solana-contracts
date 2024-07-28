@@ -8,7 +8,7 @@ pub mod params_builder;
 
 use states::*;
 
-declare_id!("5A4zc47C8yRf94szVu4DBF45mwm8uWprbXAcYbESUzmm");
+declare_id!("DZ7JPmWHWTePh2B98U3cPUJqcyCr7YGy7uWJUXWfZYHN");
 
 #[program]
 pub mod asset_manager {

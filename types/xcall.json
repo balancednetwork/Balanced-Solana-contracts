@@ -1,0 +1,1435 @@
+{
+  "address": "3489r9oW63a8MRk5CXD2Lv8YTFQ9iGjaXxgGnaoccPhc",
+  "metadata": {
+    "name": "xcall",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "decode_cs_message",
+      "discriminator": [
+        144,
+        173,
+        76,
+        110,
+        143,
+        132,
+        199,
+        222
+      ],
+      "accounts": [],
+      "args": [
+        {
+          "name": "message",
+          "type": "bytes"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "CSMessageDecoded"
+        }
+      }
+    },
+    {
+      "name": "execute_call",
+      "discriminator": [
+        62,
+        92,
+        205,
+        53,
+        148,
+        71,
+        217,
+        96
+      ],
+      "accounts": [
+        {
+          "name": "proxy_requests",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "reply_state",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "default_connection"
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "req_id",
+          "type": "u128"
+        },
+        {
+          "name": "data",
+          "type": "bytes"
+        },
+        {
+          "name": "nid",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "execute_rollback",
+      "discriminator": [
+        10,
+        217,
+        27,
+        106,
+        53,
+        35,
+        82,
+        17
+      ],
+      "accounts": [
+        {
+          "name": "rollback",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "default_connection",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "owner",
+          "docs": [
+            "CHECK : need to be the owner of the pda"
+          ],
+          "writable": true
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "sn",
+          "type": "u128"
+        }
+      ]
+    },
+    {
+      "name": "get_admin",
+      "discriminator": [
+        136,
+        243,
+        64,
+        106,
+        205,
+        81,
+        211,
+        193
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true
+        }
+      ],
+      "args": [],
+      "returns": "pubkey"
+    },
+    {
+      "name": "get_default_connection",
+      "discriminator": [
+        144,
+        154,
+        189,
+        172,
+        38,
+        195,
+        153,
+        14
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "nid",
+          "type": "string"
+        }
+      ],
+      "returns": "pubkey"
+    },
+    {
+      "name": "get_fee",
+      "discriminator": [
+        115,
+        195,
+        235,
+        161,
+        25,
+        219,
+        60,
+        29
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        },
+        {
+          "name": "default_connection"
+        },
+        {
+          "name": "reply"
+        }
+      ],
+      "args": [
+        {
+          "name": "nid",
+          "type": "string"
+        },
+        {
+          "name": "rollback",
+          "type": "bool"
+        },
+        {
+          "name": "sources",
+          "type": {
+            "option": {
+              "vec": "string"
+            }
+          }
+        }
+      ],
+      "returns": "u64"
+    },
+    {
+      "name": "get_network_address",
+      "discriminator": [
+        30,
+        225,
+        18,
+        117,
+        173,
+        233,
+        193,
+        79
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true
+        }
+      ],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "NetworkAddress"
+        }
+      }
+    },
+    {
+      "name": "get_protocol_fee",
+      "discriminator": [
+        196,
+        255,
+        35,
+        46,
+        240,
+        44,
+        38,
+        53
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true
+        }
+      ],
+      "args": [],
+      "returns": "u64"
+    },
+    {
+      "name": "get_protocol_fee_handler",
+      "discriminator": [
+        67,
+        5,
+        253,
+        223,
+        144,
+        117,
+        8,
+        95
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true
+        }
+      ],
+      "args": [],
+      "returns": "pubkey"
+    },
+    {
+      "name": "handle_error",
+      "discriminator": [
+        4,
+        46,
+        187,
+        49,
+        241,
+        125,
+        121,
+        119
+      ],
+      "accounts": [
+        {
+          "name": "connection",
+          "signer": true
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "default_connection"
+        },
+        {
+          "name": "pending_response",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "pending_response_creator",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "rollback_account",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "from_nid",
+          "type": "string"
+        },
+        {
+          "name": "sequence_no",
+          "type": "u128"
+        }
+      ]
+    },
+    {
+      "name": "handle_message",
+      "discriminator": [
+        91,
+        215,
+        39,
+        71,
+        108,
+        217,
+        94,
+        89
+      ],
+      "accounts": [
+        {
+          "name": "connection",
+          "signer": true
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "proxy_request",
+          "writable": true
+        },
+        {
+          "name": "default_connection"
+        },
+        {
+          "name": "pending_request",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "pending_request_creator",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "pending_response",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "pending_response_creator",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "successful_response",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "rollback_account",
+          "optional": true
+        },
+        {
+          "name": "rollback_creator",
+          "writable": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "from_nid",
+          "type": "string"
+        },
+        {
+          "name": "msg",
+          "type": "bytes"
+        },
+        {
+          "name": "sequence_no",
+          "type": "u128"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "reply",
+          "writable": true
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "network_id",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "send_call",
+      "discriminator": [
+        254,
+        95,
+        190,
+        68,
+        194,
+        140,
+        28,
+        103
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "reply",
+          "writable": true
+        },
+        {
+          "name": "default_connection"
+        },
+        {
+          "name": "fee_handler",
+          "writable": true
+        },
+        {
+          "name": "rollback_account",
+          "writable": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "envelope",
+          "type": "bytes"
+        },
+        {
+          "name": "to",
+          "type": {
+            "defined": {
+              "name": "NetworkAddress"
+            }
+          }
+        }
+      ],
+      "returns": "u128"
+    },
+    {
+      "name": "set_admin",
+      "discriminator": [
+        251,
+        163,
+        0,
+        52,
+        91,
+        194,
+        187,
+        92
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "account",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_default_connection",
+      "discriminator": [
+        82,
+        16,
+        211,
+        171,
+        43,
+        227,
+        9,
+        155
+      ],
+      "accounts": [
+        {
+          "name": "default_connection",
+          "writable": true
+        },
+        {
+          "name": "config"
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "network_id",
+          "type": "string"
+        },
+        {
+          "name": "connection",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_protocol_fee",
+      "discriminator": [
+        173,
+        239,
+        83,
+        242,
+        136,
+        43,
+        144,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "fee_handler",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "fee",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "set_protocol_fee_handler",
+      "discriminator": [
+        77,
+        67,
+        152,
+        114,
+        71,
+        111,
+        125,
+        231
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "fee_handler",
+          "type": "pubkey"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
+      ]
+    },
+    {
+      "name": "DefaultConnection",
+      "discriminator": [
+        157,
+        235,
+        105,
+        62,
+        249,
+        244,
+        234,
+        110
+      ]
+    },
+    {
+      "name": "PendingRequest",
+      "discriminator": [
+        200,
+        54,
+        139,
+        59,
+        132,
+        71,
+        165,
+        140
+      ]
+    },
+    {
+      "name": "PendingResponse",
+      "discriminator": [
+        208,
+        29,
+        212,
+        56,
+        57,
+        21,
+        102,
+        91
+      ]
+    },
+    {
+      "name": "ProxyRequest",
+      "discriminator": [
+        218,
+        221,
+        67,
+        191,
+        4,
+        58,
+        233,
+        238
+      ]
+    },
+    {
+      "name": "Reply",
+      "discriminator": [
+        94,
+        7,
+        30,
+        141,
+        234,
+        119,
+        194,
+        246
+      ]
+    },
+    {
+      "name": "RollbackAccount",
+      "discriminator": [
+        134,
+        57,
+        189,
+        69,
+        204,
+        145,
+        207,
+        114
+      ]
+    },
+    {
+      "name": "SuccessfulResponse",
+      "discriminator": [
+        159,
+        124,
+        99,
+        153,
+        111,
+        205,
+        107,
+        247
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "CallExecuted",
+      "discriminator": [
+        237,
+        120,
+        238,
+        142,
+        189,
+        37,
+        65,
+        128
+      ]
+    },
+    {
+      "name": "CallMessage",
+      "discriminator": [
+        125,
+        100,
+        225,
+        111,
+        72,
+        201,
+        186,
+        123
+      ]
+    },
+    {
+      "name": "CallMessageSent",
+      "discriminator": [
+        255,
+        161,
+        224,
+        203,
+        154,
+        117,
+        117,
+        126
+      ]
+    },
+    {
+      "name": "ResponseMessage",
+      "discriminator": [
+        125,
+        230,
+        224,
+        74,
+        135,
+        185,
+        132,
+        218
+      ]
+    },
+    {
+      "name": "RollbackExecuted",
+      "discriminator": [
+        50,
+        154,
+        60,
+        223,
+        193,
+        198,
+        62,
+        240
+      ]
+    },
+    {
+      "name": "RollbackMessage",
+      "discriminator": [
+        207,
+        120,
+        146,
+        208,
+        75,
+        64,
+        28,
+        168
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "OnlyAdmin",
+      "msg": "Only Admin"
+    },
+    {
+      "code": 6001,
+      "name": "MaxRollbackSizeExceeded",
+      "msg": "Maximum rollback data size exceeded"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidSn",
+      "msg": "Invalid SN"
+    },
+    {
+      "code": 6003,
+      "name": "RollbackNotEnabled",
+      "msg": "Rollback not enabled"
+    },
+    {
+      "code": 6004,
+      "name": "MaxDataSizeExceeded",
+      "msg": "Maximum data size exceeded"
+    },
+    {
+      "code": 6005,
+      "name": "RollbackAccountNotSpecified",
+      "msg": "Rollback account is not specified"
+    },
+    {
+      "code": 6006,
+      "name": "RollbackCreatorNotSpecified",
+      "msg": "Rollback account creator not specified"
+    },
+    {
+      "code": 6007,
+      "name": "PendingRequestAccountNotSpecified",
+      "msg": "Pending request account is not specified"
+    },
+    {
+      "code": 6008,
+      "name": "PendingRequestCreatorNotSpecified",
+      "msg": "Pending request account creator is not specified"
+    },
+    {
+      "code": 6009,
+      "name": "PendingResponseAccountNotSpecified",
+      "msg": "Pending response account is not specified"
+    },
+    {
+      "code": 6010,
+      "name": "PendingResponseCreatorNotSpecified",
+      "msg": "Pending response account creator is not specified"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidMessageSeed",
+      "msg": "Invalid message seed"
+    },
+    {
+      "code": 6012,
+      "name": "SuccessfulResponseAccountNotSpecified",
+      "msg": "Successful response account is not specified"
+    },
+    {
+      "code": 6013,
+      "name": "ProtocolMismatch",
+      "msg": "Protocol mismatch"
+    },
+    {
+      "code": 6014,
+      "name": "RollbackNotPossible",
+      "msg": "Rollback not possible"
+    },
+    {
+      "code": 6015,
+      "name": "CallRequestNotFound",
+      "msg": "Call request not found"
+    },
+    {
+      "code": 6016,
+      "name": "NoRollbackData",
+      "msg": "No rollback data"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidReplyReceived",
+      "msg": "Invalid reply received"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidMessageSequence",
+      "msg": "Invalid message sequence received"
+    },
+    {
+      "code": 6019,
+      "name": "DecodeFailed",
+      "msg": "Decode failed"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidSource",
+      "msg": "Invalid source"
+    },
+    {
+      "code": 6021,
+      "name": "InvalidRequestId",
+      "msg": "Invalid request id"
+    },
+    {
+      "code": 6022,
+      "name": "DataMismatch",
+      "msg": "Data mismatch"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidPubkey",
+      "msg": "Invalid pubkey"
+    },
+    {
+      "code": 6024,
+      "name": "ParsePubkeyError",
+      "msg": "Invalid source address"
+    }
+  ],
+  "types": [
+    {
+      "name": "CSMessageDecoded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "message_type",
+            "type": {
+              "defined": {
+                "name": "CSMessageType"
+              }
+            }
+          },
+          {
+            "name": "request",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "CSMessageRequest"
+                }
+              }
+            }
+          },
+          {
+            "name": "result",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "CSMessageResult"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "CSMessageRequest",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "from",
+            "type": {
+              "defined": {
+                "name": "NetworkAddress"
+              }
+            }
+          },
+          {
+            "name": "to",
+            "type": "string"
+          },
+          {
+            "name": "sequence_no",
+            "type": "u128"
+          },
+          {
+            "name": "msg_type",
+            "type": {
+              "defined": {
+                "name": "MessageType"
+              }
+            }
+          },
+          {
+            "name": "data",
+            "type": "bytes"
+          },
+          {
+            "name": "protocols",
+            "type": {
+              "vec": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "CSMessageResult",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sequence_no",
+            "type": "u128"
+          },
+          {
+            "name": "response_code",
+            "type": {
+              "defined": {
+                "name": "CSResponseType"
+              }
+            }
+          },
+          {
+            "name": "message",
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CSMessageType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "CSMessageRequest"
+          },
+          {
+            "name": "CSMessageResult"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CSResponseType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "CSResponseFailure"
+          },
+          {
+            "name": "CSResponseSuccess"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CallExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "reqId",
+            "type": "u128"
+          },
+          {
+            "name": "code",
+            "type": "u8"
+          },
+          {
+            "name": "msg",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CallMessage",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "from",
+            "type": "string"
+          },
+          {
+            "name": "to",
+            "type": "string"
+          },
+          {
+            "name": "sn",
+            "type": "u128"
+          },
+          {
+            "name": "reqId",
+            "type": "u128"
+          },
+          {
+            "name": "data",
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CallMessageSent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "from",
+            "type": "pubkey"
+          },
+          {
+            "name": "to",
+            "type": "string"
+          },
+          {
+            "name": "sn",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Config",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_handler",
+            "type": "pubkey"
+          },
+          {
+            "name": "network_id",
+            "type": "string"
+          },
+          {
+            "name": "protocol_fee",
+            "type": "u64"
+          },
+          {
+            "name": "sequence_no",
+            "type": "u128"
+          },
+          {
+            "name": "last_req_id",
+            "type": "u128"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DefaultConnection",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "address",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MessageType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "CallMessage"
+          },
+          {
+            "name": "CallMessageWithRollback"
+          },
+          {
+            "name": "CallMessagePersisted"
+          }
+        ]
+      }
+    },
+    {
+      "name": "NetworkAddress",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          "string"
+        ]
+      }
+    },
+    {
+      "name": "PendingRequest",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sources",
+            "type": {
+              "vec": "pubkey"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingResponse",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sources",
+            "type": {
+              "vec": "pubkey"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProxyRequest",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "req",
+            "type": {
+              "defined": {
+                "name": "CSMessageRequest"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Reply",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "reply_state",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "CSMessageRequest"
+                }
+              }
+            }
+          },
+          {
+            "name": "call_reply",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "CSMessageRequest"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResponseMessage",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "code",
+            "type": "u8"
+          },
+          {
+            "name": "sn",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Rollback",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "from",
+            "type": "pubkey"
+          },
+          {
+            "name": "to",
+            "type": {
+              "defined": {
+                "name": "NetworkAddress"
+              }
+            }
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "rollback",
+            "type": "bytes"
+          },
+          {
+            "name": "protocols",
+            "type": {
+              "vec": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RollbackAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rollback",
+            "type": {
+              "defined": {
+                "name": "Rollback"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RollbackExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sn",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RollbackMessage",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sn",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SuccessfulResponse",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "success",
+            "type": "bool"
+          }
+        ]
+      }
+    }
+  ]
+}

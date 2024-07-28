@@ -7,7 +7,7 @@ pub mod structs;
 
 use states::*;
 
-declare_id!("AZ8nHSx5wmhz8mo5VSPBxKaZAQLtrf268WraTPxELCSd");
+declare_id!("4XUbw35nyyCAr5ysvbGFUEs2vYafNW1tpNMkFTVvxJU8");
 
 #[program]
 pub mod balanced_dollar {
