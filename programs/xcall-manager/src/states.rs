@@ -53,3 +53,20 @@ pub struct HandleCallMessage<'info> {
     #[account(constraint=*xcall.owner==state.xcall@XCallManagerError::UnauthorizedCaller)]
     pub xcall: Signer<'info>
 }
+
+#[derive(Accounts)]
+pub struct GetAccounts<'info> {
+    pub state: Account<'info, XmState>,
+}
+
+#[derive(Debug)]
+pub struct ParamAccountProps{
+    pub pubkey: Pubkey,
+    pub is_writable: bool,
+    pub is_signer: bool
+}
+
+#[derive(Debug)]
+pub struct ParamAccounts{
+    pub accounts: Vec<ParamAccountProps>
+}

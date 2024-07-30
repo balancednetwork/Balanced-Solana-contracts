@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/centralized_connection.json`.
  */
 export type CentralizedConnection = {
-  "address": "Dfx4tMiqHAPzRrcdxR25n1Dyrjwsozc8D5PQukiiV9H8",
+  "address": "4vfkXyxMxptmREF3RaFKUwnPRuqsXJJeUFzpCjPSSVMb",
   "metadata": {
     "name": "centralizedConnection",
     "version": "0.1.0",
@@ -27,22 +27,19 @@ export type CentralizedConnection = {
       ],
       "accounts": [
         {
-          "name": "config",
-          "docs": [
-            "config"
-          ]
-        },
-        {
-          "name": "claimFee",
-          "writable": true
-        },
-        {
           "name": "admin",
           "docs": [
             "Rent payer"
           ],
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "config"
+          ],
+          "writable": true
         }
       ],
       "args": []
@@ -93,17 +90,6 @@ export type CentralizedConnection = {
       ],
       "accounts": [
         {
-          "name": "config",
-          "docs": [
-            "config"
-          ],
-          "writable": true
-        },
-        {
-          "name": "claimFee",
-          "writable": true
-        },
-        {
           "name": "signer",
           "docs": [
             "Rent payer"
@@ -116,6 +102,13 @@ export type CentralizedConnection = {
           "docs": [
             "System Program: Required for creating the centralized-connection config"
           ]
+        },
+        {
+          "name": "config",
+          "docs": [
+            "config"
+          ],
+          "writable": true
         }
       ],
       "args": [
@@ -128,6 +121,84 @@ export type CentralizedConnection = {
           "type": "pubkey"
         }
       ]
+    },
+    {
+      "name": "queryRecvMessageAccounts",
+      "discriminator": [
+        36,
+        243,
+        79,
+        158,
+        41,
+        247,
+        134,
+        15
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        }
+      ],
+      "args": [
+        {
+          "name": "srcNetwork",
+          "type": "string"
+        },
+        {
+          "name": "connSn",
+          "type": "u128"
+        },
+        {
+          "name": "msg",
+          "type": "bytes"
+        },
+        {
+          "name": "sequenceNo",
+          "type": "u128"
+        },
+        {
+          "name": "page",
+          "type": "u8"
+        },
+        {
+          "name": "limit",
+          "type": "u8"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "queryAccountsPaginateResponse"
+        }
+      }
+    },
+    {
+      "name": "querySendMessageAccounts",
+      "discriminator": [
+        194,
+        5,
+        35,
+        74,
+        234,
+        41,
+        109,
+        44
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        }
+      ],
+      "args": [
+        {
+          "name": "dstNetwork",
+          "type": "string"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "queryAccountsResponse"
+        }
+      }
     },
     {
       "name": "recvMessage",
@@ -148,6 +219,9 @@ export type CentralizedConnection = {
           "signer": true
         },
         {
+          "name": "systemProgram"
+        },
+        {
           "name": "config",
           "docs": [
             "config"
@@ -157,9 +231,6 @@ export type CentralizedConnection = {
         {
           "name": "receipt",
           "writable": true
-        },
-        {
-          "name": "systemProgram"
         }
       ],
       "args": [
@@ -200,14 +271,14 @@ export type CentralizedConnection = {
           "signer": true
         },
         {
+          "name": "systemProgram"
+        },
+        {
           "name": "config",
           "docs": [
             "config"
           ],
           "writable": true
-        },
-        {
-          "name": "systemProgram"
         }
       ],
       "args": [
@@ -235,10 +306,6 @@ export type CentralizedConnection = {
       ],
       "accounts": [
         {
-          "name": "xcall",
-          "signer": true
-        },
-        {
           "name": "signer",
           "writable": true,
           "signer": true
@@ -247,14 +314,15 @@ export type CentralizedConnection = {
           "name": "systemProgram"
         },
         {
-          "name": "config"
+          "name": "xcall",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true
         },
         {
           "name": "networkFee"
-        },
-        {
-          "name": "claimFee",
-          "writable": true
         }
       ],
       "args": [
@@ -286,19 +354,19 @@ export type CentralizedConnection = {
       ],
       "accounts": [
         {
-          "name": "config",
-          "docs": [
-            "config"
-          ],
-          "writable": true
-        },
-        {
           "name": "admin",
           "docs": [
             "Transaction signer"
           ],
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "config"
+          ],
+          "writable": true
         }
       ],
       "args": [
@@ -322,20 +390,6 @@ export type CentralizedConnection = {
       ],
       "accounts": [
         {
-          "name": "networkFee",
-          "docs": [
-            "Fee"
-          ],
-          "writable": true
-        },
-        {
-          "name": "config",
-          "docs": [
-            "config"
-          ],
-          "writable": true
-        },
-        {
           "name": "admin",
           "docs": [
             "Rent payer"
@@ -348,6 +402,20 @@ export type CentralizedConnection = {
           "docs": [
             "System Program: Required to create program-derived address"
           ]
+        },
+        {
+          "name": "networkFee",
+          "docs": [
+            "Fee"
+          ],
+          "writable": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "config"
+          ],
+          "writable": true
         }
       ],
       "args": [
@@ -367,19 +435,6 @@ export type CentralizedConnection = {
     }
   ],
   "accounts": [
-    {
-      "name": "claimFee",
-      "discriminator": [
-        135,
-        28,
-        106,
-        87,
-        182,
-        183,
-        18,
-        48
-      ]
-    },
     {
       "name": "config",
       "discriminator": [
@@ -449,13 +504,21 @@ export type CentralizedConnection = {
   ],
   "types": [
     {
-      "name": "claimFee",
+      "name": "accountMetadata",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "bump",
-            "type": "u8"
+            "name": "pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "isWritable",
+            "type": "bool"
+          },
+          {
+            "name": "isSigner",
+            "type": "bool"
           }
         ]
       }
@@ -504,6 +567,58 @@ export type CentralizedConnection = {
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "queryAccountsPaginateResponse",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "accounts",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "accountMetadata"
+                }
+              }
+            }
+          },
+          {
+            "name": "totalAccounts",
+            "type": "u8"
+          },
+          {
+            "name": "limit",
+            "type": "u8"
+          },
+          {
+            "name": "page",
+            "type": "u8"
+          },
+          {
+            "name": "hasNextPage",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "queryAccountsResponse",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "accounts",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "accountMetadata"
+                }
+              }
+            }
           }
         ]
       }

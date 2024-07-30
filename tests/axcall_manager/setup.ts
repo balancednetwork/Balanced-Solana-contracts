@@ -20,8 +20,10 @@ export class TestContext {
     this.admin = admin;
     this.fee_handler = admin;
   }
+  
 
   async initialize(xcall: PublicKey, icon_governance: string, sources: Array<string>, destinations: Array<string>) {
+    
     let initializeIx = await xcallManagerProgram.methods
       .initialize(xcall, icon_governance, sources, destinations)
       .accountsStrict({

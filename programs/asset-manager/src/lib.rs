@@ -4,11 +4,11 @@ pub mod errors;
 pub mod states;
 pub mod helpers;
 pub mod structs;
-pub mod params_builder;
+pub mod param_accounts;
 
 use states::*;
 
-declare_id!("DZ7JPmWHWTePh2B98U3cPUJqcyCr7YGy7uWJUXWfZYHN");
+declare_id!("8tJx9uFHvK33etttKFi8XWHEKMo3q3K6UdSWLTTKnUvX");
 
 #[program]
 pub mod asset_manager {
@@ -32,12 +32,12 @@ pub mod asset_manager {
         instructions::get_withdraw_limit(ctx)
     } 
 
-    pub fn deposit_native<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>,  amount: u64, to:Option<String>, data: Option<Vec<u8>>) -> Result<()> {
+    pub fn deposit_native<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>,  amount: u64, to:Option<String>, data: Option<Vec<u8>>) -> Result<u128> {
         // Transfer SOL
         instructions::deposit_native(ctx, amount, to, data)
     }
 
-    pub fn deposit_token<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: u64, to:Option<String>, data: Option<Vec<u8>>) -> Result<()> {
+    pub fn deposit_token<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: u64, to:Option<String>, data: Option<Vec<u8>>) -> Result<u128> {
         // Transfer SPL Token
         instructions::deposit_token(ctx, amount, to, data)
     }

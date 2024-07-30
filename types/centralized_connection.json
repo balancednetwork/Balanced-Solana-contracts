@@ -1,5 +1,5 @@
 {
-  "address": "Dfx4tMiqHAPzRrcdxR25n1Dyrjwsozc8D5PQukiiV9H8",
+  "address": "4vfkXyxMxptmREF3RaFKUwnPRuqsXJJeUFzpCjPSSVMb",
   "metadata": {
     "name": "centralized_connection",
     "version": "0.1.0",
@@ -21,22 +21,19 @@
       ],
       "accounts": [
         {
-          "name": "config",
-          "docs": [
-            "Config"
-          ]
-        },
-        {
-          "name": "claim_fee",
-          "writable": true
-        },
-        {
           "name": "admin",
           "docs": [
             "Rent payer"
           ],
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Config"
+          ],
+          "writable": true
         }
       ],
       "args": []
@@ -87,17 +84,6 @@
       ],
       "accounts": [
         {
-          "name": "config",
-          "docs": [
-            "Config"
-          ],
-          "writable": true
-        },
-        {
-          "name": "claim_fee",
-          "writable": true
-        },
-        {
           "name": "signer",
           "docs": [
             "Rent payer"
@@ -110,6 +96,13 @@
           "docs": [
             "System Program: Required for creating the centralized-connection config"
           ]
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Config"
+          ],
+          "writable": true
         }
       ],
       "args": [
@@ -122,6 +115,84 @@
           "type": "pubkey"
         }
       ]
+    },
+    {
+      "name": "query_recv_message_accounts",
+      "discriminator": [
+        36,
+        243,
+        79,
+        158,
+        41,
+        247,
+        134,
+        15
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        }
+      ],
+      "args": [
+        {
+          "name": "src_network",
+          "type": "string"
+        },
+        {
+          "name": "conn_sn",
+          "type": "u128"
+        },
+        {
+          "name": "msg",
+          "type": "bytes"
+        },
+        {
+          "name": "sequence_no",
+          "type": "u128"
+        },
+        {
+          "name": "page",
+          "type": "u8"
+        },
+        {
+          "name": "limit",
+          "type": "u8"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QueryAccountsPaginateResponse"
+        }
+      }
+    },
+    {
+      "name": "query_send_message_accounts",
+      "discriminator": [
+        194,
+        5,
+        35,
+        74,
+        234,
+        41,
+        109,
+        44
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        }
+      ],
+      "args": [
+        {
+          "name": "dst_network",
+          "type": "string"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QueryAccountsResponse"
+        }
+      }
     },
     {
       "name": "recv_message",
@@ -142,6 +213,9 @@
           "signer": true
         },
         {
+          "name": "system_program"
+        },
+        {
           "name": "config",
           "docs": [
             "Config"
@@ -151,9 +225,6 @@
         {
           "name": "receipt",
           "writable": true
-        },
-        {
-          "name": "system_program"
         }
       ],
       "args": [
@@ -194,14 +265,14 @@
           "signer": true
         },
         {
+          "name": "system_program"
+        },
+        {
           "name": "config",
           "docs": [
             "Config"
           ],
           "writable": true
-        },
-        {
-          "name": "system_program"
         }
       ],
       "args": [
@@ -229,10 +300,6 @@
       ],
       "accounts": [
         {
-          "name": "xcall",
-          "signer": true
-        },
-        {
           "name": "signer",
           "writable": true,
           "signer": true
@@ -241,14 +308,15 @@
           "name": "system_program"
         },
         {
-          "name": "config"
+          "name": "xcall",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true
         },
         {
           "name": "network_fee"
-        },
-        {
-          "name": "claim_fee",
-          "writable": true
         }
       ],
       "args": [
@@ -280,19 +348,19 @@
       ],
       "accounts": [
         {
-          "name": "config",
-          "docs": [
-            "Config"
-          ],
-          "writable": true
-        },
-        {
           "name": "admin",
           "docs": [
             "Transaction signer"
           ],
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Config"
+          ],
+          "writable": true
         }
       ],
       "args": [
@@ -316,20 +384,6 @@
       ],
       "accounts": [
         {
-          "name": "network_fee",
-          "docs": [
-            "Fee"
-          ],
-          "writable": true
-        },
-        {
-          "name": "config",
-          "docs": [
-            "Config"
-          ],
-          "writable": true
-        },
-        {
           "name": "admin",
           "docs": [
             "Rent payer"
@@ -342,6 +396,20 @@
           "docs": [
             "System Program: Required to create program-derived address"
           ]
+        },
+        {
+          "name": "network_fee",
+          "docs": [
+            "Fee"
+          ],
+          "writable": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Config"
+          ],
+          "writable": true
         }
       ],
       "args": [
@@ -361,19 +429,6 @@
     }
   ],
   "accounts": [
-    {
-      "name": "ClaimFee",
-      "discriminator": [
-        135,
-        28,
-        106,
-        87,
-        182,
-        183,
-        18,
-        48
-      ]
-    },
     {
       "name": "Config",
       "discriminator": [
@@ -443,13 +498,21 @@
   ],
   "types": [
     {
-      "name": "ClaimFee",
+      "name": "AccountMetadata",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "bump",
-            "type": "u8"
+            "name": "pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_writable",
+            "type": "bool"
+          },
+          {
+            "name": "is_signer",
+            "type": "bool"
           }
         ]
       }
@@ -498,6 +561,58 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "QueryAccountsPaginateResponse",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "accounts",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "AccountMetadata"
+                }
+              }
+            }
+          },
+          {
+            "name": "total_accounts",
+            "type": "u8"
+          },
+          {
+            "name": "limit",
+            "type": "u8"
+          },
+          {
+            "name": "page",
+            "type": "u8"
+          },
+          {
+            "name": "has_next_page",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "QueryAccountsResponse",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "accounts",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "AccountMetadata"
+                }
+              }
+            }
           }
         ]
       }

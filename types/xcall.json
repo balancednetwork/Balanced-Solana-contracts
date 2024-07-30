@@ -1,5 +1,5 @@
 {
-  "address": "3489r9oW63a8MRk5CXD2Lv8YTFQ9iGjaXxgGnaoccPhc",
+  "address": "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW",
   "metadata": {
     "name": "xcall",
     "version": "0.1.0",
@@ -19,7 +19,11 @@
         199,
         222
       ],
-      "accounts": [],
+      "accounts": [
+        {
+          "name": "system_program"
+        }
+      ],
       "args": [
         {
           "name": "message",
@@ -46,25 +50,24 @@
       ],
       "accounts": [
         {
-          "name": "proxy_requests",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "reply_state",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "default_connection"
-        },
-        {
           "name": "signer",
           "writable": true,
           "signer": true
         },
         {
           "name": "system_program"
+        },
+        {
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true
+        },
+        {
+          "name": "proxy_request",
+          "writable": true
         }
       ],
       "args": [
@@ -77,7 +80,7 @@
           "type": "bytes"
         },
         {
-          "name": "nid",
+          "name": "from_nid",
           "type": "string"
         }
       ]
@@ -96,29 +99,26 @@
       ],
       "accounts": [
         {
-          "name": "rollback",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "default_connection",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "owner",
-          "docs": [
-            "CHECK : need to be the owner of the pda"
-          ],
-          "writable": true
-        },
-        {
           "name": "signer",
           "writable": true,
           "signer": true
         },
         {
           "name": "system_program"
+        },
+        {
+          "name": "config"
+        },
+        {
+          "name": "admin",
+          "docs": [
+            "CHECK : need to be the owner of the pda"
+          ],
+          "writable": true
+        },
+        {
+          "name": "rollback_account",
+          "writable": true
         }
       ],
       "args": [
@@ -190,12 +190,6 @@
       "accounts": [
         {
           "name": "config"
-        },
-        {
-          "name": "default_connection"
-        },
-        {
-          "name": "reply"
         }
       ],
       "args": [
@@ -311,21 +305,21 @@
           "name": "system_program"
         },
         {
-          "name": "default_connection"
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true
+        },
+        {
+          "name": "rollback_account",
+          "writable": true
         },
         {
           "name": "pending_response",
           "writable": true,
           "optional": true
-        },
-        {
-          "name": "pending_response_creator",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "rollback_account",
-          "writable": true
         }
       ],
       "args": [
@@ -369,11 +363,13 @@
           "writable": true
         },
         {
-          "name": "proxy_request",
+          "name": "admin",
           "writable": true
         },
         {
-          "name": "default_connection"
+          "name": "proxy_request",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "pending_request",
@@ -381,17 +377,7 @@
           "optional": true
         },
         {
-          "name": "pending_request_creator",
-          "writable": true,
-          "optional": true
-        },
-        {
           "name": "pending_response",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "pending_response_creator",
           "writable": true,
           "optional": true
         },
@@ -402,10 +388,6 @@
         },
         {
           "name": "rollback_account",
-          "optional": true
-        },
-        {
-          "name": "rollback_creator",
           "writable": true,
           "optional": true
         }
@@ -443,10 +425,6 @@
           "writable": true
         },
         {
-          "name": "reply",
-          "writable": true
-        },
-        {
           "name": "signer",
           "writable": true,
           "signer": true
@@ -461,6 +439,131 @@
           "type": "string"
         }
       ]
+    },
+    {
+      "name": "query_execute_call_accounts",
+      "discriminator": [
+        82,
+        113,
+        205,
+        53,
+        82,
+        243,
+        72,
+        56
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        },
+        {
+          "name": "proxy_request"
+        }
+      ],
+      "args": [
+        {
+          "name": "req_id",
+          "type": "u128"
+        },
+        {
+          "name": "data",
+          "type": "bytes"
+        },
+        {
+          "name": "page",
+          "type": "u8"
+        },
+        {
+          "name": "limit",
+          "type": "u8"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QueryAccountsPaginateResponse"
+        }
+      }
+    },
+    {
+      "name": "query_execute_rollback_accounts",
+      "discriminator": [
+        43,
+        155,
+        204,
+        24,
+        84,
+        216,
+        145,
+        0
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        },
+        {
+          "name": "rollback_account"
+        }
+      ],
+      "args": [
+        {
+          "name": "sn",
+          "type": "u128"
+        },
+        {
+          "name": "page",
+          "type": "u8"
+        },
+        {
+          "name": "limit",
+          "type": "u8"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QueryAccountsPaginateResponse"
+        }
+      }
+    },
+    {
+      "name": "query_handle_message_accounts",
+      "discriminator": [
+        53,
+        169,
+        102,
+        122,
+        204,
+        60,
+        45,
+        187
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        },
+        {
+          "name": "rollback_account",
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "from_nid",
+          "type": "string"
+        },
+        {
+          "name": "msg",
+          "type": "bytes"
+        },
+        {
+          "name": "sequence_no",
+          "type": "u128"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QueryAccountsResponse"
+        }
+      }
     },
     {
       "name": "send_call",
@@ -484,15 +587,13 @@
           "name": "system_program"
         },
         {
+          "name": "dapp",
+          "signer": true,
+          "optional": true
+        },
+        {
           "name": "config",
           "writable": true
-        },
-        {
-          "name": "reply",
-          "writable": true
-        },
-        {
-          "name": "default_connection"
         },
         {
           "name": "fee_handler",
@@ -546,46 +647,6 @@
       "args": [
         {
           "name": "account",
-          "type": "pubkey"
-        }
-      ]
-    },
-    {
-      "name": "set_default_connection",
-      "discriminator": [
-        82,
-        16,
-        211,
-        171,
-        43,
-        227,
-        9,
-        155
-      ],
-      "accounts": [
-        {
-          "name": "default_connection",
-          "writable": true
-        },
-        {
-          "name": "config"
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "system_program"
-        }
-      ],
-      "args": [
-        {
-          "name": "network_id",
-          "type": "string"
-        },
-        {
-          "name": "connection",
           "type": "pubkey"
         }
       ]
@@ -666,19 +727,6 @@
       ]
     },
     {
-      "name": "DefaultConnection",
-      "discriminator": [
-        157,
-        235,
-        105,
-        62,
-        249,
-        244,
-        234,
-        110
-      ]
-    },
-    {
       "name": "PendingRequest",
       "discriminator": [
         200,
@@ -715,19 +763,6 @@
         58,
         233,
         238
-      ]
-    },
-    {
-      "name": "Reply",
-      "discriminator": [
-        94,
-        7,
-        30,
-        141,
-        234,
-        119,
-        194,
-        246
       ]
     },
     {
@@ -845,126 +880,166 @@
     },
     {
       "code": 6001,
+      "name": "InvalidAdminKey",
+      "msg": "Invalid admin key"
+    },
+    {
+      "code": 6002,
       "name": "MaxRollbackSizeExceeded",
       "msg": "Maximum rollback data size exceeded"
     },
     {
-      "code": 6002,
+      "code": 6003,
       "name": "InvalidSn",
       "msg": "Invalid SN"
     },
     {
-      "code": 6003,
+      "code": 6004,
       "name": "RollbackNotEnabled",
       "msg": "Rollback not enabled"
     },
     {
-      "code": 6004,
+      "code": 6005,
       "name": "MaxDataSizeExceeded",
       "msg": "Maximum data size exceeded"
     },
     {
-      "code": 6005,
+      "code": 6006,
+      "name": "ProxyRequestAccountNotSpecified",
+      "msg": "Proxy request account is not specified"
+    },
+    {
+      "code": 6007,
       "name": "RollbackAccountNotSpecified",
       "msg": "Rollback account is not specified"
     },
     {
-      "code": 6006,
+      "code": 6008,
       "name": "RollbackCreatorNotSpecified",
       "msg": "Rollback account creator not specified"
     },
     {
-      "code": 6007,
+      "code": 6009,
       "name": "PendingRequestAccountNotSpecified",
       "msg": "Pending request account is not specified"
     },
     {
-      "code": 6008,
+      "code": 6010,
       "name": "PendingRequestCreatorNotSpecified",
       "msg": "Pending request account creator is not specified"
     },
     {
-      "code": 6009,
+      "code": 6011,
       "name": "PendingResponseAccountNotSpecified",
       "msg": "Pending response account is not specified"
     },
     {
-      "code": 6010,
+      "code": 6012,
       "name": "PendingResponseCreatorNotSpecified",
       "msg": "Pending response account creator is not specified"
     },
     {
-      "code": 6011,
+      "code": 6013,
       "name": "InvalidMessageSeed",
       "msg": "Invalid message seed"
     },
     {
-      "code": 6012,
+      "code": 6014,
       "name": "SuccessfulResponseAccountNotSpecified",
       "msg": "Successful response account is not specified"
     },
     {
-      "code": 6013,
+      "code": 6015,
       "name": "ProtocolMismatch",
       "msg": "Protocol mismatch"
     },
     {
-      "code": 6014,
+      "code": 6016,
+      "name": "ProtocolNotSpecified",
+      "msg": "Connection protocol not specified"
+    },
+    {
+      "code": 6017,
       "name": "RollbackNotPossible",
       "msg": "Rollback not possible"
     },
     {
-      "code": 6015,
+      "code": 6018,
       "name": "CallRequestNotFound",
       "msg": "Call request not found"
     },
     {
-      "code": 6016,
+      "code": 6019,
       "name": "NoRollbackData",
       "msg": "No rollback data"
     },
     {
-      "code": 6017,
+      "code": 6020,
       "name": "InvalidReplyReceived",
       "msg": "Invalid reply received"
     },
     {
-      "code": 6018,
+      "code": 6021,
       "name": "InvalidMessageSequence",
       "msg": "Invalid message sequence received"
     },
     {
-      "code": 6019,
+      "code": 6022,
       "name": "DecodeFailed",
       "msg": "Decode failed"
     },
     {
-      "code": 6020,
+      "code": 6023,
       "name": "InvalidSource",
       "msg": "Invalid source"
     },
     {
-      "code": 6021,
+      "code": 6024,
       "name": "InvalidRequestId",
       "msg": "Invalid request id"
     },
     {
-      "code": 6022,
+      "code": 6025,
       "name": "DataMismatch",
       "msg": "Data mismatch"
     },
     {
-      "code": 6023,
+      "code": 6026,
       "name": "InvalidPubkey",
       "msg": "Invalid pubkey"
     },
     {
-      "code": 6024,
-      "name": "ParsePubkeyError",
-      "msg": "Invalid source address"
+      "code": 6027,
+      "name": "InvalidProxyCreator",
+      "msg": "Invalid proxy request creator address"
+    },
+    {
+      "code": 6028,
+      "name": "InvalidResponse",
+      "msg": "Invalid response from dapp"
     }
   ],
   "types": [
+    {
+      "name": "AccountMetadata",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_writable",
+            "type": "bool"
+          },
+          {
+            "name": "is_signer",
+            "type": "bool"
+          }
+        ]
+      }
+    },
     {
       "name": "CSMessageDecoded",
       "type": {
@@ -1193,20 +1268,24 @@
             "type": "u128"
           },
           {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "DefaultConnection",
-      "type": {
-        "kind": "struct",
-        "fields": [
+            "name": "reply_state",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "CSMessageRequest"
+                }
+              }
+            }
+          },
           {
-            "name": "address",
-            "type": "pubkey"
+            "name": "call_reply",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "CSMessageRequest"
+                }
+              }
+            }
           },
           {
             "name": "bump",
@@ -1283,10 +1362,6 @@
             }
           },
           {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
             "name": "bump",
             "type": "u8"
           }
@@ -1294,26 +1369,50 @@
       }
     },
     {
-      "name": "Reply",
+      "name": "QueryAccountsPaginateResponse",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "reply_state",
+            "name": "accounts",
             "type": {
-              "option": {
+              "vec": {
                 "defined": {
-                  "name": "CSMessageRequest"
+                  "name": "AccountMetadata"
                 }
               }
             }
           },
           {
-            "name": "call_reply",
+            "name": "total_accounts",
+            "type": "u8"
+          },
+          {
+            "name": "limit",
+            "type": "u8"
+          },
+          {
+            "name": "page",
+            "type": "u8"
+          },
+          {
+            "name": "has_next_page",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "QueryAccountsResponse",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "accounts",
             "type": {
-              "option": {
+              "vec": {
                 "defined": {
-                  "name": "CSMessageRequest"
+                  "name": "AccountMetadata"
                 }
               }
             }
@@ -1383,10 +1482,6 @@
                 "name": "Rollback"
               }
             }
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
           },
           {
             "name": "bump",

@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, Mint, TokenAccount};
+use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
 
 #[derive(Accounts)]
@@ -75,8 +76,8 @@ pub struct DepositToken<'info> {
     /// CHECK: xcall_manager_state is validated in the method
     #[account(mut, seeds = [b"asset_manager_signer"], bump)]
     pub asset_manager: AccountInfo<'info>,
-    pub xcall: Program<'info, XcallManager>,
-    // pub xcall: Program<'info, Xcall>,
+    //pub xcall: Program<'info, XcallManager>,
+    pub xcall: Program<'info, Xcall>,
     pub xcall_manager: Program<'info, XcallManager>,
     pub token_program: Option<Program<'info, Token>>,
     pub system_program: Program<'info, System>
@@ -124,7 +125,7 @@ pub struct HandleCallMessage<'info> {
     pub token_program: Option<Program<'info, Token>>,
     pub xcall_manager: Program<'info, XcallManager>,
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
-    pub xcall: Program<'info, XcallManager>,
+    pub xcall: Program<'info, Xcall>,
     pub system_program: Program<'info, System>
 }
 

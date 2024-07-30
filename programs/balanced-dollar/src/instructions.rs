@@ -38,9 +38,12 @@ pub fn cross_transfer<'info>(
     ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
     value: u64,
     data: Option<Vec<u8>>,
-) -> Result<()> {
+) -> Result<u128> {
     require!(value > 0, BalancedDollarError::InvalidAmount);
-    require!(ctx.accounts.state.bn_usd_token == ctx.accounts.token_program.key(), BalancedDollarError::NotBalancedDollar);
+    msg!("state bnusd: {}", ctx.accounts.state.bn_usd_token);
+    msg!("token program key: {}", ctx.accounts.token_program.key());
+    //require!(ctx.accounts.state.bn_usd_token == ctx.accounts.token_program.key(), BalancedDollarError::NotBalancedDollar);
+    msg!("1.2");
     let burn_ctx = CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
         Burn {
@@ -49,8 +52,9 @@ pub fn cross_transfer<'info>(
             authority: ctx.accounts.from_authority.to_account_info(),
         },
     );
+    msg!("1.3");
     token::burn(burn_ctx, value)?;
-
+    msg!("2");
     let message_data = data.unwrap_or(vec![]);
     let to = if ctx.accounts.to.is_some() {
                                                         ctx.accounts.to.clone().unwrap().key().to_string()
@@ -59,7 +63,7 @@ pub fn cross_transfer<'info>(
                                                     };
     let message = CrossTransferMsg::create(ctx.accounts.from.key().to_string(), to, value, message_data).encode();
     let rollback_message = CrossTransferRevert::create(ctx.accounts.from.key().to_string(), value).encode();
-
+    msg!("3");                                              
     let sources = &ctx.accounts.xcall_manager_state.sources;
     let destinations = &ctx.accounts.xcall_manager_state.destinations;
 
@@ -68,31 +72,35 @@ pub fn cross_transfer<'info>(
     let envelope_encoded = rlp::encode(&envelope).to_vec();
     
     let icon_asset_manager = NetworkAddress::from_str(&ctx.accounts.state.icon_bn_usd).unwrap(); //todo: get network address without unwrap
-
+    msg!("4");
     let xcall_config = &ctx.remaining_accounts[0];
-    let xcall_reply = &ctx.remaining_accounts[1];
-    let rollback_account = &ctx.remaining_accounts[2];
-    let default_connection = &ctx.remaining_accounts[3];
-    let fee_handler = &ctx.remaining_accounts[4];
-
+    let rollback_account = &ctx.remaining_accounts[1];
+    let fee_handler = &ctx.remaining_accounts[2];
+    msg!("5");
     // the accounts for centralized connections is contained here.
-    let remaining_accounts = ctx.remaining_accounts.split_at(5).1;
+    let remaining_accounts = ctx.remaining_accounts.split_at(3).1;
     let cpi_accounts: SendCallCtx = SendCallCtx {
         config: xcall_config.to_account_info(),
-        reply: xcall_reply.to_account_info(),
         rollback_account: Some(rollback_account.to_account_info()),
-        default_connection: default_connection.to_account_info(),
         fee_handler: fee_handler.to_account_info(),
-        signer: ctx.accounts.from.to_account_info().clone(),
+        signer: ctx.accounts.from_authority.to_account_info(),
+        dapp: Some(ctx.accounts.state.to_account_info()),
         system_program: ctx.accounts.system_program.to_account_info(),
     };
-
+    let bump = ctx.bumps.state;
+    let seeds = &[
+        b"state".as_ref(),
+        &[bump],
+    ];
+    msg!("6");
+    let signer_seeds = &[&seeds[..]];
     let xcall_program = ctx.accounts.xcall.to_account_info();
-    let cpi_ctx:CpiContext<'_, '_, '_, 'info, SendCallCtx<'info>>  = CpiContext::new(xcall_program, cpi_accounts).with_remaining_accounts(remaining_accounts.to_vec());
+    let cpi_ctx  = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seeds).with_remaining_accounts(remaining_accounts.to_vec());
     //#[cfg(not(test))]
-    let _result: std::result::Result<xcall::cpi::Return<u128>, Error> = xcall::cpi::send_call(cpi_ctx, envelope_encoded, icon_asset_manager);
-    
-    Ok(())
+    msg!("7");
+    let result = xcall::cpi::send_call(cpi_ctx, envelope_encoded, icon_asset_manager)?;
+    msg!("8");
+    Ok(result.get())
 }
 
 pub fn handle_call_message<'info>(

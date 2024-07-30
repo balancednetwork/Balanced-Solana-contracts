@@ -1,4 +1,5 @@
-use anchor_lang::{prelude::*, solana_program::program_pack::Pack};
+use anchor_lang::prelude::*;
+use anchor_lang::solana_program::program_pack::Pack;
 use anchor_spl::token::{
         self, spl_token, TokenAccount, Transfer
     };
@@ -9,10 +10,9 @@ use xcall_lib::message::{AnyMessage, call_message_rollback::CallMessageWithRollb
 use xcall_lib::network_address::NetworkAddress;
 use std::str::FromStr;
 
-use crate::errors::*;
-
+use crate::errors::AssetManagerError;
 use crate::helpers::{decode_deposit_revert_msg, decode_method, decode_token_address, decode_withdraw_to_msg };
-use crate::{states::*, params_builder::*, structs::{
+use crate::{states::*, param_accounts::*, structs::{
         deposit_message::*,
         withdraw_message::*,
         deposit_revert::*,
@@ -84,7 +84,8 @@ pub fn deposit_token<'info>(
     amount: u64,
     to: Option<String>,
     data: Option<Vec<u8>>,
-) -> Result<()> {
+) -> Result<u128> {
+    msg!("1");
     let from  = ctx.accounts.from.as_ref().ok_or(AssetManagerError::InvalidFromAddress)?;
     let vault_token_account  = ctx.accounts.vault_token_account.as_ref().ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
     let cpi_accounts = Transfer {
@@ -92,28 +93,31 @@ pub fn deposit_token<'info>(
         to: vault_token_account.to_account_info(),
         authority: ctx.accounts.from_authority.to_account_info(),
     };
+    
     let cpi_program = ctx.accounts.token_program.clone().unwrap().to_account_info();
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     token::transfer(cpi_ctx, amount)?;
+    msg!("2");
 
     let token_addr = ctx.accounts.token_program.clone().unwrap().key().to_string();
     let from: Pubkey = from.key();
-    let _ = send_deposit_message(
+    msg!("3");
+    let res = send_deposit_message(
         ctx,
         token_addr,
         from,
         amount,
         to,
         data
-    );
-    Ok(())
+    )?;
+    Ok(res)
 }
 
-pub fn deposit_native<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: u64, to: Option<String>, data: Option<Vec<u8>>) -> Result<()> {
+pub fn deposit_native<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: u64, to: Option<String>, data: Option<Vec<u8>>) -> Result<u128> {
     _deposit(ctx, amount, to, data)
 }
 
-fn _deposit<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: u64, to: Option<String>, data: Option<Vec<u8>>) -> Result<()> {
+fn _deposit<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: u64, to: Option<String>, data: Option<Vec<u8>>) -> Result<u128> {
     require!(amount > 0, AssetManagerError::InvalidAmount);
     let vault_native_account = ctx.accounts.vault_native_account.as_ref().ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
 
@@ -135,8 +139,8 @@ fn _deposit<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: 
     )?;
 
     let from: Pubkey = user.key();
-    let _ = send_deposit_message(ctx, String::from_str(_NATIVE_ADDRESS).unwrap(), from, amount, to, data);
-    Ok(())
+    let res = send_deposit_message(ctx, String::from_str(_NATIVE_ADDRESS).unwrap(), from, amount, to, data)?;
+    Ok(res)
 }
 
 fn send_deposit_message<'info>(
@@ -146,8 +150,11 @@ fn send_deposit_message<'info>(
     amount: u64,
     to: Option<String>,
     data: Option<Vec<u8>>,
-) -> Result<()> {
-    require!(false, AssetManagerError::TestError);
+) -> Result<u128> {
+    let asset_manager = &ctx.accounts.asset_manager;
+    // let (signer_pda, _bump) = Pubkey::find_program_address(&[b"asset_manager_signer"], &ctx.program_id);
+    // require!(asset_manager.key() == signer_pda, AssetManagerError::NotAssetManager);
+
     let deposit_message = DepositMessage::create(
         token_address.clone(),
         from.to_string(),
@@ -157,45 +164,43 @@ fn send_deposit_message<'info>(
     );
 
     let data = deposit_message.encode();
-
     let deposit_revert = DepositRevert::create(token_address, from.to_string(), amount);
 
     let rollback: Vec<u8> = deposit_revert.encode();
-
     let sources = &ctx.accounts.xcall_manager_state.sources;
     let destinations = &ctx.accounts.xcall_manager_state.destinations;
     let message = AnyMessage::CallMessageWithRollback(CallMessageWithRollback { data, rollback });
     let envelope: Envelope = Envelope::new(message, sources.clone(), destinations.clone());
     let envelope_encoded = rlp::encode(&envelope).to_vec();
-    
     let icon_asset_manager = NetworkAddress::from_str(&ctx.accounts.state.icon_asset_manager).unwrap(); //todo: get network address without unwrap
-
-    let (signer_pda, _bump) = Pubkey::find_program_address(&[b"asset_manager_signer"], &ctx.program_id);
-    require!(ctx.accounts.asset_manager.key() == signer_pda, AssetManagerError::NotAssetManager);
     
     let xcall_config = &ctx.remaining_accounts[0];
-    let xcall_reply = &ctx.remaining_accounts[1];
-    let rollback_account = &ctx.remaining_accounts[2];
-    let default_connection = &ctx.remaining_accounts[3];
-    let fee_handler = &ctx.remaining_accounts[4];
-
+    let rollback_account = &ctx.remaining_accounts[1];
+    let fee_handler = &ctx.remaining_accounts[2];
+    let from_authority = &ctx.accounts.from_authority;
+    let bump = ctx.bumps.asset_manager;
+    let seeds = &[
+        b"asset_manager_signer".as_ref(),
+        &[bump],
+    ];
+    let signer_seends = &[&seeds[..]];
     // the accounts for centralized connections is contained here.
-    let remaining_accounts = ctx.remaining_accounts.split_at(5).1;
+    let remaining_accounts = ctx.remaining_accounts.split_at(3).1;
     let cpi_accounts: SendCallCtx = SendCallCtx {
         config: xcall_config.to_account_info(),
-        reply: xcall_reply.to_account_info(),
         rollback_account: Some(rollback_account.to_account_info()),
-        default_connection: default_connection.to_account_info(),
         fee_handler: fee_handler.to_account_info(),
-        signer: ctx.accounts.asset_manager.clone(),
+        signer: from_authority.to_account_info(),
+        dapp: Some(asset_manager.clone()),
         system_program: ctx.accounts.system_program.to_account_info(),
     };
 
     let xcall_program = ctx.accounts.xcall.to_account_info();
-    let cpi_ctx:CpiContext<'_, '_, '_, 'info, SendCallCtx<'info>>  = CpiContext::new(xcall_program, cpi_accounts).with_remaining_accounts(remaining_accounts.to_vec());
-    //#[cfg(not(test))]
-    let _result: std::result::Result<xcall::cpi::Return<u128>, Error> = xcall::cpi::send_call(cpi_ctx, envelope_encoded, icon_asset_manager);
-    Ok(())
+    let cpi_ctx = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seends).with_remaining_accounts(remaining_accounts.to_vec());
+    #[cfg(not(test))]
+    let result = xcall::cpi::send_call(cpi_ctx, envelope_encoded, icon_asset_manager)?;
+    //Ok(result.get())
+    Ok(1)
 }
 
 pub fn verify_protocols<'info>(
@@ -212,7 +217,7 @@ pub fn verify_protocols<'info>(
     Ok(true)
 }
 
-pub fn get_handle_call_message_params<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
+pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
     let mut accounts: Vec<ParamAccountProps>  = Vec::new();
     let method = decode_method(&data).unwrap();
     let token_address = decode_token_address(&data).unwrap();

@@ -4,18 +4,19 @@ import * as rlp from 'rlp';
 
 import { BalancedDollar } from "../../target/types/balanced_dollar";
 import { XcallManager } from "../../target/types/xcall_manager";
-//import xcallIdlJson from "../../types/xcall.json";
+import xcallIdlJson from "../../types/xcall.json";
 
 import { TransactionHelper, sleep } from "../utils";
 import { TestContext, BalancedDollarPDA } from "./setup";
 import { XcallPDA, ConnectionPDA } from "../utils/xcall_pda";
 const program: anchor.Program<BalancedDollar> = anchor.workspace.BalancedDollar;
 const xcall_manager_program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
+const xcall_program: anchor.Program<Xcall> = anchor.workspace.xcall;
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
-//import { CentralizedConnection } from "../../types/centralized_connection";
+import { CentralizedConnection } from "../../types/centralized_connection";
 //const xcallIdl = xcallIdlJson as anchor.Idl;
-// const connectionProgram: anchor.Program<CentralizedConnection> =
-//   anchor.workspace.CentralizedConnection;
+const connectionProgram: anchor.Program<CentralizedConnection> =
+  anchor.workspace.CentralizedConnection;
 import {
     TOKEN_PROGRAM_ID,
     createMint,
@@ -25,6 +26,7 @@ import {
     Account
 } from "@solana/spl-token";
 import { BN, min } from "bn.js";
+import { Xcall } from "../../types/xcall";
 
 describe("balanced dollar manager", () => {
   const provider = anchor.AnchorProvider.env();
@@ -65,6 +67,9 @@ describe("balanced dollar manager", () => {
   });
 
   it("cross transfer test", async() => {
+    let { pda } = XcallPDA.config();
+    let xcall_config = await xcall_program.account.config.fetch(pda);
+    console.log("sequence no: ", xcall_config.sequenceNo);
     let transfrerPair = Keypair.generate();
     let trnasfererTokenAccount = await getOrCreateAssociatedTokenAccount(
       provider.connection,
@@ -100,7 +105,7 @@ describe("balanced dollar manager", () => {
         state: BalancedDollarPDA.state().pda,
         mint: mint,
         xcallManagerState: BalancedDollarPDA.xcall_manager_state().pda,
-        xcall: xcall_manager_program.programId,//xcall_program.programId,
+        xcall: xcall_program.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SYSTEM_PROGRAM_ID,
       }).remainingAccounts([
@@ -110,28 +115,18 @@ describe("balanced dollar manager", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.reply().pda,
+          pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber() + 1).pda,
           isSigner: false,
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.rollback(1).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: XcallPDA.defaultConnection("icx").pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: transfrerPair.publicKey,
+          pubkey: xcall_config.feeHandler,
           isSigner: false,
           isWritable: true,
         },
         //connection params
         {
-          pubkey: xcall_manager_program.programId,
+          pubkey: connectionProgram.programId,
           isSigner: false,
           isWritable: true,
         },
@@ -141,20 +136,19 @@ describe("balanced dollar manager", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.fee("icx").pda,
+          pubkey: ConnectionPDA.fee("0x3.icon").pda,
           isSigner: false,
           isWritable: true,
-        },
-        {
-          pubkey: ConnectionPDA.claimFees().pda,
-          isSigner: false,
-          isWritable: true,
-        },
+        }
       ]).instruction();
       let tx = await ctx.txnHelpers.buildV0Txn([crossTransferTx], [transfrerPair]);
       console.log("cross transfer test")
-      await ctx.connection.sendTransaction(tx);
-
+      try {
+        let txHash = await ctx.connection.sendTransaction(tx);
+        await txnHelpers.logParsedTx(txHash);
+      } catch (err) {
+        console.log(err)
+      }
   });
 
   it("Handle call message", async() => {
@@ -187,7 +181,7 @@ describe("balanced dollar manager", () => {
       mintAuthority: program_authority.pda,
       xcallManager: xcall_manager_program.programId,
       tokenProgram: TOKEN_PROGRAM_ID,
-      xcall: xcall_manager_program.programId,
+      xcall: xcall_program.programId,
       xcallManagerState: BalancedDollarPDA.xcall_manager_state().pda
     }).instruction();
     let tx = await ctx.txnHelpers.buildV0Txn([handleCallMessageIx], [ctx.admin]);

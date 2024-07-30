@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/xcall.json`.
  */
 export type Xcall = {
-  "address": "3489r9oW63a8MRk5CXD2Lv8YTFQ9iGjaXxgGnaoccPhc",
+  "address": "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW",
   "metadata": {
     "name": "xcall",
     "version": "0.1.0",
@@ -25,7 +25,11 @@ export type Xcall = {
         199,
         222
       ],
-      "accounts": [],
+      "accounts": [
+        {
+          "name": "systemProgram"
+        }
+      ],
       "args": [
         {
           "name": "message",
@@ -52,25 +56,24 @@ export type Xcall = {
       ],
       "accounts": [
         {
-          "name": "proxyRequests",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "replyState",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "defaultConnection"
-        },
-        {
           "name": "signer",
           "writable": true,
           "signer": true
         },
         {
           "name": "systemProgram"
+        },
+        {
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true
+        },
+        {
+          "name": "proxyRequest",
+          "writable": true
         }
       ],
       "args": [
@@ -83,7 +86,7 @@ export type Xcall = {
           "type": "bytes"
         },
         {
-          "name": "nid",
+          "name": "fromNid",
           "type": "string"
         }
       ]
@@ -102,29 +105,26 @@ export type Xcall = {
       ],
       "accounts": [
         {
-          "name": "rollback",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "defaultConnection",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "owner",
-          "docs": [
-            "CHECK : need to be the owner of the pda"
-          ],
-          "writable": true
-        },
-        {
           "name": "signer",
           "writable": true,
           "signer": true
         },
         {
           "name": "systemProgram"
+        },
+        {
+          "name": "config"
+        },
+        {
+          "name": "admin",
+          "docs": [
+            "CHECK : need to be the owner of the pda"
+          ],
+          "writable": true
+        },
+        {
+          "name": "rollbackAccount",
+          "writable": true
         }
       ],
       "args": [
@@ -196,12 +196,6 @@ export type Xcall = {
       "accounts": [
         {
           "name": "config"
-        },
-        {
-          "name": "defaultConnection"
-        },
-        {
-          "name": "reply"
         }
       ],
       "args": [
@@ -317,21 +311,21 @@ export type Xcall = {
           "name": "systemProgram"
         },
         {
-          "name": "defaultConnection"
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true
+        },
+        {
+          "name": "rollbackAccount",
+          "writable": true
         },
         {
           "name": "pendingResponse",
           "writable": true,
           "optional": true
-        },
-        {
-          "name": "pendingResponseCreator",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "rollbackAccount",
-          "writable": true
         }
       ],
       "args": [
@@ -375,11 +369,13 @@ export type Xcall = {
           "writable": true
         },
         {
-          "name": "proxyRequest",
+          "name": "admin",
           "writable": true
         },
         {
-          "name": "defaultConnection"
+          "name": "proxyRequest",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "pendingRequest",
@@ -387,17 +383,7 @@ export type Xcall = {
           "optional": true
         },
         {
-          "name": "pendingRequestCreator",
-          "writable": true,
-          "optional": true
-        },
-        {
           "name": "pendingResponse",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "pendingResponseCreator",
           "writable": true,
           "optional": true
         },
@@ -408,10 +394,6 @@ export type Xcall = {
         },
         {
           "name": "rollbackAccount",
-          "optional": true
-        },
-        {
-          "name": "rollbackCreator",
           "writable": true,
           "optional": true
         }
@@ -449,10 +431,6 @@ export type Xcall = {
           "writable": true
         },
         {
-          "name": "reply",
-          "writable": true
-        },
-        {
           "name": "signer",
           "writable": true,
           "signer": true
@@ -467,6 +445,131 @@ export type Xcall = {
           "type": "string"
         }
       ]
+    },
+    {
+      "name": "queryExecuteCallAccounts",
+      "discriminator": [
+        82,
+        113,
+        205,
+        53,
+        82,
+        243,
+        72,
+        56
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        },
+        {
+          "name": "proxyRequest"
+        }
+      ],
+      "args": [
+        {
+          "name": "reqId",
+          "type": "u128"
+        },
+        {
+          "name": "data",
+          "type": "bytes"
+        },
+        {
+          "name": "page",
+          "type": "u8"
+        },
+        {
+          "name": "limit",
+          "type": "u8"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "queryAccountsPaginateResponse"
+        }
+      }
+    },
+    {
+      "name": "queryExecuteRollbackAccounts",
+      "discriminator": [
+        43,
+        155,
+        204,
+        24,
+        84,
+        216,
+        145,
+        0
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        },
+        {
+          "name": "rollbackAccount"
+        }
+      ],
+      "args": [
+        {
+          "name": "sn",
+          "type": "u128"
+        },
+        {
+          "name": "page",
+          "type": "u8"
+        },
+        {
+          "name": "limit",
+          "type": "u8"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "queryAccountsPaginateResponse"
+        }
+      }
+    },
+    {
+      "name": "queryHandleMessageAccounts",
+      "discriminator": [
+        53,
+        169,
+        102,
+        122,
+        204,
+        60,
+        45,
+        187
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        },
+        {
+          "name": "rollbackAccount",
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "fromNid",
+          "type": "string"
+        },
+        {
+          "name": "msg",
+          "type": "bytes"
+        },
+        {
+          "name": "sequenceNo",
+          "type": "u128"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "queryAccountsResponse"
+        }
+      }
     },
     {
       "name": "sendCall",
@@ -490,15 +593,13 @@ export type Xcall = {
           "name": "systemProgram"
         },
         {
+          "name": "dapp",
+          "signer": true,
+          "optional": true
+        },
+        {
           "name": "config",
           "writable": true
-        },
-        {
-          "name": "reply",
-          "writable": true
-        },
-        {
-          "name": "defaultConnection"
         },
         {
           "name": "feeHandler",
@@ -552,46 +653,6 @@ export type Xcall = {
       "args": [
         {
           "name": "account",
-          "type": "pubkey"
-        }
-      ]
-    },
-    {
-      "name": "setDefaultConnection",
-      "discriminator": [
-        82,
-        16,
-        211,
-        171,
-        43,
-        227,
-        9,
-        155
-      ],
-      "accounts": [
-        {
-          "name": "defaultConnection",
-          "writable": true
-        },
-        {
-          "name": "config"
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "systemProgram"
-        }
-      ],
-      "args": [
-        {
-          "name": "networkId",
-          "type": "string"
-        },
-        {
-          "name": "connection",
           "type": "pubkey"
         }
       ]
@@ -672,19 +733,6 @@ export type Xcall = {
       ]
     },
     {
-      "name": "defaultConnection",
-      "discriminator": [
-        157,
-        235,
-        105,
-        62,
-        249,
-        244,
-        234,
-        110
-      ]
-    },
-    {
       "name": "pendingRequest",
       "discriminator": [
         200,
@@ -721,19 +769,6 @@ export type Xcall = {
         58,
         233,
         238
-      ]
-    },
-    {
-      "name": "reply",
-      "discriminator": [
-        94,
-        7,
-        30,
-        141,
-        234,
-        119,
-        194,
-        246
       ]
     },
     {
@@ -851,126 +886,166 @@ export type Xcall = {
     },
     {
       "code": 6001,
+      "name": "invalidAdminKey",
+      "msg": "Invalid admin key"
+    },
+    {
+      "code": 6002,
       "name": "maxRollbackSizeExceeded",
       "msg": "Maximum rollback data size exceeded"
     },
     {
-      "code": 6002,
+      "code": 6003,
       "name": "invalidSn",
       "msg": "Invalid SN"
     },
     {
-      "code": 6003,
+      "code": 6004,
       "name": "rollbackNotEnabled",
       "msg": "Rollback not enabled"
     },
     {
-      "code": 6004,
+      "code": 6005,
       "name": "maxDataSizeExceeded",
       "msg": "Maximum data size exceeded"
     },
     {
-      "code": 6005,
+      "code": 6006,
+      "name": "proxyRequestAccountNotSpecified",
+      "msg": "Proxy request account is not specified"
+    },
+    {
+      "code": 6007,
       "name": "rollbackAccountNotSpecified",
       "msg": "Rollback account is not specified"
     },
     {
-      "code": 6006,
+      "code": 6008,
       "name": "rollbackCreatorNotSpecified",
       "msg": "Rollback account creator not specified"
     },
     {
-      "code": 6007,
+      "code": 6009,
       "name": "pendingRequestAccountNotSpecified",
       "msg": "Pending request account is not specified"
     },
     {
-      "code": 6008,
+      "code": 6010,
       "name": "pendingRequestCreatorNotSpecified",
       "msg": "Pending request account creator is not specified"
     },
     {
-      "code": 6009,
+      "code": 6011,
       "name": "pendingResponseAccountNotSpecified",
       "msg": "Pending response account is not specified"
     },
     {
-      "code": 6010,
+      "code": 6012,
       "name": "pendingResponseCreatorNotSpecified",
       "msg": "Pending response account creator is not specified"
     },
     {
-      "code": 6011,
+      "code": 6013,
       "name": "invalidMessageSeed",
       "msg": "Invalid message seed"
     },
     {
-      "code": 6012,
+      "code": 6014,
       "name": "successfulResponseAccountNotSpecified",
       "msg": "Successful response account is not specified"
     },
     {
-      "code": 6013,
+      "code": 6015,
       "name": "protocolMismatch",
       "msg": "Protocol mismatch"
     },
     {
-      "code": 6014,
+      "code": 6016,
+      "name": "protocolNotSpecified",
+      "msg": "Connection protocol not specified"
+    },
+    {
+      "code": 6017,
       "name": "rollbackNotPossible",
       "msg": "Rollback not possible"
     },
     {
-      "code": 6015,
+      "code": 6018,
       "name": "callRequestNotFound",
       "msg": "Call request not found"
     },
     {
-      "code": 6016,
+      "code": 6019,
       "name": "noRollbackData",
       "msg": "No rollback data"
     },
     {
-      "code": 6017,
+      "code": 6020,
       "name": "invalidReplyReceived",
       "msg": "Invalid reply received"
     },
     {
-      "code": 6018,
+      "code": 6021,
       "name": "invalidMessageSequence",
       "msg": "Invalid message sequence received"
     },
     {
-      "code": 6019,
+      "code": 6022,
       "name": "decodeFailed",
       "msg": "Decode failed"
     },
     {
-      "code": 6020,
+      "code": 6023,
       "name": "invalidSource",
       "msg": "Invalid source"
     },
     {
-      "code": 6021,
+      "code": 6024,
       "name": "invalidRequestId",
       "msg": "Invalid request id"
     },
     {
-      "code": 6022,
+      "code": 6025,
       "name": "dataMismatch",
       "msg": "Data mismatch"
     },
     {
-      "code": 6023,
+      "code": 6026,
       "name": "invalidPubkey",
       "msg": "Invalid pubkey"
     },
     {
-      "code": 6024,
-      "name": "parsePubkeyError",
-      "msg": "Invalid source address"
+      "code": 6027,
+      "name": "invalidProxyCreator",
+      "msg": "Invalid proxy request creator address"
+    },
+    {
+      "code": 6028,
+      "name": "invalidResponse",
+      "msg": "Invalid response from dapp"
     }
   ],
   "types": [
+    {
+      "name": "accountMetadata",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "isWritable",
+            "type": "bool"
+          },
+          {
+            "name": "isSigner",
+            "type": "bool"
+          }
+        ]
+      }
+    },
     {
       "name": "csMessageDecoded",
       "type": {
@@ -1199,20 +1274,24 @@ export type Xcall = {
             "type": "u128"
           },
           {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "defaultConnection",
-      "type": {
-        "kind": "struct",
-        "fields": [
+            "name": "replyState",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "csMessageRequest"
+                }
+              }
+            }
+          },
           {
-            "name": "address",
-            "type": "pubkey"
+            "name": "callReply",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "csMessageRequest"
+                }
+              }
+            }
           },
           {
             "name": "bump",
@@ -1289,10 +1368,6 @@ export type Xcall = {
             }
           },
           {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
             "name": "bump",
             "type": "u8"
           }
@@ -1300,26 +1375,50 @@ export type Xcall = {
       }
     },
     {
-      "name": "reply",
+      "name": "queryAccountsPaginateResponse",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "replyState",
+            "name": "accounts",
             "type": {
-              "option": {
+              "vec": {
                 "defined": {
-                  "name": "csMessageRequest"
+                  "name": "accountMetadata"
                 }
               }
             }
           },
           {
-            "name": "callReply",
+            "name": "totalAccounts",
+            "type": "u8"
+          },
+          {
+            "name": "limit",
+            "type": "u8"
+          },
+          {
+            "name": "page",
+            "type": "u8"
+          },
+          {
+            "name": "hasNextPage",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "queryAccountsResponse",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "accounts",
             "type": {
-              "option": {
+              "vec": {
                 "defined": {
-                  "name": "csMessageRequest"
+                  "name": "accountMetadata"
                 }
               }
             }
@@ -1389,10 +1488,6 @@ export type Xcall = {
                 "name": "rollback"
               }
             }
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
           },
           {
             "name": "bump",

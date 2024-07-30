@@ -3,11 +3,12 @@ pub mod instructions;
 pub mod states;
 pub mod helpers;
 pub mod configure_protocols;
+pub mod param_accounts;
+pub mod query_account_types;
 
 use anchor_lang::prelude::*;
 pub use states::*;
-
-declare_id!("BLtyB6K2yu942PRJSZEyKm4fzjX8RofB3CHmx3brzU6p");
+declare_id!("7vfrBqZFbvfKCqVC3v7dEh8V6RV9afRu1ySuLLauCMTL");
 
 #[program]
 pub mod xcall_manager {
@@ -48,4 +49,17 @@ pub mod xcall_manager {
     ) -> Result<()> {
         instructions::handle_call_message(ctx, from, data, protocols)
     }
+
+    // pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
+    //     return instructions:: get_handle_call_message_accounts(ctx, data);
+    // }
+    // pub fn query_handle_call_message_accounts<'info>(
+    //     ctx: Context<'_, '_, '_, 'info, GetAccounts<'info>>,
+    //     req_id: u128,
+    //     data: Vec<u8>,
+    //     page: u8,
+    //     limit: u8,
+    // ) -> Result<QueryAccountsPaginateResponse> {
+    //     instructions::query_execute_call_accounts(ctx, req_id, data, page, limit)
+    // }
 }

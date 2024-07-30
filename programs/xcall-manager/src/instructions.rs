@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::configure_protocols::CONFIGURE_PROTOCOLS;
 use crate::helpers::{decode_handle_call_msg, decode_method};
+use crate::param_accounts::get_configure_protocols_param;
 use crate::states::*;
 use crate::errors::*;
 
@@ -61,8 +62,6 @@ pub fn verify_protocols(
      Ok(verified)
  }
 
-
-
 fn verify_protocol_recovery(proposal_to_remove: String, sources: &Vec<String>, protocols: &Vec<String>) -> Result<bool> {
     require!(proposal_to_remove != "".to_string(), XCallManagerError::NoProposalForRemovalExists);
     let mut modified_sources = Vec::new();
@@ -120,4 +119,13 @@ pub fn handle_call_message<'info>(
         return Err(XCallManagerError::UnknownMessageType.into());
     }
     Ok(())
+}
+
+pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetAccounts<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
+    let mut accounts: Vec<ParamAccountProps>  = Vec::new();
+    accounts.append(&mut get_configure_protocols_param(ctx)?);
+    Ok(ParamAccounts{
+        accounts,
+    })
+
 }

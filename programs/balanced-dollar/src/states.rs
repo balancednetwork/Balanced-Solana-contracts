@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount, Mint};
+use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
 
 #[derive(Accounts)]
@@ -19,14 +20,15 @@ pub struct CrossTransfer<'info> {
     pub from_authority: Signer<'info>,
     #[account(mut)]
     pub to: Option<Account<'info, TokenAccount>>,
-    #[account(mut)]
+    #[account(mut, seeds=["state".as_bytes()], bump)]
     pub state: Account<'info, State>,
     #[account(mut)]
     pub mint: Account<'info, Mint>,
     #[account(mut)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
+
     
-    pub xcall: Program<'info, XcallManager>,
+    pub xcall: Program<'info, Xcall>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -43,7 +45,7 @@ pub struct HandleCallMessage<'info> {
     pub mint_authority: AccountInfo<'info>,
     pub token_program: Program<'info, Token>,
     pub xcall_manager: Program<'info, XcallManager>,
-    pub xcall: Program<'info, XcallManager>,
+    pub xcall: Program<'info, Xcall>,
     #[account(mut)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
 }
@@ -58,4 +60,21 @@ pub struct State {
     pub xcall_manager: Pubkey,
     pub bn_usd_token: Pubkey,
     pub owner: Pubkey,
+}
+
+#[derive(Accounts)]
+pub struct GetParams<'info> {
+    pub state: Account<'info, State>,
+}
+
+#[derive(Debug)]
+pub struct ParamAccountProps{
+    pub pubkey: Pubkey,
+    pub is_writable: bool,
+    pub is_signer: bool
+}
+
+#[derive(Debug)]
+pub struct ParamAccounts{
+    pub accounts: Vec<ParamAccountProps>
 }

@@ -4,10 +4,11 @@ pub mod errors;
 pub mod states;
 pub mod helpers;
 pub mod structs;
+pub mod param_accounts;
 
 use states::*;
 
-declare_id!("4XUbw35nyyCAr5ysvbGFUEs2vYafNW1tpNMkFTVvxJU8");
+declare_id!("7pvzYSgsMmK81xtXFCD5VQVbCZurTFxPNQ2FZHUd5rTY");
 
 #[program]
 pub mod balanced_dollar {

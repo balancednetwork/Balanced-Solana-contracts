@@ -9,14 +9,15 @@ import { TestContext as xCallManagerContext } from "../axcall_manager/setup";
 
 import { AssetManager } from "../../target/types/asset_manager";
 import { XcallManager } from "../../target/types/xcall_manager";
+import { Xcall } from "../../types/xcall";
 //import { Xcall } from "../../types/xcall";
-//import xcallIdlJson from "../../types/xcall.json";
-//import { CentralizedConnection } from "../../types/centralized_connection";
-// const connectionProgram: anchor.Program<CentralizedConnection> =
-//   anchor.workspace.CentralizedConnection;
+import xcallIdlJson from "../../types/xcall.json";
+import { CentralizedConnection } from "../../types/centralized_connection";
+const connectionProgram: anchor.Program<CentralizedConnection> =
+  anchor.workspace.CentralizedConnection;
 import * as rlp from 'rlp';
 
-//const xcallIdl = xcallIdlJson as anchor.Idl;
+const xcallIdl = xcallIdlJson as anchor.Idl;
 import {
   TOKEN_PROGRAM_ID,
   createMint,
@@ -35,7 +36,7 @@ describe("xx asset manager test", () => {
   const wallet = provider.wallet as anchor.Wallet;
   const program: anchor.Program<AssetManager> = anchor.workspace.AssetManager;
   const xcall_manager_program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
-  //const xcall_program =  new anchor.Program(xcallIdl, provider);
+  const xcall_program: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
   let txnHelpers = new TransactionHelper(connection, wallet.payer);
   let ctx = new TestContext(connection, txnHelpers, wallet.payer);
@@ -113,6 +114,8 @@ describe("xx asset manager test", () => {
   }
 
   it("deposit token", async() => {
+    let { pda } = XcallPDA.config();
+    let xcall_config = await xcall_program.account.config.fetch(pda);
     let depositorKeyPair = Keypair.generate();
     let depositorTokenAccount = await getOrCreateAssociatedTokenAccount(
       provider.connection,
@@ -150,7 +153,7 @@ describe("xx asset manager test", () => {
         state: AssetManagerPDA.state().pda,
         xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
         assetManager: AssetManagerPDA.asset_manager().pda,
-        xcall: xcall_manager_program.programId,//xcall_program.programId,
+        xcall: xcall_program.programId,
         xcallManager: xcall_manager_program.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SYSTEM_PROGRAM_ID,
@@ -161,28 +164,18 @@ describe("xx asset manager test", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.reply().pda,
+          pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber()+1).pda,
           isSigner: false,
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.rollback(1).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: XcallPDA.defaultConnection("icx").pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: depositorKeyPair.publicKey,
+          pubkey: xcall_config.feeHandler,
           isSigner: false,
           isWritable: true,
         },
         //connection params
         {
-          pubkey: xcall_manager_program.programId,
+          pubkey: connectionProgram.programId,
           isSigner: false,
           isWritable: true,
         },
@@ -192,23 +185,24 @@ describe("xx asset manager test", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.fee("icx").pda,
+          pubkey: ConnectionPDA.fee("0x3.icon").pda,
           isSigner: false,
           isWritable: true,
-        },
-        {
-          pubkey: ConnectionPDA.claimFees().pda,
-          isSigner: false,
-          isWritable: true,
-        },
+        }
       ]).instruction();
     let tx = await ctx.txnHelpers.buildV0Txn([depositTokenIx], [depositorKeyPair]);
-    await ctx.connection.sendTransaction(tx);
-
+    try{
+      let txHash = await ctx.connection.sendTransaction(tx);
+      await txnHelpers.logParsedTx(txHash);
+    }catch(err){
+      console.log(err);
+    }
     console.log("deposited");
   });
 
   it("deposit native token", async() => {
+    let { pda } = XcallPDA.config();
+    let xcall_config = await xcall_program.account.config.fetch(pda);
     let depositorKeyPair = Keypair.generate();
     //console.log("xcall program id is: ", xcall_program.programId)
     await txnHelpers.airdrop(depositorKeyPair.publicKey, 5000000000);
@@ -224,7 +218,7 @@ describe("xx asset manager test", () => {
         state: AssetManagerPDA.state().pda,
         xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
         assetManager: AssetManagerPDA.asset_manager().pda,
-        xcall: xcall_manager_program.programId,//xcall_program.programId,
+        xcall: xcall_program.programId,
         xcallManager: xcall_manager_program.programId,
         tokenProgram: null,
         systemProgram: SYSTEM_PROGRAM_ID,
@@ -235,28 +229,18 @@ describe("xx asset manager test", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.reply().pda,
+          pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber()+1).pda,
           isSigner: false,
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.rollback(1).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: XcallPDA.defaultConnection("icx").pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: depositorKeyPair.publicKey,
-          isSigner: false,
-          isWritable: true,
+          pubkey: xcall_config.feeHandler,
+          isSigner: true,
+          isWritable: false,
         },
         //connection params
         {
-          pubkey: xcall_manager_program.programId,
+          pubkey: connectionProgram.programId,
           isSigner: false,
           isWritable: true,
         },
@@ -266,12 +250,7 @@ describe("xx asset manager test", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.fee("icx").pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: ConnectionPDA.claimFees().pda,
+          pubkey: ConnectionPDA.fee("0x3.icon").pda,
           isSigner: false,
           isWritable: true,
         },
@@ -327,7 +306,7 @@ describe("xx asset manager test", () => {
       xcallManager: xcall_manager_program.programId,
       mint: mint,
       tokenProgram: TOKEN_PROGRAM_ID,
-      xcall: xcall_manager_program.programId,
+      xcall: xcall_program.programId,
       xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
       systemProgram: SYSTEM_PROGRAM_ID
     }).instruction();
@@ -380,7 +359,7 @@ describe("xx asset manager test", () => {
       xcallManager: xcall_manager_program.programId,
       mint: mint,
       tokenProgram: TOKEN_PROGRAM_ID,
-      xcall: xcall_manager_program.programId,
+      xcall: xcall_program.programId,
       xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
       systemProgram: SYSTEM_PROGRAM_ID
     }).instruction();
@@ -417,7 +396,7 @@ describe("xx asset manager test", () => {
       xcallManager: xcall_manager_program.programId,
       mint: null,
       tokenProgram: null,
-      xcall: xcall_manager_program.programId,
+      xcall: xcall_program.programId,
       xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
       systemProgram: SYSTEM_PROGRAM_ID
 
@@ -453,14 +432,15 @@ describe("xx asset manager test", () => {
       xcallManager: xcall_manager_program.programId,
       mint: null,
       tokenProgram: null,
-      xcall: xcall_manager_program.programId,
+      xcall: xcall_program.programId,
       xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
       systemProgram: SYSTEM_PROGRAM_ID
     }).instruction();
     let tx = await ctx.txnHelpers.buildV0Txn([configureIx], [ctx.admin]);
     await ctx.connection.sendTransaction(tx);
-    await  sleep(3);
     console.log("handle call message asset manager native");
+    await  sleep(3);
+    
   });
   
 });
