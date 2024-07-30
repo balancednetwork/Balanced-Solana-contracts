@@ -185,34 +185,33 @@ describe("xx asset manager test", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.fee("0x3.icon").pda,
+          pubkey: ConnectionPDA.fee("icon").pda,
           isSigner: false,
           isWritable: true,
         }
       ]).instruction();
     let tx = await ctx.txnHelpers.buildV0Txn([depositTokenIx], [depositorKeyPair]);
-    try{
-      let txHash = await ctx.connection.sendTransaction(tx);
-      await txnHelpers.logParsedTx(txHash);
-    }catch(err){
-      console.log(err);
-    }
+    await ctx.connection.sendTransaction(tx);
     console.log("deposited");
   });
 
   it("deposit native token", async() => {
     let { pda } = XcallPDA.config();
     let xcall_config = await xcall_program.account.config.fetch(pda);
-    let depositorKeyPair = Keypair.generate();
-    //console.log("xcall program id is: ", xcall_program.programId)
-    await txnHelpers.airdrop(depositorKeyPair.publicKey, 5000000000);
+    let nativeDepositor = Keypair.generate();
+    await txnHelpers.airdrop(nativeDepositor.publicKey, 5000000000);
+    // Check the balance to ensure it has been funded
+    const initialBalance = await provider.connection.getBalance(nativeDepositor.publicKey);
+    expect(initialBalance > 0).toBe(true);
+    
     await  sleep(3);
     let bytes = Buffer.alloc(0);
-    let depositTokenIx = await program.methods
-      .depositNative(bn(1000000000), depositorKeyPair.publicKey.toString(), bytes)
+    let depositTokenIx = 
+    await program.methods
+      .depositNative(bn(1000000000), nativeDepositor.publicKey.toString(), bytes)
       .accountsStrict({
         from: null,
-        fromAuthority: depositorKeyPair.publicKey,
+        fromAuthority: nativeDepositor.publicKey,
         vaultTokenAccount: null,
         vaultNativeAccount: AssetManagerPDA.vault_native().pda,
         state: AssetManagerPDA.state().pda,
@@ -235,8 +234,8 @@ describe("xx asset manager test", () => {
         },
         {
           pubkey: xcall_config.feeHandler,
-          isSigner: true,
-          isWritable: false,
+          isSigner: false,
+          isWritable: true,
         },
         //connection params
         {
@@ -250,15 +249,14 @@ describe("xx asset manager test", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.fee("0x3.icon").pda,
+          pubkey: ConnectionPDA.fee("icon").pda,
           isSigner: false,
           isWritable: true,
         },
       ]).instruction();
-    let tx = await ctx.txnHelpers.buildV0Txn([depositTokenIx], [depositorKeyPair]);
+    let tx = await ctx.txnHelpers.buildV0Txn([depositTokenIx], [nativeDepositor]);
     await ctx.connection.sendTransaction(tx);
-
-    console.log("deposited");
+    console.log("native deposited");
 });
 
   function bn(number: number){

@@ -85,7 +85,6 @@ pub fn deposit_token<'info>(
     to: Option<String>,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
-    msg!("1");
     let from  = ctx.accounts.from.as_ref().ok_or(AssetManagerError::InvalidFromAddress)?;
     let vault_token_account  = ctx.accounts.vault_token_account.as_ref().ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
     let cpi_accounts = Transfer {
@@ -97,11 +96,9 @@ pub fn deposit_token<'info>(
     let cpi_program = ctx.accounts.token_program.clone().unwrap().to_account_info();
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     token::transfer(cpi_ctx, amount)?;
-    msg!("2");
 
     let token_addr = ctx.accounts.token_program.clone().unwrap().key().to_string();
     let from: Pubkey = from.key();
-    msg!("3");
     let res = send_deposit_message(
         ctx,
         token_addr,
@@ -114,13 +111,8 @@ pub fn deposit_token<'info>(
 }
 
 pub fn deposit_native<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: u64, to: Option<String>, data: Option<Vec<u8>>) -> Result<u128> {
-    _deposit(ctx, amount, to, data)
-}
-
-fn _deposit<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: u64, to: Option<String>, data: Option<Vec<u8>>) -> Result<u128> {
     require!(amount > 0, AssetManagerError::InvalidAmount);
     let vault_native_account = ctx.accounts.vault_native_account.as_ref().ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
-
     let user = &ctx.accounts.from_authority;
 
     let transfer_instruction = spl_token::solana_program::system_instruction::transfer(
@@ -128,7 +120,6 @@ fn _deposit<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: 
         &vault_native_account.key(),
         amount,
     );
-
     spl_token::solana_program::program::invoke(
         &transfer_instruction,
         &[
@@ -137,7 +128,6 @@ fn _deposit<'info>(ctx:Context<'_, '_, '_, 'info, DepositToken<'info>>, amount: 
             ctx.accounts.system_program.to_account_info(),
         ],
     )?;
-
     let from: Pubkey = user.key();
     let res = send_deposit_message(ctx, String::from_str(_NATIVE_ADDRESS).unwrap(), from, amount, to, data)?;
     Ok(res)
@@ -152,8 +142,8 @@ fn send_deposit_message<'info>(
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
     let asset_manager = &ctx.accounts.asset_manager;
-    // let (signer_pda, _bump) = Pubkey::find_program_address(&[b"asset_manager_signer"], &ctx.program_id);
-    // require!(asset_manager.key() == signer_pda, AssetManagerError::NotAssetManager);
+    let (signer_pda, _bump) = Pubkey::find_program_address(&[b"asset_manager_signer"], &ctx.program_id);
+    require!(asset_manager.key() == signer_pda, AssetManagerError::NotAssetManager);
 
     let deposit_message = DepositMessage::create(
         token_address.clone(),
@@ -197,10 +187,9 @@ fn send_deposit_message<'info>(
 
     let xcall_program = ctx.accounts.xcall.to_account_info();
     let cpi_ctx = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seends).with_remaining_accounts(remaining_accounts.to_vec());
-    #[cfg(not(test))]
     let result = xcall::cpi::send_call(cpi_ctx, envelope_encoded, icon_asset_manager)?;
-    //Ok(result.get())
-    Ok(1)
+    Ok(result.get())
+    
 }
 
 pub fn verify_protocols<'info>(
@@ -391,9 +380,7 @@ fn withdraw_token<'info>(
         &[bump],
     ];
     let signer = &[&seeds[..]];
-    msg!("before token transfer");
     token::transfer(CpiContext::new_with_signer(token_program, cpi_accounts, signer), amount)?;
-    msg!("after token transfer");
     Ok(())
 }
 

@@ -76,7 +76,6 @@ pub struct DepositToken<'info> {
     /// CHECK: xcall_manager_state is validated in the method
     #[account(mut, seeds = [b"asset_manager_signer"], bump)]
     pub asset_manager: AccountInfo<'info>,
-    //pub xcall: Program<'info, XcallManager>,
     pub xcall: Program<'info, Xcall>,
     pub xcall_manager: Program<'info, XcallManager>,
     pub token_program: Option<Program<'info, Token>>,

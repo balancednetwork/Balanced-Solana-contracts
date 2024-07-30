@@ -136,19 +136,13 @@ describe("balanced dollar manager", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.fee("0x3.icon").pda,
+          pubkey: ConnectionPDA.fee("icon").pda,
           isSigner: false,
           isWritable: true,
         }
       ]).instruction();
       let tx = await ctx.txnHelpers.buildV0Txn([crossTransferTx], [transfrerPair]);
-      console.log("cross transfer test")
-      try {
-        let txHash = await ctx.connection.sendTransaction(tx);
-        await txnHelpers.logParsedTx(txHash);
-      } catch (err) {
-        console.log(err)
-      }
+      await ctx.connection.sendTransaction(tx);
   });
 
   it("Handle call message", async() => {
@@ -186,8 +180,9 @@ describe("balanced dollar manager", () => {
     }).instruction();
     let tx = await ctx.txnHelpers.buildV0Txn([handleCallMessageIx], [ctx.admin]);
     await ctx.connection.sendTransaction(tx);
-    await  sleep(3);
     console.log("handle call message balanced dollar");
+    await  sleep(3);
+    
   });
   
 });

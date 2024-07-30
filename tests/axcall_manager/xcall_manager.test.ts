@@ -8,6 +8,9 @@ import { TransactionHelper, sleep } from "../utils";
 import { TestContext, XcallManagerPDA } from "./setup";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 const program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
+import { CentralizedConnection } from "../../types/centralized_connection";
+const connectionProgram: anchor.Program<CentralizedConnection> =
+  anchor.workspace.CentralizedConnection;
 
 describe("balanced xcall manager", () => {
   const provider = anchor.AnchorProvider.env();
@@ -44,7 +47,7 @@ describe("balanced xcall manager", () => {
     let source1 = Keypair.generate();
     let source2 = Keypair.generate();
     let setProtocolIx = await program.methods
-      .setProtocols([source1.publicKey.toString(), source2.publicKey.toString()],
+      .setProtocols([source1.publicKey.toString()],
       ["icon/cxjkefnskdjfe", "icon/cxjdkfndjwk"])
       .accountsStrict({
         state: XcallManagerPDA.state().pda,
@@ -156,7 +159,7 @@ describe("balanced xcall manager", () => {
    
     let source1 = Keypair.generate();
     let source2 = Keypair.generate();
-    const data = ["ConfigureProtocols", [source1.publicKey.toString(), source2.publicKey.toString()], ["icon/jsdvnskjdfn", "icon/klnvjkdsnfjk"]];
+    const data = ["ConfigureProtocols", [connectionProgram.programId.toString()], ["icon/jsdvnskjdfn"]];
 
     const rlpEncodedData = rlp.encode(data);
 
@@ -189,8 +192,7 @@ describe("balanced xcall manager", () => {
     const updatedStateAccount = await program.account.xmState.fetch(XcallManagerPDA.state().pda);
     let updatedSources = updatedStateAccount.sources;
 
-    expect(updatedSources[0]).toBe(source1.publicKey.toString());
-    expect(updatedSources[1]).toBe(source2.publicKey.toString());
+    expect(updatedSources[0]).toBe(connectionProgram.programId.toString());
 
   });
   
