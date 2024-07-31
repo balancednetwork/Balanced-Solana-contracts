@@ -99,11 +99,11 @@ pub fn handle_call_message<'info>(
     ctx: Context<'_, '_, '_, 'info, HandleCallMessage<'info>>,
     from: String,
     data: Vec<u8>,
-    protocols: Vec<String>,
-    bump: u8
+    protocols: Vec<String>
 ) -> Result<()> {
     //require!(ctx.accounts.xcall.key() == ctx.accounts.state.xcall, BalancedDollarError::NotXcall);
     require!(verify_protocols(&ctx.accounts.xcall_manager, &ctx.accounts.xcall_manager_state, &protocols)?, BalancedDollarError::InvalidProtocols);
+    let bump = ctx.bumps.mint_authority;
     let seeds = &[b"bnusd_authority".as_ref(), &[bump]];
     let signer = &[&seeds[..]];
     let method = decode_method(&data).unwrap();

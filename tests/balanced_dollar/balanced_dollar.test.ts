@@ -76,7 +76,7 @@ describe("balanced dollar manager", () => {
     expect(stateAccount.bnUsdToken.toString()).toBe(mint.toString());
   });
 
-  it("Handle call message", async() => {
+  it("Handle call message cross transfer", async() => {
     let sender = Keypair.generate();
     await  sleep(3);
     await txnHelpers.airdrop(withdrawerKeyPair.publicKey, 5000000000);
@@ -90,7 +90,51 @@ describe("balanced dollar manager", () => {
     let protocols = xcall_manager_program.account.xmState.fetch(BalancedDollarPDA.xcall_manager_state().pda);
     let program_authority = BalancedDollarPDA.program_authority();
     let handleCallMessageIx = await program.methods
-    .handleCallMessage(iconBnUsd, Buffer.from(rlpEncodedData), (await protocols).sources, program_authority.bump )
+    .handleCallMessage(iconBnUsd, Buffer.from(rlpEncodedData), (await protocols).sources )
+    .accountsStrict({
+      state: BalancedDollarPDA.state().pda,
+      to: withdrawerTokenAccount.address,
+      mint: mint,
+      mintAuthority: program_authority.pda,
+      xcallManager: xcall_manager_program.programId,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      xcall: xcall_program.programId,
+      xcallManagerState: BalancedDollarPDA.xcall_manager_state().pda
+    }).instruction();
+    let tx = await ctx.txnHelpers.buildV0Txn([handleCallMessageIx], [ctx.admin]);
+    try{
+      let txHash = await ctx.connection.sendTransaction(tx);
+      await txnHelpers.logParsedTx(txHash);
+    } catch (err) {
+      console.log(err);
+    }
+    console.log("handle call message balanced dollar");
+
+    // Fetch the token balance
+    const tokenAccountInfo = await connection.getTokenAccountBalance(withdrawerTokenAccount.address);
+
+    let balance = tokenAccountInfo.value.amount;
+    console.log("balanced of withdrawer: {}", balance);
+    expect(balance).toBe("20000000000");
+    await  sleep(3);
+    
+  });
+
+  it("Handle call message cross trasfer revert", async() => {
+    let sender = Keypair.generate();
+    await  sleep(3);
+    await txnHelpers.airdrop(withdrawerKeyPair.publicKey, 5000000000);
+    await  sleep(3);
+    const stateAccount = await program.account.state.fetch(BalancedDollarPDA.state().pda);
+    let iconBnUsd = stateAccount.iconBnUsd;
+    let bytes = Buffer.alloc(0);
+    const data = ["xCrossTransferRevert", withdrawerKeyPair.publicKey.toString(), 20000000000];
+    const rlpEncodedData = rlp.encode(data);
+  
+    let protocols = xcall_manager_program.account.xmState.fetch(BalancedDollarPDA.xcall_manager_state().pda);
+    let program_authority = BalancedDollarPDA.program_authority();
+    let handleCallMessageIx = await program.methods
+    .handleCallMessage(xcall_program.programId.toString(), Buffer.from(rlpEncodedData), (await protocols).sources )
     .accountsStrict({
       state: BalancedDollarPDA.state().pda,
       to: withdrawerTokenAccount.address,
@@ -132,7 +176,7 @@ describe("balanced dollar manager", () => {
   
     let protocols = xcall_manager_program.account.xmState.fetch(BalancedDollarPDA.xcall_manager_state().pda);
     await program.methods
-    .handleCallMessage(iconBnUsd, Buffer.from(rlpEncodedData), (await protocols).sources, program_authority.bump )
+    .handleCallMessage(iconBnUsd, Buffer.from(rlpEncodedData), (await protocols).sources )
     .accountsStrict({
       state: BalancedDollarPDA.state().pda,
       to: withdrawerTokenAccount.address,
