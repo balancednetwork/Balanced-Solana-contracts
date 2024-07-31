@@ -248,7 +248,6 @@ fn handle_token_call_message<'info>(
 ) -> Result<()> {
     let state = ctx.accounts.state.clone();
     let bump = ctx.bumps.valult_authority.unwrap();
-    //require!(ctx.accounts.xcall.key() == ctx.accounts.state.xcall, CustomError::UnauthorizedCaller);
 
     require!(
         verify_protocols(ctx.accounts.xcall_manager.clone(), ctx.accounts.xcall_manager_state.clone(), &protocols)?,
@@ -308,7 +307,6 @@ fn handle_native_call_message<'info>(
     protocols: Vec<String>
 ) -> Result<()> {
     let state = ctx.accounts.state.clone();
-    //require!(ctx.accounts.xcall.key() == ctx.accounts.state.xcall, CustomError::UnauthorizedCaller);
 
     require!(
         verify_protocols(ctx.accounts.xcall_manager.clone(), ctx.accounts.xcall_manager_state.clone(), &protocols)?,

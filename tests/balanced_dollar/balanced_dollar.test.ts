@@ -4,7 +4,6 @@ import * as rlp from 'rlp';
 
 import { BalancedDollar } from "../../target/types/balanced_dollar";
 import { XcallManager } from "../../target/types/xcall_manager";
-import xcallIdlJson from "../../types/xcall.json";
 
 import { TransactionHelper, sleep } from "../utils";
 import { TestContext, BalancedDollarPDA } from "./setup";
@@ -14,18 +13,15 @@ const xcall_manager_program: anchor.Program<XcallManager> = anchor.workspace.Xca
 const xcall_program: anchor.Program<Xcall> = anchor.workspace.xcall;
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 import { CentralizedConnection } from "../../types/centralized_connection";
-//const xcallIdl = xcallIdlJson as anchor.Idl;
 const connectionProgram: anchor.Program<CentralizedConnection> =
   anchor.workspace.CentralizedConnection;
 import {
     TOKEN_PROGRAM_ID,
     createMint,
-    createAssociatedTokenAccount,
-    mintTo,
     getOrCreateAssociatedTokenAccount,
     Account
 } from "@solana/spl-token";
-import { BN, min } from "bn.js";
+import { BN } from "bn.js";
 import { Xcall } from "../../types/xcall";
 
 describe("balanced dollar manager", () => {
@@ -64,15 +60,15 @@ describe("balanced dollar manager", () => {
 
   it("should initialize the state properly", async () => {
     await ctx.initialize(
-        xcallKeyPair.publicKey,
+        xcall_program.programId,
         "icon/hxcnjsd",
-        xcallManagerKeyPair.publicKey,
+        xcall_manager_program.programId,
         mint
     );
     const stateAccount = await program.account.state.fetch(BalancedDollarPDA.state().pda);
-    expect(stateAccount.xcall.toString()).toBe(xcallKeyPair.publicKey.toString());
+    expect(stateAccount.xcall.toString()).toBe(xcall_program.programId.toString());
     expect(stateAccount.iconBnUsd).toBe("icon/hxcnjsd");
-    expect(stateAccount.xcallManager.toString()).toBe(xcallManagerKeyPair.publicKey.toString());
+    expect(stateAccount.xcallManager.toString()).toBe(xcall_manager_program.programId.toString());
     expect(stateAccount.bnUsdToken.toString()).toBe(mint.toString());
   });
 
@@ -102,12 +98,9 @@ describe("balanced dollar manager", () => {
       xcallManagerState: BalancedDollarPDA.xcall_manager_state().pda
     }).instruction();
     let tx = await ctx.txnHelpers.buildV0Txn([handleCallMessageIx], [ctx.admin]);
-    try{
-      let txHash = await ctx.connection.sendTransaction(tx);
-      await txnHelpers.logParsedTx(txHash);
-    } catch (err) {
-      console.log(err);
-    }
+    let txHash = await ctx.connection.sendTransaction(tx);
+    await txnHelpers.logParsedTx(txHash);
+    
     console.log("handle call message balanced dollar");
 
     // Fetch the token balance
@@ -126,8 +119,6 @@ describe("balanced dollar manager", () => {
     await txnHelpers.airdrop(withdrawerKeyPair.publicKey, 5000000000);
     await  sleep(3);
     const stateAccount = await program.account.state.fetch(BalancedDollarPDA.state().pda);
-    let iconBnUsd = stateAccount.iconBnUsd;
-    let bytes = Buffer.alloc(0);
     const data = ["xCrossTransferRevert", withdrawerKeyPair.publicKey.toString(), 20000000000];
     const rlpEncodedData = rlp.encode(data);
   
@@ -146,12 +137,9 @@ describe("balanced dollar manager", () => {
       xcallManagerState: BalancedDollarPDA.xcall_manager_state().pda
     }).instruction();
     let tx = await ctx.txnHelpers.buildV0Txn([handleCallMessageIx], [ctx.admin]);
-    try{
-      let txHash = await ctx.connection.sendTransaction(tx);
-      await txnHelpers.logParsedTx(txHash);
-    } catch (err) {
-      console.log(err);
-    }
+    let txHash = await ctx.connection.sendTransaction(tx);
+    await txnHelpers.logParsedTx(txHash);
+    
     console.log("handle call message balanced dollar");
 
     // Fetch the token balance
@@ -187,28 +175,8 @@ describe("balanced dollar manager", () => {
       xcall: xcall_program.programId,
       xcallManagerState: BalancedDollarPDA.xcall_manager_state().pda
     }).signers([ctx.admin]).rpc();
-    // let transfrerPair = Keypair.generate();
-    // let trnasfererTokenAccount = await getOrCreateAssociatedTokenAccount(
-    //   provider.connection,
-    //   wallet.payer,
-    //   mint,
-    //   transfrerPair.publicKey,
-    //   true
-    // );
     await  sleep(3);
-
-    // await mintTo(
-    //   provider.connection,
-    //   wallet.payer,
-    //   mint,
-    //   withdrawerTokenAccount.address,
-    //   program_authority.pda,
-    //   10000000000,
-    //   [ctx.admin],
-    //   null,
-    //   TOKEN_PROGRAM_ID
-    // );
-    // await  sleep(3);
+    
     const tokenAccountInfo = await connection.getTokenAccountBalance(withdrawerTokenAccount.address);
 
     let balance = tokenAccountInfo.value.amount;

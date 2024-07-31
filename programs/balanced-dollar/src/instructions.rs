@@ -40,8 +40,6 @@ pub fn cross_transfer<'info>(
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
     require!(value > 0, BalancedDollarError::InvalidAmount);
-    msg!("balance: {:?}", ctx.accounts.from.amount);
-    msg!("value: {:?}", value);
     require!(ctx.accounts.from.amount>=value, BalancedDollarError::InsufficientBalance );
     //require!(ctx.accounts.state.bn_usd_token == ctx.accounts.token_program.key(), BalancedDollarError::NotBalancedDollar);
     let burn_ctx = CpiContext::new(
@@ -101,14 +99,13 @@ pub fn handle_call_message<'info>(
     data: Vec<u8>,
     protocols: Vec<String>
 ) -> Result<()> {
-    //require!(ctx.accounts.xcall.key() == ctx.accounts.state.xcall, BalancedDollarError::NotXcall);
     require!(verify_protocols(&ctx.accounts.xcall_manager, &ctx.accounts.xcall_manager_state, &protocols)?, BalancedDollarError::InvalidProtocols);
     let bump = ctx.bumps.mint_authority;
     let seeds = &[b"bnusd_authority".as_ref(), &[bump]];
     let signer = &[&seeds[..]];
     let method = decode_method(&data).unwrap();
     if method == CROSS_TRANSFER {
-        //require!(from == ctx.accounts.state.icon_bn_usd, BalancedDollarError::InvalidSender);
+        require!(from == ctx.accounts.state.icon_bn_usd, BalancedDollarError::InvalidSender);
         let message = decode_cross_transfer(&data)?;
         mint(
             ctx.accounts.mint.to_account_info(),
@@ -119,7 +116,7 @@ pub fn handle_call_message<'info>(
             signer
         )?;
     } else if method == CROSS_TRANSFER_REVERT {
-        //require!(from == ctx.accounts.state.xcall.to_string(), BalancedDollarError::InvalidSender);
+        require!(from == ctx.accounts.state.xcall.to_string(), BalancedDollarError::InvalidSender);
         let message = decode_cross_transfer_revert(&data)?;
         mint(
             ctx.accounts.mint.to_account_info(),
