@@ -16,7 +16,9 @@ pub enum BalancedDollarError {
     #[msg("Not Balanced Dollar")]
     NotBalancedDollar,
     #[msg("Not the xcall program")]
-    NotXcall
+    NotXcall,
+    #[msg("Insufficient Balance")]
+    InsufficientBalance
 }
 
 impl From<DecoderError> for BalancedDollarError {

@@ -233,8 +233,6 @@ pub fn handle_call_message<'info>(
     protocols: Vec<String>
 ) -> Result<()> {
     let token_address = decode_token_address(&data).unwrap();
-    msg!("token addres: {}", token_address);
-    msg!("token addres: {}", _NATIVE_ADDRESS.to_string());
     if  token_address != _NATIVE_ADDRESS.to_string() {
         return  handle_token_call_message(ctx, from, data, protocols);
     }else {
