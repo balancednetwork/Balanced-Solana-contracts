@@ -32,10 +32,7 @@ describe("balanced dollar manager", () => {
 
   let txnHelpers = new TransactionHelper(connection, wallet.payer);
   let ctx = new TestContext(connection, txnHelpers, wallet.payer);
-  //const xcall_program =  new anchor.Program(xcallIdl, provider);
 
-  let xcallKeyPair = Keypair.generate();
-  let xcallManagerKeyPair = Keypair.generate();
   let mint: PublicKey;
   let program_authority = BalancedDollarPDA.program_authority();
   let withdrawerKeyPair = Keypair.generate();
@@ -63,7 +60,8 @@ describe("balanced dollar manager", () => {
         xcall_program.programId,
         "icon/hxcnjsd",
         xcall_manager_program.programId,
-        mint
+        mint,
+        BalancedDollarPDA.xcall_manager_state().pda
     );
     const stateAccount = await program.account.state.fetch(BalancedDollarPDA.state().pda);
     expect(stateAccount.xcall.toString()).toBe(xcall_program.programId.toString());

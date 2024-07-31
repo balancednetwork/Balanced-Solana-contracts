@@ -207,23 +207,30 @@ pub fn verify_protocols<'info>(
 }
 
 pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
-    let mut accounts: Vec<ParamAccountProps>  = Vec::new();
-    let method = decode_method(&data).unwrap();
     let token_address = decode_token_address(&data).unwrap();
-    if method==WITHDRAW_TO && token_address !=_NATIVE_ADDRESS.to_string() {
-        accounts.append(&mut get_withdraw_to_token_param(ctx, data)?);
-    } else if method==DEPOSIT_REVERT && token_address !=_NATIVE_ADDRESS.to_string() {
-        accounts.append(&mut get_withdraw_to_token_param(ctx, data)?);
-    } else if method==WITHDRAW_TO && token_address ==_NATIVE_ADDRESS.to_string() {
-        accounts.append(&mut get_withdraw_to_token_param(ctx, data)?);
-    } else if method==DEPOSIT_REVERT && token_address ==_NATIVE_ADDRESS.to_string() {
-        accounts.append(&mut get_withdraw_to_token_param(ctx, data)?);
+    let method = decode_method(&data).unwrap();
+    if token_address !=_NATIVE_ADDRESS.to_string() && method == WITHDRAW_TO  {
+        Ok(ParamAccounts{
+            accounts: get_spl_token_withdra_to_accounts(ctx, data)?
+        })
+    } else if token_address != _NATIVE_ADDRESS && method == DEPOSIT_REVERT {
+        Ok(ParamAccounts{
+            accounts: get_spl_token_deposit_revert_accounts(ctx, data)?
+        })
+    } else if token_address == _NATIVE_ADDRESS && method == WITHDRAW_TO {
+        Ok(ParamAccounts{
+            accounts: get_native_token_withdra_to_accounts(ctx, data)?
+        })
+    } else if token_address == _NATIVE_ADDRESS && method == DEPOSIT_REVERT {
+        Ok(ParamAccounts{
+            accounts: get_spl_token_withdra_to_accounts(ctx, data)?
+        })
+    } else {
+        let accounts: Vec<ParamAccountProps> = vec![];
+        Ok(ParamAccounts{
+            accounts
+        })
     }
-
-    Ok(ParamAccounts{
-        accounts,
-    })
-
 }
 
 pub fn handle_call_message<'info>(

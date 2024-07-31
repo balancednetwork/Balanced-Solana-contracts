@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::configure_protocols::CONFIGURE_PROTOCOLS;
 use crate::helpers::{decode_handle_call_msg, decode_method};
-use crate::param_accounts::get_configure_protocols_param;
 use crate::states::*;
 use crate::errors::*;
 
@@ -121,11 +120,11 @@ pub fn handle_call_message<'info>(
     Ok(())
 }
 
-pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetAccounts<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
-    let mut accounts: Vec<ParamAccountProps>  = Vec::new();
-    accounts.append(&mut get_configure_protocols_param(ctx)?);
+pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
+    let  accounts: Vec<ParamAccountProps>  = vec![
+        ParamAccountProps::new_readonly(ctx.accounts.state.key(), false),
+    ];
     Ok(ParamAccounts{
         accounts,
     })
-
 }

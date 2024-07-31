@@ -22,9 +22,9 @@ export class TestContext {
     this.fee_handler = admin;
   }
 
-  async initialize(xcall: PublicKey, icon_bn_usd: string, xcall_manager: PublicKey, bn_usd: PublicKey) {
+  async initialize(xcall: PublicKey, icon_bn_usd: string, xcall_manager: PublicKey, bn_usd: PublicKey, xcall_manager_state: PublicKey) {
     let initializeIx = await balancedDollarProgram.methods
-        .initialize(xcall, icon_bn_usd, xcall_manager, bn_usd)
+        .initialize(xcall, icon_bn_usd, xcall_manager, bn_usd, xcall_manager_state)
         .accountsStrict({
           state: BalancedDollarPDA.state().pda,
           admin: this.admin.publicKey,

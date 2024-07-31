@@ -19,9 +19,10 @@ pub mod balanced_dollar {
         xcall: Pubkey,
         icon_bn_usd: String,
         xcall_manager: Pubkey,
-        bn_usd_token: Pubkey
+        bn_usd_token: Pubkey,
+        xcall_manager_state: Pubkey
     ) -> Result<()> {
-        instructions::initialize(ctx, xcall, icon_bn_usd, xcall_manager, bn_usd_token)
+        instructions::initialize(ctx, xcall, icon_bn_usd, xcall_manager, bn_usd_token, xcall_manager_state)
         //Ok(())
     }
 

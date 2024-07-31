@@ -133,19 +133,35 @@ pub struct GetParams<'info> {
     pub state: Account<'info, State>,
 }
 
-#[derive(Debug)]
+#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct ParamAccountProps{
     pub pubkey: Pubkey,
     pub is_writable: bool,
     pub is_signer: bool
 }
 
-#[derive(Debug)]
+#[derive(AnchorSerialize, AnchorDeserialize,Debug)]
 pub struct ParamAccounts{
     pub accounts: Vec<ParamAccountProps>
 }
 
+impl ParamAccountProps {
+    pub fn new(pubkey: Pubkey, is_signer: bool) -> Self {
+        Self {
+            pubkey,
+            is_signer,
+            is_writable: true,
+        }
+    }
 
+    pub fn new_readonly(pubkey: Pubkey, is_signer: bool) -> Self {
+        Self {
+            pubkey,
+            is_signer,
+            is_writable: false,
+        }
+    }
+}
 
 
 

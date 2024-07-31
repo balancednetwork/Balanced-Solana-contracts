@@ -11,6 +11,7 @@ use xcall_lib::network_address::NetworkAddress;
 use std::str::FromStr;
 use crate::errors::BalancedDollarError;
 
+use crate::param_accounts::get_accounts;
 use crate::{
         helpers::*, states::*, structs::{
         cross_transfer::{ CrossTransferMsg, CROSS_TRANSFER, },
@@ -23,13 +24,14 @@ pub fn initialize(
     xcall: Pubkey,
     icon_bn_usd: String,
     xcall_manager: Pubkey,
-    bn_usd_token: Pubkey
+    bn_usd_token: Pubkey,
+    xcall_manager_state: Pubkey
 ) -> Result<()> {
     let state = &mut ctx.accounts.state;
     state.xcall = xcall;
     state.icon_bn_usd = icon_bn_usd;
     state.xcall_manager = xcall_manager;
-    state.owner = *ctx.accounts.admin.key;
+    state.xcall_manager_state  = xcall_manager_state;
     state.bn_usd_token = bn_usd_token;
     Ok(())
 }
@@ -160,4 +162,26 @@ pub fn verify_protocols<'info>(
     let cpi_ctx  = CpiContext::new(xcall_manager_program.to_account_info(), cpi_accounts);
     let _ = xcall_manager::cpi::verify_protocols(cpi_ctx, protocols.to_vec())?;
     Ok(true)
+}
+
+pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
+    let method = decode_method(&data).unwrap();
+    if method == CROSS_TRANSFER {
+        let message = decode_cross_transfer(&data)?;
+        let user_address = Pubkey::from_str(&message.to).map_err(|_| BalancedDollarError::NotAnAddress)?;
+        Ok(ParamAccounts {
+            accounts: get_accounts(ctx, user_address)?
+        })
+    } else if method == CROSS_TRANSFER_REVERT {
+        let message = decode_cross_transfer(&data)?;
+        let user_address = Pubkey::from_str(&message.to).map_err(|_| BalancedDollarError::NotAnAddress)?;
+        Ok(ParamAccounts {
+            accounts: get_accounts(ctx, user_address)?
+        })
+    }else{
+        let accounts: Vec<ParamAccountProps> = vec![];
+        Ok(ParamAccounts{
+            accounts
+        })
+    }
 }
