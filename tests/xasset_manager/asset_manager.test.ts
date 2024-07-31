@@ -70,15 +70,15 @@ describe("xx asset manager test", () => {
 
   it("should initialize the state properly", async () => {
     await ctx.initialize(
-      SYSTEM_PROGRAM_ID,//xcallKeyPair.publicKey,
+      xcall_program.programId,//xcallKeyPair.publicKey,
       "icon/hxcnjsd",
-      xcallManagerKeyPair.publicKey,
+      xcall_manager_program.programId,
       AssetManagerPDA.xcall_manager_state().pda
     );
     const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
-    expect(stateAccount.xcall.toString()).toBe(SYSTEM_PROGRAM_ID.toString());
+    expect(stateAccount.xcall.toString()).toBe(xcall_program.programId.toString());
     expect(stateAccount.iconAssetManager).toBe("icon/hxcnjsd");
-    expect(stateAccount.xcallManager.toString()).toBe(xcallManagerKeyPair.publicKey.toString());
+    expect(stateAccount.xcallManager.toString()).toBe(xcall_manager_program.programId.toString());
     expect(stateAccount.admin.toString()).toBe( wallet.payer.publicKey.toString());
   });
 
@@ -346,7 +346,7 @@ describe("xx asset manager test", () => {
   
     let protocols = xcall_manager_program.account.xmState.fetch(AssetManagerPDA.xcall_manager_state().pda);
     let configureIx = await program.methods
-    .handleCallMessage(SYSTEM_PROGRAM_ID.toString(), Buffer.from(rlpEncodedData), (await protocols).sources )
+    .handleCallMessage(xcall_program.programId.toString(), Buffer.from(rlpEncodedData), (await protocols).sources )
     .accountsStrict({
       to: withdrawerTokenAccount.address,
       toNative: null,
@@ -419,7 +419,7 @@ describe("xx asset manager test", () => {
   
     let protocols = xcall_manager_program.account.xmState.fetch(AssetManagerPDA.xcall_manager_state().pda);
     let configureIx = await program.methods
-    .handleCallMessage(SYSTEM_PROGRAM_ID.toString(), Buffer.from(rlpEncodedData), (await protocols).sources )
+    .handleCallMessage(xcall_program.programId.toString(), Buffer.from(rlpEncodedData), (await protocols).sources )
     .accountsStrict({
       to: null,
       toNative: withdrawerKeyPair.publicKey,
@@ -439,6 +439,20 @@ describe("xx asset manager test", () => {
     console.log("handle call message asset manager native");
     await  sleep(3);
     
+  });
+
+  it("test account list", async () => {
+    let to = Keypair.generate();
+    const data = ["WithdrawTo", mint.toString(), to.publicKey.toString(), 1000000000];
+    const rlpEncodedData = rlp.encode(data);
+    
+    let accounts = await program.methods
+      .queryHandleCallMessageAccounts(Buffer.from(rlpEncodedData))
+      .accounts({
+        state: AssetManagerPDA.state().pda,
+      }).view();
+      
+      console.log("accounts: {}", accounts);
   });
   
 });

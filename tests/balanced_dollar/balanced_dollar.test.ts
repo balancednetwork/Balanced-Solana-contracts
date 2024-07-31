@@ -238,6 +238,20 @@ describe("balanced dollar manager", () => {
     //expect(updatedBalance).toBe(20000000000-1000000000);
   });
 
-  
+  it("test account list", async () => {
+    let from = Keypair.generate();
+    let bytes = Buffer.alloc(0);
+    const data = ["xCrossTransfer", from.publicKey.toString(), withdrawerKeyPair.publicKey.toString(), 20000000000,  bytes];
+    const rlpEncodedData = rlp.encode(data);
+    
+    let accounts = await program.methods
+      .queryHandleCallMessageAccounts(Buffer.from(rlpEncodedData))
+      .accounts({
+        state: BalancedDollarPDA.state().pda,
+      }).view();
+      
+      console.log("accounts: {}", accounts);
+
+  });
   
 });

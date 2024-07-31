@@ -44,8 +44,9 @@ pub mod balanced_dollar {
         let _ = instructions::handle_call_message(ctx, from, data, protocols);
         Ok(())
     }
-
     
-
+    pub fn query_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
+        return instructions:: get_handle_call_message_accounts(ctx, data);
+    }
 
 }
