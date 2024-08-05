@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Keypair, PublicKey, Connection } from "@solana/web3.js";
+import { Keypair, PublicKey, Connection, ComputeBudgetProgram } from "@solana/web3.js";
 
 import { TransactionHelper, sleep } from "../utils";
 import { TestContext, AssetManagerPDA } from "./setup";
@@ -32,7 +32,7 @@ import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 describe("xx asset manager test", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const connection = new Connection("http://127.0.0.1:8899", "confirmed");
+  const connection = provider.connection; // new Connection("http://127.0.0.1:8899", "confirmed");
   const wallet = provider.wallet as anchor.Wallet;
   const program: anchor.Program<AssetManager> = anchor.workspace.AssetManager;
   const xcall_manager_program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
@@ -153,6 +153,7 @@ describe("xx asset manager test", () => {
         state: AssetManagerPDA.state().pda,
         xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
         assetManager: AssetManagerPDA.asset_manager().pda,
+        xcallConfig: XcallPDA.config().pda,
         xcall: xcall_program.programId,
         xcallManager: xcall_manager_program.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -167,6 +168,11 @@ describe("xx asset manager test", () => {
           pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber()+1).pda,
           isSigner: false,
           isWritable: true,
+        },
+        {
+          pubkey: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
+          isSigner: false,
+          isWritable: false,
         },
         {
           pubkey: xcall_config.feeHandler,
@@ -190,8 +196,17 @@ describe("xx asset manager test", () => {
           isWritable: true,
         }
       ]).instruction();
-    let tx = await ctx.txnHelpers.buildV0Txn([depositTokenIx], [depositorKeyPair]);
-    await ctx.connection.sendTransaction(tx);
+      const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({ 
+        units: 1000000 
+      });
+      
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({ 
+        microLamports: 0
+      });
+      let tx = await ctx.txnHelpers.buildV0Txn([modifyComputeUnits, addPriorityFee, depositTokenIx], [depositorKeyPair]);
+      let txHash = await ctx.connection.sendTransaction(tx);
+      await txnHelpers.logParsedTx(txHash);
+   
     console.log("deposited");
   });
 
@@ -217,6 +232,7 @@ describe("xx asset manager test", () => {
         state: AssetManagerPDA.state().pda,
         xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
         assetManager: AssetManagerPDA.asset_manager().pda,
+        xcallConfig: XcallPDA.config().pda,
         xcall: xcall_program.programId,
         xcallManager: xcall_manager_program.programId,
         tokenProgram: null,
@@ -231,6 +247,11 @@ describe("xx asset manager test", () => {
           pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber()+1).pda,
           isSigner: false,
           isWritable: true,
+        },
+        {
+          pubkey: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
+          isSigner: false,
+          isWritable: false,
         },
         {
           pubkey: xcall_config.feeHandler,

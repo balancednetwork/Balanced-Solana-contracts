@@ -172,6 +172,43 @@ export type CentralizedConnection = {
       }
     },
     {
+      "name": "queryRevertMessageAccounts",
+      "discriminator": [
+        224,
+        208,
+        135,
+        17,
+        98,
+        199,
+        169,
+        130
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequenceNo",
+          "type": "u128"
+        },
+        {
+          "name": "page",
+          "type": "u8"
+        },
+        {
+          "name": "limit",
+          "type": "u8"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "queryAccountsPaginateResponse"
+        }
+      }
+    },
+    {
       "name": "querySendMessageAccounts",
       "discriminator": [
         194,
@@ -282,10 +319,6 @@ export type CentralizedConnection = {
         }
       ],
       "args": [
-        {
-          "name": "srcNetwork",
-          "type": "string"
-        },
         {
           "name": "sequenceNo",
           "type": "u128"

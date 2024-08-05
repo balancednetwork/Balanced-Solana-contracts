@@ -166,6 +166,43 @@
       }
     },
     {
+      "name": "query_revert_message_accounts",
+      "discriminator": [
+        224,
+        208,
+        135,
+        17,
+        98,
+        199,
+        169,
+        130
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence_no",
+          "type": "u128"
+        },
+        {
+          "name": "page",
+          "type": "u8"
+        },
+        {
+          "name": "limit",
+          "type": "u8"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QueryAccountsPaginateResponse"
+        }
+      }
+    },
+    {
       "name": "query_send_message_accounts",
       "discriminator": [
         194,
@@ -276,10 +313,6 @@
         }
       ],
       "args": [
-        {
-          "name": "src_network",
-          "type": "string"
-        },
         {
           "name": "sequence_no",
           "type": "u128"

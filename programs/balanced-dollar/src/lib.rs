@@ -23,16 +23,15 @@ pub mod balanced_dollar {
         xcall_manager_state: Pubkey
     ) -> Result<()> {
         instructions::initialize(ctx, xcall, icon_bn_usd, xcall_manager, bn_usd_token, xcall_manager_state)
-        //Ok(())
     }
 
     pub fn cross_transfer<'info>(
         ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
+        to: String,
         value: u64,
         data: Option<Vec<u8>>,
-    ) -> Result<()> {
-        let _ = instructions::cross_transfer(ctx, value, data);
-        Ok(())
+    ) -> Result<u128> {
+        instructions::cross_transfer(ctx, to, value, data)
     }
 
     pub fn handle_call_message<'info>(
@@ -41,8 +40,7 @@ pub mod balanced_dollar {
         data: Vec<u8>,
         protocols: Vec<String>,
     ) -> Result<()> {
-        let _ = instructions::handle_call_message(ctx, from, data, protocols);
-        Ok(())
+        instructions::handle_call_message(ctx, from, data, protocols)
     }
     
     pub fn query_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{

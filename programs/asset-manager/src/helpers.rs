@@ -48,9 +48,9 @@ pub fn decode_withdraw_to_msg(data: &[u8]) -> std::result::Result<WithdrawTo, As
         return Err(DecoderError::RlpInvalidLength.into());
     }
 
-    let token: String = rlp.val_at(1)?;
-    let user_address: String = rlp.val_at(2)?;
-    let amount: u128 = rlp.val_at(3)?;
+    let token = rlp.val_at(1)?;
+    let user_address = rlp.val_at(2)?;
+    let amount = rlp.val_at(3)?;
 
     let withdraw_to = WithdrawTo {
         token_address: token,
@@ -73,7 +73,7 @@ pub fn decode_deposit_revert_msg(data: &[u8]) -> std::result::Result<DepositReve
         return Err(DecoderError::RlpInvalidLength.into());
     }
     let token_address = rlp.val_at(1)?;
-    let account: String = rlp.val_at(2)?;
+    let account = rlp.val_at(2)?;
     let amount: u64 = rlp.val_at(3)?;
 
     let deposit_revert: DepositRevert = DepositRevert {

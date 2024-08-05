@@ -15,7 +15,7 @@ const connectionProgram: anchor.Program<CentralizedConnection> =
 describe("balanced xcall manager", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const connection = new Connection("http://127.0.0.1:8899", "confirmed");
+  const connection = provider.connection; // new Connection("http://127.0.0.1:8899", "confirmed");
   const wallet = provider.wallet as anchor.Wallet;
 
   let txnHelpers = new TransactionHelper(connection, wallet.payer);

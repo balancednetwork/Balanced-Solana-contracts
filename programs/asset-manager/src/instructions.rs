@@ -8,6 +8,7 @@ use xcall_manager::{XmState, program::XcallManager, cpi::accounts::VerifyProtoco
 use xcall::cpi::accounts::SendCallCtx;
 use xcall_lib::message::{AnyMessage, call_message_rollback::CallMessageWithRollback, envelope::Envelope};
 use xcall_lib::network_address::NetworkAddress;
+use std::ops::Deref;
 use std::str::FromStr;
 
 use crate::errors::AssetManagerError;
@@ -144,29 +145,30 @@ fn send_deposit_message<'info>(
     let asset_manager = &ctx.accounts.asset_manager;
     let (signer_pda, _bump) = Pubkey::find_program_address(&[b"asset_manager_signer"], &ctx.program_id);
     require!(asset_manager.key() == signer_pda, AssetManagerError::NotAssetManager);
-
+    let nid = &ctx.accounts.xcall_config.network_id;
+    let from_network_address = format!("{}/{}", nid, from.to_string());
     let deposit_message = DepositMessage::create(
         token_address.clone(),
-        from.to_string(),
+        from_network_address.clone(),
         to.unwrap_or("".to_string()),
         amount,
         data.unwrap_or(vec![]),
     );
+    let data = rlp::encode(&deposit_message).to_vec();
+    let rollback = rlp::encode(&DepositRevert::create(token_address, from.to_string(), amount)).to_vec();
 
-    let data = deposit_message.encode();
-    let deposit_revert = DepositRevert::create(token_address, from.to_string(), amount);
-
-    let rollback: Vec<u8> = deposit_revert.encode();
     let sources = &ctx.accounts.xcall_manager_state.sources;
     let destinations = &ctx.accounts.xcall_manager_state.destinations;
     let message = AnyMessage::CallMessageWithRollback(CallMessageWithRollback { data, rollback });
     let envelope: Envelope = Envelope::new(message, sources.clone(), destinations.clone());
     let envelope_encoded = rlp::encode(&envelope).to_vec();
+
     let icon_asset_manager = NetworkAddress::from_str(&ctx.accounts.state.icon_asset_manager).unwrap(); //todo: get network address without unwrap
     
     let xcall_config = &ctx.remaining_accounts[0];
     let rollback_account = &ctx.remaining_accounts[1];
-    let fee_handler = &ctx.remaining_accounts[2];
+    let sysvar_account = &ctx.remaining_accounts[2];
+    let fee_handler = &ctx.remaining_accounts[3];
     let from_authority = &ctx.accounts.from_authority;
     let bump = ctx.bumps.asset_manager;
     let seeds = &[
@@ -175,13 +177,13 @@ fn send_deposit_message<'info>(
     ];
     let signer_seends = &[&seeds[..]];
     // the accounts for centralized connections is contained here.
-    let remaining_accounts = ctx.remaining_accounts.split_at(3).1;
+    let remaining_accounts: &[AccountInfo<'info>] = ctx.remaining_accounts.split_at(4).1;
     let cpi_accounts: SendCallCtx = SendCallCtx {
         config: xcall_config.to_account_info(),
         rollback_account: Some(rollback_account.to_account_info()),
         fee_handler: fee_handler.to_account_info(),
         signer: from_authority.to_account_info(),
-        dapp: Some(asset_manager.clone()),
+        instruction_sysvar: sysvar_account.to_account_info(),
         system_program: ctx.accounts.system_program.to_account_info(),
     };
 

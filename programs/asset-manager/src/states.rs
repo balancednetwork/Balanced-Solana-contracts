@@ -1,4 +1,4 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::sysvar};
 use anchor_spl::token::{Token, Mint, TokenAccount};
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
@@ -60,7 +60,6 @@ pub struct GetWithdrawLimit<'info> {
 pub struct DepositToken<'info> {
     #[account(mut)]
     pub from: Option<Account<'info, TokenAccount>>,
-    ///CHECK: is also the signer
     #[account(mut)]
     pub from_authority:  Signer<'info>,
     
@@ -77,6 +76,8 @@ pub struct DepositToken<'info> {
     #[account(mut, seeds = [b"asset_manager_signer"], bump)]
     pub asset_manager: AccountInfo<'info>,
     pub xcall: Program<'info, Xcall>,
+    #[account(mut)]
+    pub xcall_config: Account<'info, xcall::state::Config>,
     pub xcall_manager: Program<'info, XcallManager>,
     pub token_program: Option<Program<'info, Token>>,
     pub system_program: Program<'info, System>
@@ -86,7 +87,7 @@ pub struct DepositToken<'info> {
 #[derive(InitSpace)]
 pub struct State {
     pub xcall: Pubkey,
-    #[max_len(50)]
+    #[max_len(100)]
     pub icon_asset_manager: String,
     pub xcall_manager: Pubkey,
     pub xcall_manager_state: Pubkey,

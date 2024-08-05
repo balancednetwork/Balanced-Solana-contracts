@@ -330,10 +330,6 @@ export type Xcall = {
       ],
       "args": [
         {
-          "name": "fromNid",
-          "type": "string"
-        },
-        {
           "name": "sequenceNo",
           "type": "u128"
         }
@@ -531,6 +527,38 @@ export type Xcall = {
       }
     },
     {
+      "name": "queryHandleErrorAccounts",
+      "discriminator": [
+        98,
+        141,
+        172,
+        5,
+        11,
+        253,
+        99,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        },
+        {
+          "name": "rollbackAccount"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequenceNo",
+          "type": "u128"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "queryAccountsResponse"
+        }
+      }
+    },
+    {
       "name": "queryHandleMessageAccounts",
       "discriminator": [
         53,
@@ -593,11 +621,6 @@ export type Xcall = {
           "name": "systemProgram"
         },
         {
-          "name": "dapp",
-          "signer": true,
-          "optional": true
-        },
-        {
           "name": "config",
           "writable": true
         },
@@ -609,6 +632,9 @@ export type Xcall = {
           "name": "rollbackAccount",
           "writable": true,
           "optional": true
+        },
+        {
+          "name": "instructionSysvar"
         }
       ],
       "args": [
@@ -675,7 +701,7 @@ export type Xcall = {
           "writable": true
         },
         {
-          "name": "feeHandler",
+          "name": "admin",
           "writable": true,
           "signer": true
         }

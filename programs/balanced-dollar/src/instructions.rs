@@ -38,6 +38,7 @@ pub fn initialize(
 
 pub fn cross_transfer<'info>(
     ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
+    to: String,
     value: u64,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
@@ -54,12 +55,9 @@ pub fn cross_transfer<'info>(
     );
     token::burn(burn_ctx, value)?;
     let message_data = data.unwrap_or(vec![]);
-    let to = if ctx.accounts.to.is_some() {
-                                                        ctx.accounts.to.clone().unwrap().key().to_string()
-                                                    } else {
-                                                        String::new()
-                                                    };
-    let message = CrossTransferMsg::create(ctx.accounts.from.key().to_string(), to, value, message_data).encode();
+    let nid = &ctx.accounts.xcall_config.network_id;
+    let from = format!("{}/{}", nid, ctx.accounts.from.key().to_string());
+    let message = CrossTransferMsg::create(from, to, value, message_data).encode();
     let rollback_message = CrossTransferRevert::create(ctx.accounts.from.key().to_string(), value).encode();
     let sources = &ctx.accounts.xcall_manager_state.sources;
     let destinations = &ctx.accounts.xcall_manager_state.destinations;
@@ -71,15 +69,16 @@ pub fn cross_transfer<'info>(
     let icon_asset_manager = NetworkAddress::from_str(&ctx.accounts.state.icon_bn_usd).unwrap(); //todo: get network address without unwrap
     let xcall_config = &ctx.remaining_accounts[0];
     let rollback_account = &ctx.remaining_accounts[1];
-    let fee_handler = &ctx.remaining_accounts[2];
+    let sysvar_account = &ctx.remaining_accounts[2];
+    let fee_handler = &ctx.remaining_accounts[3];
     // the accounts for centralized connections is contained here.
-    let remaining_accounts = ctx.remaining_accounts.split_at(3).1;
+    let remaining_accounts = ctx.remaining_accounts.split_at(4).1;
     let cpi_accounts: SendCallCtx = SendCallCtx {
         config: xcall_config.to_account_info(),
         rollback_account: Some(rollback_account.to_account_info()),
         fee_handler: fee_handler.to_account_info(),
         signer: ctx.accounts.from_authority.to_account_info(),
-        dapp: Some(ctx.accounts.state.to_account_info()),
+        instruction_sysvar: sysvar_account.to_account_info(),
         system_program: ctx.accounts.system_program.to_account_info(),
     };
     let bump = ctx.bumps.state;
@@ -90,7 +89,6 @@ pub fn cross_transfer<'info>(
     let signer_seeds = &[&seeds[..]];
     let xcall_program = ctx.accounts.xcall.to_account_info();
     let cpi_ctx  = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seeds).with_remaining_accounts(remaining_accounts.to_vec());
-    //#[cfg(not(test))]
     let result = xcall::cpi::send_call(cpi_ctx, envelope_encoded, icon_asset_manager)?;
     Ok(result.get())
 }

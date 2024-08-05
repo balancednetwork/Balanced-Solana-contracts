@@ -27,7 +27,7 @@ import { Xcall } from "../../types/xcall";
 describe("balanced dollar manager", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const connection = new Connection("http://127.0.0.1:8899", "confirmed");
+  const connection = provider.connection; //new Connection("http://127.0.0.1:8899", "confirmed");
   const wallet = provider.wallet as anchor.Wallet;
 
   let txnHelpers = new TransactionHelper(connection, wallet.payer);
@@ -122,6 +122,7 @@ describe("balanced dollar manager", () => {
   
     let protocols = xcall_manager_program.account.xmState.fetch(BalancedDollarPDA.xcall_manager_state().pda);
     let program_authority = BalancedDollarPDA.program_authority();
+    console.log("bnusd authority is: ", program_authority.pda);
     let handleCallMessageIx = await program.methods
     .handleCallMessage(xcall_program.programId.toString(), Buffer.from(rlpEncodedData), (await protocols).sources )
     .accountsStrict({
@@ -184,14 +185,14 @@ describe("balanced dollar manager", () => {
     await  sleep(3);
     let bytes = Buffer.alloc(0);
     let crossTransferTx = await program.methods
-      .crossTransfer(new BN(1000000000), bytes)
+      .crossTransfer("", new BN(1000000000), bytes)
       .accountsStrict({
         from: withdrawerTokenAccount.address,
         fromAuthority: withdrawerKeyPair.publicKey,
-        to: null,
         state: BalancedDollarPDA.state().pda,
         mint: mint,
         xcallManagerState: BalancedDollarPDA.xcall_manager_state().pda,
+        xcallConfig: XcallPDA.config().pda,
         xcall: xcall_program.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SYSTEM_PROGRAM_ID,
@@ -205,6 +206,11 @@ describe("balanced dollar manager", () => {
           pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber() + 1).pda,
           isSigner: false,
           isWritable: true,
+        },
+        {
+          pubkey: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
+          isSigner: false,
+          isWritable: false,
         },
         {
           pubkey: xcall_config.feeHandler,

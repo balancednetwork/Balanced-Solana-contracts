@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
+use borsh::{BorshDeserialize, BorshSerialize};
 use rlp::{ Encodable, RlpStream};
 
-#[derive(AnchorSerialize, AnchorDeserialize, Default, Debug, PartialEq, Clone)]
+#[derive(BorshSerialize, BorshDeserialize, Clone)]
 pub struct DepositRevert {
     pub token_address: String,
     pub account: String,
@@ -33,17 +34,4 @@ impl DepositRevert {
             amount,
         }
     }
-
-    pub fn null() -> Self {
-        Self {
-            token_address: String::new(),
-            account: String::new(),
-            amount: 0,
-        }
-    }
-
-    pub fn encode(&self) -> Vec<u8> {
-        rlp::encode(&self.clone()).to_vec()
-    }
-
 }

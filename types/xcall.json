@@ -324,10 +324,6 @@
       ],
       "args": [
         {
-          "name": "from_nid",
-          "type": "string"
-        },
-        {
           "name": "sequence_no",
           "type": "u128"
         }
@@ -525,6 +521,38 @@
       }
     },
     {
+      "name": "query_handle_error_accounts",
+      "discriminator": [
+        98,
+        141,
+        172,
+        5,
+        11,
+        253,
+        99,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "config"
+        },
+        {
+          "name": "rollback_account"
+        }
+      ],
+      "args": [
+        {
+          "name": "sequence_no",
+          "type": "u128"
+        }
+      ],
+      "returns": {
+        "defined": {
+          "name": "QueryAccountsResponse"
+        }
+      }
+    },
+    {
       "name": "query_handle_message_accounts",
       "discriminator": [
         53,
@@ -587,11 +615,6 @@
           "name": "system_program"
         },
         {
-          "name": "dapp",
-          "signer": true,
-          "optional": true
-        },
-        {
           "name": "config",
           "writable": true
         },
@@ -603,6 +626,9 @@
           "name": "rollback_account",
           "writable": true,
           "optional": true
+        },
+        {
+          "name": "instruction_sysvar"
         }
       ],
       "args": [
@@ -669,7 +695,7 @@
           "writable": true
         },
         {
-          "name": "fee_handler",
+          "name": "admin",
           "writable": true,
           "signer": true
         }

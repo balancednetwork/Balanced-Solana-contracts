@@ -1,11 +1,11 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::sysvar};
 use anchor_spl::token::{Token, TokenAccount, Mint};
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    #[account(init, payer = admin, seeds=["state".as_bytes()], bump, space = 8 + State::INIT_SPACE)]
+    #[account(init, payer = admin, seeds=[b"state"], bump, space = 8 + State::INIT_SPACE)]
     pub state: Account<'info, State>,
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -18,16 +18,17 @@ pub struct CrossTransfer<'info> {
     pub from: Account<'info, TokenAccount>,
     #[account(mut)]
     pub from_authority: Signer<'info>,
-    #[account(mut)]
-    pub to: Option<Account<'info, TokenAccount>>,
-    #[account(mut, seeds=["state".as_bytes()], bump)]
+    // #[account(mut)]
+    // pub to: Option<Account<'info, TokenAccount>>,
+    #[account(mut, seeds=[b"state"], bump)]
     pub state: Account<'info, State>,
     #[account(mut)]
     pub mint: Account<'info, Mint>,
     #[account(mut)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
+    #[account(mut)]
+    pub xcall_config: Account<'info, xcall::state::Config>,
 
-    
     pub xcall: Program<'info, Xcall>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -55,7 +56,7 @@ pub struct HandleCallMessage<'info> {
 #[derive(InitSpace)]
 pub struct State {
     pub xcall: Pubkey,
-    #[max_len(50)]
+    #[max_len(100)]
     pub icon_bn_usd: String,
     pub xcall_manager: Pubkey,
     pub bn_usd_token: Pubkey,
