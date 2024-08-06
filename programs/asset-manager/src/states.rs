@@ -1,4 +1,4 @@
-use anchor_lang::{prelude::*, solana_program::sysvar};
+use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, Mint, TokenAccount};
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};

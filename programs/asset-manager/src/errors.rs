@@ -50,7 +50,11 @@ pub enum AssetManagerError {
     #[msg["Vault authority is required"]]
     ValultAuthorityIsRequired,
     #[msg["Not an address"]]
-    NotAnAddress
+    NotAnAddress,
+    #[msg["Invalid Network Address"]]
+    InvalidNetworkAddress,
+    #[msg["Invalid Program"]]
+    InvalidProgram
 }
 
 impl From<DecoderError> for AssetManagerError {

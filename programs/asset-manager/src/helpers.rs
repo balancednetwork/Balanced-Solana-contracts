@@ -12,27 +12,27 @@ pub enum DepositRevertDecodedStruct {
     DepositRevert(DepositRevert),
 }
 
-pub fn decode_method(data: &[u8]) -> std::result::Result<String, DecoderError> {
+pub fn decode_method(data: &[u8]) -> Result<String, AssetManagerError> {
     let rlp: Rlp = Rlp::new(data);
 
     if !rlp.is_list() {
         return Err(DecoderError::RlpExpectedToBeList.into());
     }
 
-    let method: String = rlp.val_at(0).unwrap();
+    let method: String = rlp.val_at(0)?;
 
     Ok(method)
 
 }
 
-pub fn decode_token_address(data: &[u8]) -> std::result::Result<String, DecoderError> {
+pub fn decode_token_address(data: &[u8]) -> std::result::Result<String, AssetManagerError> {
     let rlp: Rlp = Rlp::new(data);
 
     if !rlp.is_list() {
         return Err(DecoderError::RlpExpectedToBeList.into());
     }
 
-    let method: String = rlp.val_at(1).unwrap();
+    let method: String = rlp.val_at(1)?;
 
     Ok(method)
 
@@ -68,7 +68,7 @@ pub fn decode_deposit_revert_msg(data: &[u8]) -> std::result::Result<DepositReve
         return Err(DecoderError::RlpExpectedToBeList.into());
     }
 
-    let method: String = rlp.val_at(0).unwrap();
+    let method: String = rlp.val_at(0)?;
     if method != DEPOSIT_REVERT {
         return Err(DecoderError::RlpInvalidLength.into());
     }

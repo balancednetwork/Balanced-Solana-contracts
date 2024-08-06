@@ -8,6 +8,7 @@ pub fn get_spl_token_withdra_to_accounts<'info>(ctx: Context<'_, '_, '_, 'info, 
     let message = decode_withdraw_to_msg(&data)?;
     let user_address = Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
     let mint = Pubkey::from_str(&message.token_address).map_err(|_| AssetManagerError::NotAnAddress)?;
+    
     let vault_account = get_associated_token_address(&get_vault_pda(&ctx, mint)?.0, &mint);
     let accounts: Vec<ParamAccountProps>  = vec![
         ParamAccountProps::new(user_address, false),
@@ -91,4 +92,9 @@ pub fn get_native_vault_pda<'info>(ctx: &Context<'_, '_, '_, 'info, GetParams<'i
     Ok((pda, bump))
 }
 
+// pub fn account_from_network_address(string_network_address: String)-> Result<String>{
+//     let parts = string_network_address.split('/').collect::<Vec<&str>>();
+//     require!(parts.len() == 2, AssetManagerError::InvalidNetworkAddress);
+//     Ok(parts[1].to_string())
+// }
 

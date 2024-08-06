@@ -55,9 +55,7 @@ pub fn cross_transfer<'info>(
     );
     token::burn(burn_ctx, value)?;
     let message_data = data.unwrap_or(vec![]);
-    let nid = &ctx.accounts.xcall_config.network_id;
-    let from = format!("{}/{}", nid, ctx.accounts.from.key().to_string());
-    let message = CrossTransferMsg::create(from, to, value, message_data).encode();
+    let message = CrossTransferMsg::create(ctx.accounts.from.key().to_string(), to, value, message_data).encode();
     let rollback_message = CrossTransferRevert::create(ctx.accounts.from.key().to_string(), value).encode();
     let sources = &ctx.accounts.xcall_manager_state.sources;
     let destinations = &ctx.accounts.xcall_manager_state.destinations;
@@ -66,7 +64,7 @@ pub fn cross_transfer<'info>(
     let envelope: Envelope = Envelope::new(message, sources.clone(), destinations.clone());
     let envelope_encoded = rlp::encode(&envelope).to_vec();
     
-    let icon_asset_manager = NetworkAddress::from_str(&ctx.accounts.state.icon_bn_usd).unwrap(); //todo: get network address without unwrap
+    let icon_bn_usd = NetworkAddress::from_str(&ctx.accounts.state.icon_bn_usd)?;
     let xcall_config = &ctx.remaining_accounts[0];
     let rollback_account = &ctx.remaining_accounts[1];
     let sysvar_account = &ctx.remaining_accounts[2];
@@ -89,7 +87,7 @@ pub fn cross_transfer<'info>(
     let signer_seeds = &[&seeds[..]];
     let xcall_program = ctx.accounts.xcall.to_account_info();
     let cpi_ctx  = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seeds).with_remaining_accounts(remaining_accounts.to_vec());
-    let result = xcall::cpi::send_call(cpi_ctx, envelope_encoded, icon_asset_manager)?;
+    let result = xcall::cpi::send_call(cpi_ctx, envelope_encoded, icon_bn_usd)?;
     Ok(result.get())
 }
 
@@ -103,7 +101,7 @@ pub fn handle_call_message<'info>(
     let bump = ctx.bumps.mint_authority;
     let seeds = &[b"bnusd_authority".as_ref(), &[bump]];
     let signer = &[&seeds[..]];
-    let method = decode_method(&data).unwrap();
+    let method = decode_method(&data)?;
     if method == CROSS_TRANSFER {
         require!(from == ctx.accounts.state.icon_bn_usd, BalancedDollarError::InvalidSender);
         let message = decode_cross_transfer(&data)?;
@@ -163,7 +161,7 @@ pub fn verify_protocols<'info>(
 }
 
 pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
-    let method = decode_method(&data).unwrap();
+    let method = decode_method(&data)?;
     if method == CROSS_TRANSFER {
         let message = decode_cross_transfer(&data)?;
         let user_address = Pubkey::from_str(&message.to).map_err(|_| BalancedDollarError::NotAnAddress)?;

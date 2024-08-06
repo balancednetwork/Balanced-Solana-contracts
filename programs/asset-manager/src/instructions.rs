@@ -8,7 +8,6 @@ use xcall_manager::{XmState, program::XcallManager, cpi::accounts::VerifyProtoco
 use xcall::cpi::accounts::SendCallCtx;
 use xcall_lib::message::{AnyMessage, call_message_rollback::CallMessageWithRollback, envelope::Envelope};
 use xcall_lib::network_address::NetworkAddress;
-use std::ops::Deref;
 use std::str::FromStr;
 
 use crate::errors::AssetManagerError;
@@ -93,17 +92,16 @@ pub fn deposit_token<'info>(
         to: vault_token_account.to_account_info(),
         authority: ctx.accounts.from_authority.to_account_info(),
     };
-    
-    let cpi_program = ctx.accounts.token_program.clone().unwrap().to_account_info();
+    let cpi_program = ctx.accounts.token_program.as_ref().ok_or(AssetManagerError::InvalidProgram)?.to_account_info();
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     token::transfer(cpi_ctx, amount)?;
 
-    let token_addr = ctx.accounts.token_program.clone().unwrap().key().to_string();
+    let token_addr = from.mint.to_string();
     let from: Pubkey = from.key();
     let res = send_deposit_message(
         ctx,
         token_addr,
-        from,
+        from.key(),
         amount,
         to,
         data
@@ -145,11 +143,9 @@ fn send_deposit_message<'info>(
     let asset_manager = &ctx.accounts.asset_manager;
     let (signer_pda, _bump) = Pubkey::find_program_address(&[b"asset_manager_signer"], &ctx.program_id);
     require!(asset_manager.key() == signer_pda, AssetManagerError::NotAssetManager);
-    let nid = &ctx.accounts.xcall_config.network_id;
-    let from_network_address = format!("{}/{}", nid, from.to_string());
     let deposit_message = DepositMessage::create(
         token_address.clone(),
-        from_network_address.clone(),
+        from.to_string(),
         to.unwrap_or("".to_string()),
         amount,
         data.unwrap_or(vec![]),
@@ -209,8 +205,8 @@ pub fn verify_protocols<'info>(
 }
 
 pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
-    let token_address = decode_token_address(&data).unwrap();
-    let method = decode_method(&data).unwrap();
+    let token_address = decode_token_address(&data)?;
+    let method = decode_method(&data)?;
     if token_address !=_NATIVE_ADDRESS.to_string() && method == WITHDRAW_TO  {
         Ok(ParamAccounts{
             accounts: get_spl_token_withdra_to_accounts(ctx, data)?
@@ -241,7 +237,7 @@ pub fn handle_call_message<'info>(
     data: Vec<u8>,
     protocols: Vec<String>
 ) -> Result<()> {
-    let token_address = decode_token_address(&data).unwrap();
+    let token_address = decode_token_address(&data)?;
     if  token_address != _NATIVE_ADDRESS.to_string() {
         return  handle_token_call_message(ctx, from, data, protocols);
     }else {
@@ -262,7 +258,7 @@ fn handle_token_call_message<'info>(
         verify_protocols(ctx.accounts.xcall_manager.clone(), ctx.accounts.xcall_manager_state.clone(), &protocols)?,
         AssetManagerError::ProtocolMismatch
     );
-    let method = decode_method(&data).unwrap();
+    let method = decode_method(&data)?;
     let to  = ctx.accounts.to.as_ref().ok_or(AssetManagerError::InvalidToAddress)?;
     let mint  = ctx.accounts.mint.as_ref().ok_or(AssetManagerError::MintIsRequired)?;
     let token_program  = ctx.accounts.token_program.as_ref().ok_or(AssetManagerError::TokenProgramIsRequired)?;
@@ -270,7 +266,7 @@ fn handle_token_call_message<'info>(
     let vault_authority = ctx.accounts.valult_authority.as_ref().ok_or(AssetManagerError::ValultAuthorityIsRequired)?;
     if method == WITHDRAW_TO {
         require!(from == state.icon_asset_manager, AssetManagerError::NotIconAssetManager);
-        let  message  = decode_withdraw_to_msg(&data).unwrap();
+        let  message  = decode_withdraw_to_msg(&data)?;
         let token_pubkey = Pubkey::from_str(&message.token_address).map_err(|_| AssetManagerError::NotAnAddress)?;
         let recipient_pubkey = Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
         require!(recipient_pubkey==to.key(), AssetManagerError::InvalidToAddress);
@@ -287,7 +283,7 @@ fn handle_token_call_message<'info>(
     } else if method == DEPOSIT_REVERT {
         require!(from == state.xcall.key().to_string(), AssetManagerError::UnauthorizedCaller);
 
-        let  message  = decode_deposit_revert_msg(&data).unwrap();
+        let  message  = decode_deposit_revert_msg(&data)?;
         let recipient_pubkey = Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
         require!(recipient_pubkey==to.key(), AssetManagerError::InvalidToAddress);
         
@@ -322,13 +318,13 @@ fn handle_native_call_message<'info>(
         AssetManagerError::ProtocolMismatch
     );
     let bump = ctx.bumps.vault_native_account.unwrap();
-    let method = decode_method(&data).unwrap();
+    let method = decode_method(&data)?;
     let to_native  = ctx.accounts.to_native.as_ref().ok_or(AssetManagerError::InvalidToAddress)?;
     let vault_native_account  = ctx.accounts.vault_native_account.as_ref().ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
     let system_program_info = ctx.accounts.system_program.to_account_info();
     if method == WITHDRAW_TO_NATIVE {
         require!(from == state.icon_asset_manager, AssetManagerError::NotIconAssetManager);
-        let  message  = decode_withdraw_to_msg(&data).unwrap();
+        let  message  = decode_withdraw_to_msg(&data)?;
         let recipient_pubkey = Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
         require!(recipient_pubkey==to_native.key(), AssetManagerError::InvalidToAddress);
         require!(message.token_address==_NATIVE_ADDRESS, AssetManagerError::InvalidToAddress);
@@ -341,7 +337,7 @@ fn handle_native_call_message<'info>(
 
     } else if method == DEPOSIT_REVERT {
         require!(from == state.xcall.key().to_string(), AssetManagerError::NotIconAssetManager);
-        let  message  = decode_deposit_revert_msg(&data).unwrap();
+        let  message  = decode_deposit_revert_msg(&data)?;
         let recipient_pubkey = Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
         require!(recipient_pubkey==to_native.key(), AssetManagerError::InvalidToAddress);
         withdraw_native_token(
