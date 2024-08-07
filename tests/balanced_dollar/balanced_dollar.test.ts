@@ -247,11 +247,12 @@ describe("balanced dollar manager", () => {
   it("test account list", async () => {
     let from = Keypair.generate();
     let bytes = Buffer.alloc(0);
+    let protocols = [];
     const data = ["xCrossTransfer", from.publicKey.toString(), withdrawerKeyPair.publicKey.toString(), 20000000000,  bytes];
     const rlpEncodedData = rlp.encode(data);
     
     let accounts = await program.methods
-      .queryHandleCallMessageAccounts(Buffer.from(rlpEncodedData))
+      .queryHandleCallMessageAccounts("", Buffer.from(rlpEncodedData), [])
       .accounts({
         state: BalancedDollarPDA.state().pda,
       }).view();

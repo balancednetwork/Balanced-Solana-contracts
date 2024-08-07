@@ -468,7 +468,7 @@ describe("xx asset manager test", () => {
     const rlpEncodedData = rlp.encode(data);
     
     let accounts = await program.methods
-      .queryHandleCallMessageAccounts(Buffer.from(rlpEncodedData))
+      .queryHandleCallMessageAccounts("", Buffer.from(rlpEncodedData), [])
       .accounts({
         state: AssetManagerPDA.state().pda,
       }).view();
