@@ -5,6 +5,7 @@ pub mod states;
 pub mod helpers;
 pub mod structs;
 pub mod param_accounts;
+use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 
 use states::*;
 
@@ -12,6 +13,7 @@ declare_id!("8tJx9uFHvK33etttKFi8XWHEKMo3q3K6UdSWLTTKnUvX");
 
 #[program]
 pub mod asset_manager {
+
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>, xcall: Pubkey, icon_asset_manager: String, 
@@ -47,7 +49,7 @@ pub mod asset_manager {
         from: String,
         data: Vec<u8>,
         protocols: Vec<String>,
-    ) -> Result<()>{
+    ) -> Result<HandleCallMessageResponse>{
         instructions::handle_call_message(ctx, from, data, protocols)
     }
 

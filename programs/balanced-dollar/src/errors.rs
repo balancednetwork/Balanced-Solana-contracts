@@ -20,7 +20,11 @@ pub enum BalancedDollarError {
     #[msg("Insufficient Balance")]
     InsufficientBalance,
     #[msg("Not an address")]
-    NotAnAddress
+    NotAnAddress,
+    #[msg["Invalid Network Address"]]
+    InvalidNetworkAddress,
+    #[msg["Only Xcall"]]
+    OnlyXcall,
 }
 
 impl From<DecoderError> for BalancedDollarError {

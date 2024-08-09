@@ -1,4 +1,7 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar;
+use anchor_lang::solana_program::sysvar::instructions::get_instruction_relative;
+use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 use crate::configure_protocols::CONFIGURE_PROTOCOLS;
 use crate::helpers::{decode_handle_call_msg, decode_method};
 use crate::states::*;
@@ -99,30 +102,60 @@ pub fn handle_call_message<'info>(
     from: String,
     data: Vec<u8>,
     protocols: Vec<String>,
-) -> Result<()> {
-    require!(from == ctx.accounts.state.icon_governance, XCallManagerError::NotTheIconGovernance);
-    require!(ctx.accounts.state.whitelisted_actions.contains(&data), XCallManagerError::ActionNotWhitelisted);
+) -> Result<HandleCallMessageResponse> {
+    let state = ctx.accounts.state.clone();
+    let sysvar_account = &ctx.accounts.instruction_sysvar.to_account_info();
+    let current_ix = get_instruction_relative(0, sysvar_account)?;
+    if current_ix.program_id != state.xcall {
+        return Ok(HandleCallMessageResponse {
+            success: false,
+            message: XCallManagerError::OnlyXcall.to_string()
+        });
+    }
 
-    let verified: bool = verify_protocol_recovery(ctx.accounts.state.proposed_protocol_to_remove.clone(), &ctx.accounts.state.sources, &protocols.to_vec())?;
-    require!(verified, XCallManagerError::ProtocolMismatch);
+    if from != ctx.accounts.state.icon_governance  {
+        return Ok(HandleCallMessageResponse {
+            success: false,
+            message: XCallManagerError::NotTheIconGovernance.to_string()
+        });
+    }
+    if !ctx.accounts.state.whitelisted_actions.contains(&data) {
+        return Ok(HandleCallMessageResponse {
+            success: false,
+            message: XCallManagerError::ActionNotWhitelisted.to_string()
+        });
+    }
+    let verified: bool = verify_protocol_recovery(ctx.accounts.state.proposed_protocol_to_remove.clone(), &ctx.accounts.state.sources, &protocols)?;
+    if !verified {
+        return Ok(HandleCallMessageResponse {
+            success: false,
+            message: XCallManagerError::ProtocolMismatch.to_string()
+        });
+    }
 
     let method = decode_method(&data)?;
-    //let message = ConfigureProtocols::decode_from(&data)?;
     let message = decode_handle_call_msg(&data)?;
     if method == CONFIGURE_PROTOCOLS {
         require!(from == ctx.accounts.state.icon_governance, XCallManagerError::InvalidSender);
         let xcall_manager = &mut ctx.accounts.state;
         xcall_manager.sources = message.sources;
         xcall_manager.destinations = message.destinations;
+        return Ok(HandleCallMessageResponse {
+            success: true,
+            message: "Success".to_owned()
+        });
     } else {
-        return Err(XCallManagerError::UnknownMessageType.into());
+        return Ok(HandleCallMessageResponse {
+            success: false,
+            message: XCallManagerError::UnknownMessageType.to_string()
+        });
     }
-    Ok(())
 }
 
 pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
     let  accounts: Vec<ParamAccountProps>  = vec![
-        ParamAccountProps::new_readonly(ctx.accounts.state.key(), false),
+        ParamAccountProps::new(sysvar::instructions::id(), false),
+        ParamAccountProps::new(ctx.accounts.state.key(), false),
     ];
     Ok(ParamAccounts{
         accounts,

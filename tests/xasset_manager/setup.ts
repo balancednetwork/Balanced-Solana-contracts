@@ -85,14 +85,6 @@ export class AssetManagerPDA {
     return { bump, pda };
   }
 
-  static asset_manager() {
-    let [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("asset_manager_signer")],
-      assetManagerProgram.programId
-    );
-
-    return { bump, pda };
-  }
 
   static xcall_manager_state() {
     let [pda, bump] = PublicKey.findProgramAddressSync(

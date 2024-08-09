@@ -23,6 +23,7 @@ export class TestContext {
   }
 
   async initialize(xcall: PublicKey, icon_bn_usd: string, xcall_manager: PublicKey, bn_usd: PublicKey, xcall_manager_state: PublicKey) {
+    console.log("bn_usd is: ", bn_usd);
     let initializeIx = await balancedDollarProgram.methods
         .initialize(xcall, icon_bn_usd, xcall_manager, bn_usd, xcall_manager_state)
         .accountsStrict({

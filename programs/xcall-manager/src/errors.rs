@@ -24,7 +24,9 @@ pub enum XCallManagerError {
     #[msg["Invalid Sender"]]
     InvalidSender,
     #[msg["Not the Icon Governance"]]
-    NotTheIconGovernance
+    NotTheIconGovernance,
+    #[msg["Only Xcall"]]
+    OnlyXcall,
 }
 
 impl From<DecoderError> for XCallManagerError {

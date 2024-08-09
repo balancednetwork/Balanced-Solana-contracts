@@ -1,4 +1,4 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::sysvar};
 use anchor_spl::token::{Token, TokenAccount, Mint};
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
@@ -36,12 +36,16 @@ pub struct CrossTransfer<'info> {
 
 #[derive(Accounts)]
 pub struct HandleCallMessage<'info> {
+    pub signer: Signer<'info>,
+    /// CHECK: account constraints checked in account trait
+    #[account(address = sysvar::instructions::id())]
+    pub instruction_sysvar: UncheckedAccount<'info>,
     pub state: Account<'info, State>,
     #[account(mut)]
     pub to: Account<'info, TokenAccount>,
     #[account(mut)]
     pub mint: Account<'info, Mint>,
-    ///CHECK: no need
+    ///CHECK: validated in the method
     #[account(seeds = [b"bnusd_authority"], bump)]
     pub mint_authority: AccountInfo<'info>,
     pub token_program: Program<'info, Token>,

@@ -1,4 +1,4 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::sysvar};
 
 use crate::errors::XCallManagerError;
 
@@ -48,10 +48,12 @@ pub struct VerifyProtocols<'info> {
 
 #[derive(Accounts)]
 pub struct HandleCallMessage<'info> {
+    pub signer: Signer<'info>,
+    /// CHECK: account constraints checked in account trait
+    #[account(address = sysvar::instructions::id())]
+    pub instruction_sysvar: UncheckedAccount<'info>,
     #[account(mut)]
     pub state: Account<'info, XmState>,
-    #[account(constraint=*xcall.owner==state.xcall@XCallManagerError::UnauthorizedCaller)]
-    pub xcall: Signer<'info>
 }
 
 #[derive(Accounts)]

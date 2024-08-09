@@ -51,8 +51,8 @@ pub enum AssetManagerError {
     ValultAuthorityIsRequired,
     #[msg["Not an address"]]
     NotAnAddress,
-    #[msg["Invalid Network Address"]]
-    InvalidNetworkAddress,
+    #[msg["Only Xcall"]]
+    OnlyXcall,
     #[msg["Invalid Program"]]
     InvalidProgram
 }

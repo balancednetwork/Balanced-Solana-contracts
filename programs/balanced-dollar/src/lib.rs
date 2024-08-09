@@ -5,7 +5,7 @@ pub mod states;
 pub mod helpers;
 pub mod structs;
 pub mod param_accounts;
-
+use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 use states::*;
 
 declare_id!("7pvzYSgsMmK81xtXFCD5VQVbCZurTFxPNQ2FZHUd5rTY");
@@ -39,7 +39,7 @@ pub mod balanced_dollar {
         from: String,
         data: Vec<u8>,
         protocols: Vec<String>,
-    ) -> Result<()> {
+    ) -> Result<HandleCallMessageResponse> {
         instructions::handle_call_message(ctx, from, data, protocols)
     }
     
@@ -50,6 +50,7 @@ pub mod balanced_dollar {
         _protocols: Vec<String>
     ) -> Result<ParamAccounts>{
         return instructions:: get_handle_call_message_accounts(ctx, data);
+        
     }
 
 }

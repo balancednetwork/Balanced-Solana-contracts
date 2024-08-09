@@ -1,9 +1,11 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::instructions::get_instruction_relative;
 use anchor_spl::
     token::{
         self, Burn, MintTo,
     };
 
+use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 use xcall_manager::{XmState, program::XcallManager, cpi::accounts::VerifyProtocols};
 use xcall::cpi::accounts::SendCallCtx;
 use xcall_lib::message::{AnyMessage, call_message_rollback::CallMessageWithRollback, envelope::Envelope};
@@ -96,14 +98,34 @@ pub fn handle_call_message<'info>(
     from: String,
     data: Vec<u8>,
     protocols: Vec<String>
-) -> Result<()> {
-    require!(verify_protocols(&ctx.accounts.xcall_manager, &ctx.accounts.xcall_manager_state, &protocols)?, BalancedDollarError::InvalidProtocols);
+) -> Result<HandleCallMessageResponse> {
+    let state = ctx.accounts.state.clone();
+    let sysvar_account = &ctx.accounts.instruction_sysvar.to_account_info();
+    let current_ix = get_instruction_relative(0, sysvar_account)?;
+    if current_ix.program_id != state.xcall{
+        return Ok(HandleCallMessageResponse {
+            success: false,
+            message: BalancedDollarError::OnlyXcall.to_string()
+        });
+    }
+    
+    if !verify_protocols(&ctx.accounts.xcall_manager, &ctx.accounts.xcall_manager_state, &protocols)? {
+        return Ok(HandleCallMessageResponse {
+            success: false,
+            message: BalancedDollarError::InvalidProtocols.to_string()
+        });
+    } 
     let bump = ctx.bumps.mint_authority;
     let seeds = &[b"bnusd_authority".as_ref(), &[bump]];
     let signer = &[&seeds[..]];
     let method = decode_method(&data)?;
     if method == CROSS_TRANSFER {
-        require!(from == ctx.accounts.state.icon_bn_usd, BalancedDollarError::InvalidSender);
+        if from != ctx.accounts.state.icon_bn_usd {
+            return Ok(HandleCallMessageResponse {
+                success: false,
+                message: BalancedDollarError::InvalidSender.to_string()
+            });
+        } 
         let message = decode_cross_transfer(&data)?;
         mint(
             ctx.accounts.mint.to_account_info(),
@@ -113,8 +135,17 @@ pub fn handle_call_message<'info>(
             message.value,
             signer
         )?;
+        return Ok(HandleCallMessageResponse {
+            success: true,
+            message: "Success".to_owned()
+        });
     } else if method == CROSS_TRANSFER_REVERT {
-        require!(from == ctx.accounts.state.xcall.to_string(), BalancedDollarError::InvalidSender);
+        if from != ctx.accounts.state.xcall.to_string() {
+            return Ok(HandleCallMessageResponse {
+                success: false,
+                message: BalancedDollarError::InvalidSender.to_string()
+            });
+        } 
         let message = decode_cross_transfer_revert(&data)?;
         mint(
             ctx.accounts.mint.to_account_info(),
@@ -124,10 +155,16 @@ pub fn handle_call_message<'info>(
             message.amount,
             signer
         )?;
+        return Ok(HandleCallMessageResponse {
+            success: true,
+            message: "Success".to_owned()
+        });
     } else {
-        return Err(BalancedDollarError::UnknownMessageType.into());
+        return Ok(HandleCallMessageResponse {
+            success: false,
+            message: BalancedDollarError::UnknownMessageType.to_string()
+        });
     }
-    Ok(())
 }
 
 fn mint<'info>(mint: AccountInfo<'info>, 
@@ -163,14 +200,15 @@ pub fn verify_protocols<'info>(
 pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
     let method = decode_method(&data)?;
     if method == CROSS_TRANSFER {
-        let message = decode_cross_transfer(&data)?;
-        let user_address = Pubkey::from_str(&message.to).map_err(|_| BalancedDollarError::NotAnAddress)?;
+        let message:CrossTransferMsg = decode_cross_transfer(&data)?;
+
+        let user_address = Pubkey::from_str(account_from_network_address(message.to)?.as_str()).map_err(|_| BalancedDollarError::NotAnAddress)?;
         Ok(ParamAccounts {
             accounts: get_accounts(ctx, user_address)?
         })
     } else if method == CROSS_TRANSFER_REVERT {
-        let message = decode_cross_transfer(&data)?;
-        let user_address = Pubkey::from_str(&message.to).map_err(|_| BalancedDollarError::NotAnAddress)?;
+        let message = decode_cross_transfer_revert(&data)?;
+        let user_address = Pubkey::from_str(&message.account).map_err(|_| BalancedDollarError::NotAnAddress)?;
         Ok(ParamAccounts {
             accounts: get_accounts(ctx, user_address)?
         })
@@ -180,4 +218,11 @@ pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, G
             accounts
         })
     }
+    
+}
+
+pub fn account_from_network_address(string_network_address: String)-> Result<String>{
+    let parts = string_network_address.split('/').collect::<Vec<&str>>();
+    require!(parts.len() == 2, BalancedDollarError::InvalidNetworkAddress);
+    Ok(parts[1].to_string())
 }

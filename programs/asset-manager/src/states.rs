@@ -1,4 +1,4 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::sysvar};
 use anchor_spl::token::{Token, Mint, TokenAccount};
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
@@ -67,14 +67,11 @@ pub struct DepositToken<'info> {
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub vault_native_account: Option<AccountInfo<'info>>,
-    #[account(mut)]
+    #[account(mut, seeds = [b"state"], bump)]
     pub state: Account<'info, State>,
     #[account(mut)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
 
-    /// CHECK: xcall_manager_state is validated in the method
-    #[account(mut, seeds = [b"asset_manager_signer"], bump)]
-    pub asset_manager: AccountInfo<'info>,
     pub xcall: Program<'info, Xcall>,
     #[account(mut)]
     pub xcall_config: Account<'info, xcall::state::Config>,
@@ -106,6 +103,10 @@ pub struct TokenState {
 
 #[derive(Accounts)]
 pub struct HandleCallMessage<'info> {
+    pub signer: Signer<'info>,
+    /// CHECK: account constraints checked in account trait
+    #[account(address = sysvar::instructions::id())]
+    pub instruction_sysvar: UncheckedAccount<'info>,
     #[account(mut)]
     pub to: Option<Account<'info, TokenAccount>>,
     #[account(mut)]
@@ -125,8 +126,8 @@ pub struct HandleCallMessage<'info> {
     pub token_program: Option<Program<'info, Token>>,
     pub xcall_manager: Program<'info, XcallManager>,
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
-    pub xcall: Program<'info, Xcall>,
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
+
 }
 
 #[derive(Accounts)]

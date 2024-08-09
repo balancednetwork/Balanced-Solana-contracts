@@ -1,9 +1,11 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program_pack::Pack;
+use anchor_lang::solana_program::sysvar::instructions::get_instruction_relative;
 use anchor_spl::token::{
         self, spl_token, TokenAccount, Transfer
     };
 
+use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 use xcall_manager::{XmState, program::XcallManager, cpi::accounts::VerifyProtocols};
 use xcall::cpi::accounts::SendCallCtx;
 use xcall_lib::message::{AnyMessage, call_message_rollback::CallMessageWithRollback, envelope::Envelope};
@@ -140,9 +142,6 @@ fn send_deposit_message<'info>(
     to: Option<String>,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
-    let asset_manager = &ctx.accounts.asset_manager;
-    let (signer_pda, _bump) = Pubkey::find_program_address(&[b"asset_manager_signer"], &ctx.program_id);
-    require!(asset_manager.key() == signer_pda, AssetManagerError::NotAssetManager);
     let deposit_message = DepositMessage::create(
         token_address.clone(),
         from.to_string(),
@@ -166,12 +165,6 @@ fn send_deposit_message<'info>(
     let sysvar_account = &ctx.remaining_accounts[2];
     let fee_handler = &ctx.remaining_accounts[3];
     let from_authority = &ctx.accounts.from_authority;
-    let bump = ctx.bumps.asset_manager;
-    let seeds = &[
-        b"asset_manager_signer".as_ref(),
-        &[bump],
-    ];
-    let signer_seends = &[&seeds[..]];
     // the accounts for centralized connections is contained here.
     let remaining_accounts: &[AccountInfo<'info>] = ctx.remaining_accounts.split_at(4).1;
     let cpi_accounts: SendCallCtx = SendCallCtx {
@@ -184,7 +177,7 @@ fn send_deposit_message<'info>(
     };
 
     let xcall_program = ctx.accounts.xcall.to_account_info();
-    let cpi_ctx = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seends).with_remaining_accounts(remaining_accounts.to_vec());
+    let cpi_ctx = CpiContext::new(xcall_program, cpi_accounts).with_remaining_accounts(remaining_accounts.to_vec());
     let result = xcall::cpi::send_call(cpi_ctx, envelope_encoded, icon_asset_manager)?;
     Ok(result.get())
     
@@ -236,13 +229,32 @@ pub fn handle_call_message<'info>(
     from: String,
     data: Vec<u8>,
     protocols: Vec<String>
-) -> Result<()> {
+) -> Result<HandleCallMessageResponse> {
     let token_address = decode_token_address(&data)?;
+    msg!("token address: {:?}", token_address);
+    msg!("is native address: {:?}", token_address != _NATIVE_ADDRESS.to_string());
+    let result;
     if  token_address != _NATIVE_ADDRESS.to_string() {
-        return  handle_token_call_message(ctx, from, data, protocols);
+        result =  handle_token_call_message(ctx, from, data, protocols);
     }else {
-        return handle_native_call_message(ctx, from, data, protocols);
+        result = handle_native_call_message(ctx, from, data, protocols);
     }
+
+    match result {
+        Ok(value) => {
+            return Ok(HandleCallMessageResponse {
+                success: value,
+                message: "Success".to_owned()
+            });
+        },
+        Err(e) => {
+            return Ok(HandleCallMessageResponse {
+                success: false,
+                message: e.to_string()
+            });
+        }, 
+    }
+
 }
 
 fn handle_token_call_message<'info>(
@@ -250,10 +262,14 @@ fn handle_token_call_message<'info>(
     from: String,
     data: Vec<u8>,
     protocols: Vec<String>
-) -> Result<()> {
+) -> Result<bool> {
+    msg!("is not native");
     let state = ctx.accounts.state.clone();
+    let sysvar_account = &ctx.accounts.instruction_sysvar.to_account_info();
+    let current_ix = get_instruction_relative(0, sysvar_account)?;
+    require!(current_ix.program_id == state.xcall, AssetManagerError::OnlyXcall);
+    
     let bump = ctx.bumps.valult_authority.unwrap();
-
     require!(
         verify_protocols(ctx.accounts.xcall_manager.clone(), ctx.accounts.xcall_manager_state.clone(), &protocols)?,
         AssetManagerError::ProtocolMismatch
@@ -302,7 +318,7 @@ fn handle_token_call_message<'info>(
         return Err(AssetManagerError::UnknownMessage.into());
     }
 
-    Ok(())
+    Ok(true)
 }
 
 fn handle_native_call_message<'info>(
@@ -310,7 +326,8 @@ fn handle_native_call_message<'info>(
     from: String,
     data: Vec<u8>,
     protocols: Vec<String>
-) -> Result<()> {
+) -> Result<bool> {
+    msg!("is native");
     let state = ctx.accounts.state.clone();
 
     require!(
@@ -352,7 +369,7 @@ fn handle_native_call_message<'info>(
         return Err(AssetManagerError::UnknownMessage.into());
     }
 
-    Ok(())
+    Ok(true)
 }
 
 fn withdraw_token<'info>(

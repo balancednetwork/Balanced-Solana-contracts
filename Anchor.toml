@@ -4,25 +4,18 @@
 resolution = false
 skip-lint = false
 
-[programs.Localnet]
+[programs.localnet]
 asset_manager = "8tJx9uFHvK33etttKFi8XWHEKMo3q3K6UdSWLTTKnUvX"
 balanced_dollar = "7pvzYSgsMmK81xtXFCD5VQVbCZurTFxPNQ2FZHUd5rTY"
-centralized_connection = "4vfkXyxMxptmREF3RaFKUwnPRuqsXJJeUFzpCjPSSVMb"
-xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
-xcall_manager = "7vfrBqZFbvfKCqVC3v7dEh8V6RV9afRu1ySuLLauCMTL"
-
-[programs."https://solana-rpc.venture23.xyz"]
-asset_manager = "8tJx9uFHvK33etttKFi8XWHEKMo3q3K6UdSWLTTKnUvX"
-balanced_dollar = "7pvzYSgsMmK81xtXFCD5VQVbCZurTFxPNQ2FZHUd5rTY"
-centralized_connection = "4vfkXyxMxptmREF3RaFKUwnPRuqsXJJeUFzpCjPSSVMb"
-xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
+centralized_connection = "AfhGGH99rDWmbbmLeUJddT7rMxu7MDQ4GwWNrajz7Jz4"
+xcall = "DSdPvAhnr4AT9a53gTk7U2UL6YFqhUxednEJeyXfEUve"
 xcall_manager = "7vfrBqZFbvfKCqVC3v7dEh8V6RV9afRu1ySuLLauCMTL"
 
 [registry]
-url = "https://solana-rpc.venture23.xyz"
+url = "https://api.apr.dev"
 
 [provider]
-cluster = "https://solana-rpc.venture23.xyz"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

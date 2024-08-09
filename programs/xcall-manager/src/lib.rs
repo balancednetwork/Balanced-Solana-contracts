@@ -5,6 +5,7 @@ pub mod helpers;
 pub mod configure_protocols;
 use anchor_lang::prelude::*;
 pub use states::*;
+use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 declare_id!("7vfrBqZFbvfKCqVC3v7dEh8V6RV9afRu1ySuLLauCMTL");
 
 #[program]
@@ -43,7 +44,7 @@ pub mod xcall_manager {
         from: String,
         data: Vec<u8>,
         protocols: Vec<String>,
-    ) -> Result<()> {
+    ) -> Result<HandleCallMessageResponse> {
         instructions::handle_call_message(ctx, from, data, protocols)
     }
 
