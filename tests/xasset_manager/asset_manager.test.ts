@@ -665,88 +665,169 @@ describe("xx asset manager test", () => {
       .rpc();
   });
 
-  // it("test handle call message for native token complete flow with xcall", async () => {
-  //   let xcallConfig = await xcallCtx.getConfig();
+  it("test handle call message for native token complete flow with xcall", async () => {
+    let xcallConfig = await xcallCtx.getConfig();
 
-  //   const connSn = 10;
-  //   const fromNetwork = "icon";
-  //   let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
-  //   let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
+    const connSn = 10;
+    const fromNetwork = "icon";
+    let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
+    let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
-  //   //const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
-  //   let withdrawerKeyPair = Keypair.generate();
+    //const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
+    let withdrawerKeyPair = Keypair.generate();
     
-  //   const data = ["WithdrawNativeTo", "11111111111111111111111111111111", withdrawerKeyPair.publicKey.toString(), 1000000000];
-  //   const rlpEncodedData = rlp.encode(data);
+    const data = ["WithdrawNativeTo", "11111111111111111111111111111111", withdrawerKeyPair.publicKey.toString(), 1000000000];
+    const rlpEncodedData = rlp.encode(data);
+    console.log("encoded for native");
+    let request = new CSMessageRequest(
+      iconAssetManager,
+      program.programId.toString(),
+      nextSequenceNo,
+      MessageType.CallMessageWithRollback,
+      Buffer.from(rlpEncodedData),
+      [connectionProgram.programId.toString()]
+    );
 
-  //   let request = new CSMessageRequest(
-  //     iconAssetManager,
-  //     program.programId.toString(),
-  //     nextSequenceNo,
-  //     MessageType.CallMessageWithRollback,
-  //     Buffer.from(rlpEncodedData),
-  //     [connectionProgram.programId.toString()]
-  //   );
+    let cs_message = new CSMessage(
+      CSMessageType.CSMessageRequest,
+      request.encode()
+    ).encode();
 
-  //   let cs_message = new CSMessage(
-  //     CSMessageType.CSMessageRequest,
-  //     request.encode()
-  //   ).encode();
+    let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+      connSn,
+      nextSequenceNo,
+      cs_message,
+      CSMessageType.CSMessageRequest
+    );
+    console.log("receive message accounts: ", recvMessageAccounts);
+    await connectionProgram.methods
+      .recvMessage(
+        fromNetwork,
+        new anchor.BN(connSn),
+        Buffer.from(cs_message),
+        new anchor.BN(nextSequenceNo)
+      )
+      .accountsStrict({
+        config: ConnectionPDA.config().pda,
+        admin: ctx.admin.publicKey,
+        receipt: ConnectionPDA.receipt(connSn).pda,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .remainingAccounts([...recvMessageAccounts.slice(3)])
+      .signers([ctx.admin])
+      .rpc();
+    console.log("receive message complete");
+    await sleep(2);
+    // call xcall execute_call
+    let executeCallAccounts = await xcallCtx.getExecuteCallAccounts(
+      nextReqId,
+      Buffer.from(rlpEncodedData),
+      AssetManagerPDA.state().pda,
+      program.programId
+    );
+    console.log("execute call accounts: ", executeCallAccounts);
+    await xcallProgram.methods
+      .executeCall(
+        new anchor.BN(nextReqId),
+        Buffer.from(rlpEncodedData),
+        connectionCtx.dstNetworkId
+      )
+      .accounts({
+        signer: ctx.admin.publicKey,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        config: XcallPDA.config().pda,
+        admin: xcallConfig.admin,
+        proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
+      })
+      .remainingAccounts([
+        // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
+        ...executeCallAccounts.slice(4),
+      ])
+      .signers([ctx.admin])
+      .rpc();
+  });
 
-  //   let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
-  //     connSn,
-  //     nextSequenceNo,
-  //     cs_message,
-  //     CSMessageType.CSMessageRequest
-  //   );
+  it("test handle call message for native token complete flow with xcall", async () => {
+    let xcallConfig = await xcallCtx.getConfig();
 
-  //   await connectionProgram.methods
-  //     .recvMessage(
-  //       fromNetwork,
-  //       new anchor.BN(connSn),
-  //       Buffer.from(cs_message),
-  //       new anchor.BN(nextSequenceNo)
-  //     )
-  //     .accountsStrict({
-  //       config: ConnectionPDA.config().pda,
-  //       admin: ctx.admin.publicKey,
-  //       receipt: ConnectionPDA.receipt(connSn).pda,
-  //       systemProgram: SYSTEM_PROGRAM_ID,
-  //     })
-  //     .remainingAccounts([...recvMessageAccounts.slice(3)])
-  //     .signers([ctx.admin])
-  //     .rpc();
-  //   console.log("receive message complete");
-  //   await sleep(2);
-  //   // call xcall execute_call
-  //   let executeCallAccounts = await xcallCtx.getExecuteCallAccounts(
-  //     nextReqId,
-  //     Buffer.from(rlpEncodedData),
-  //     AssetManagerPDA.state().pda,
-  //     program.programId
-  //   );
-  //   console.log("execute call accounts: ", executeCallAccounts);
-  //   await xcallProgram.methods
-  //     .executeCall(
-  //       new anchor.BN(nextReqId),
-  //       Buffer.from(rlpEncodedData),
-  //       connectionCtx.dstNetworkId
-  //     )
-  //     .accounts({
-  //       signer: ctx.admin.publicKey,
-  //       systemProgram: SYSTEM_PROGRAM_ID,
-  //       config: XcallPDA.config().pda,
-  //       admin: xcallConfig.admin,
-  //       proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
-  //     })
-  //     .remainingAccounts([
-  //       // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
-  //       ...executeCallAccounts.slice(4),
-  //     ])
-  //     .signers([ctx.admin])
-  //     .rpc();
-  // });
+    const connSn = 11;
+    const fromNetwork = "icon";
+    let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
+    let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
+    //const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
+    let withdrawerKeyPair = Keypair.generate();
+    
+    const data = ["DepositRevert", "11111111111111111111111111111111", withdrawerKeyPair.publicKey.toString(), 1000000000];
+    const rlpEncodedData = rlp.encode(data);
+    console.log("encoded for native");
+    let request = new CSMessageRequest(
+      iconAssetManager,
+      program.programId.toString(),
+      nextSequenceNo,
+      MessageType.CallMessageWithRollback,
+      Buffer.from(rlpEncodedData),
+      [connectionProgram.programId.toString()]
+    );
+
+    let cs_message = new CSMessage(
+      CSMessageType.CSMessageRequest,
+      request.encode()
+    ).encode();
+
+    let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+      connSn,
+      nextSequenceNo,
+      cs_message,
+      CSMessageType.CSMessageRequest
+    );
+    console.log("receive message accounts: ", recvMessageAccounts);
+    await connectionProgram.methods
+      .recvMessage(
+        fromNetwork,
+        new anchor.BN(connSn),
+        Buffer.from(cs_message),
+        new anchor.BN(nextSequenceNo)
+      )
+      .accountsStrict({
+        config: ConnectionPDA.config().pda,
+        admin: ctx.admin.publicKey,
+        receipt: ConnectionPDA.receipt(connSn).pda,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .remainingAccounts([...recvMessageAccounts.slice(3)])
+      .signers([ctx.admin])
+      .rpc();
+    console.log("receive message complete");
+    await sleep(2);
+    // call xcall execute_call
+    let executeCallAccounts = await xcallCtx.getExecuteCallAccounts(
+      nextReqId,
+      Buffer.from(rlpEncodedData),
+      AssetManagerPDA.state().pda,
+      program.programId
+    );
+    console.log("execute call accounts: ", executeCallAccounts);
+    await xcallProgram.methods
+      .executeCall(
+        new anchor.BN(nextReqId),
+        Buffer.from(rlpEncodedData),
+        connectionCtx.dstNetworkId
+      )
+      .accounts({
+        signer: ctx.admin.publicKey,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        config: XcallPDA.config().pda,
+        admin: xcallConfig.admin,
+        proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
+      })
+      .remainingAccounts([
+        // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
+        ...executeCallAccounts.slice(4),
+      ])
+      .signers([ctx.admin])
+      .rpc();
+  });
   
 
   // it("test account list", async () => {

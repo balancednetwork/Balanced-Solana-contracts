@@ -202,19 +202,19 @@ pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, G
     let method = decode_method(&data)?;
     if token_address !=_NATIVE_ADDRESS.to_string() && method == WITHDRAW_TO  {
         Ok(ParamAccounts{
-            accounts: get_spl_token_withdra_to_accounts(ctx, data)?
+            accounts: get_spl_token_withdraw_to_accounts(ctx, data)?
         })
     } else if token_address != _NATIVE_ADDRESS && method == DEPOSIT_REVERT {
         Ok(ParamAccounts{
             accounts: get_spl_token_deposit_revert_accounts(ctx, data)?
         })
-    } else if token_address == _NATIVE_ADDRESS && method == WITHDRAW_TO {
+    } else if token_address == _NATIVE_ADDRESS && method == WITHDRAW_TO_NATIVE {
         Ok(ParamAccounts{
-            accounts: get_native_token_withdra_to_accounts(ctx, data)?
+            accounts: get_native_token_withdraw_to_accounts(ctx, data)?
         })
     } else if token_address == _NATIVE_ADDRESS && method == DEPOSIT_REVERT {
         Ok(ParamAccounts{
-            accounts: get_spl_token_withdra_to_accounts(ctx, data)?
+            accounts: get_native_token_deposit_revert_accounts(ctx, data)?
         })
     } else {
         let accounts: Vec<ParamAccountProps> = vec![];
@@ -231,8 +231,6 @@ pub fn handle_call_message<'info>(
     protocols: Vec<String>
 ) -> Result<HandleCallMessageResponse> {
     let token_address = decode_token_address(&data)?;
-    msg!("token address: {:?}", token_address);
-    msg!("is native address: {:?}", token_address != _NATIVE_ADDRESS.to_string());
     let result;
     if  token_address != _NATIVE_ADDRESS.to_string() {
         result =  handle_token_call_message(ctx, from, data, protocols);
@@ -263,7 +261,6 @@ fn handle_token_call_message<'info>(
     data: Vec<u8>,
     protocols: Vec<String>
 ) -> Result<bool> {
-    msg!("is not native");
     let state = ctx.accounts.state.clone();
     let sysvar_account = &ctx.accounts.instruction_sysvar.to_account_info();
     let current_ix = get_instruction_relative(0, sysvar_account)?;
@@ -303,7 +300,6 @@ fn handle_token_call_message<'info>(
         let recipient_pubkey = Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
         require!(recipient_pubkey==to.key(), AssetManagerError::InvalidToAddress);
         
-        msg!("from the deposit revert");
         withdraw_token(
             vault_token_account.to_account_info(),
             to.to_account_info(),
@@ -314,7 +310,6 @@ fn handle_token_call_message<'info>(
         )?;
         
     } else {
-        msg!("on unknown message");
         return Err(AssetManagerError::UnknownMessage.into());
     }
 
@@ -327,7 +322,6 @@ fn handle_native_call_message<'info>(
     data: Vec<u8>,
     protocols: Vec<String>
 ) -> Result<bool> {
-    msg!("is native");
     let state = ctx.accounts.state.clone();
 
     require!(
@@ -365,7 +359,6 @@ fn handle_native_call_message<'info>(
 
         )?;
     } else {
-        msg!("on unknown message");
         return Err(AssetManagerError::UnknownMessage.into());
     }
 

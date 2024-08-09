@@ -58,7 +58,7 @@ pub mod asset_manager {
         data: Vec<u8>,
         _protocols: Vec<String>
     ) -> Result<ParamAccounts>{
-        return instructions:: get_handle_call_message_accounts(ctx, data);
+        return instructions::get_handle_call_message_accounts(ctx, data);
     }
     
 }

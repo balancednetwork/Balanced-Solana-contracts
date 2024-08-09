@@ -46,7 +46,7 @@ pub fn cross_transfer<'info>(
 ) -> Result<u128> {
     require!(value > 0, BalancedDollarError::InvalidAmount);
     require!(ctx.accounts.from.amount>=value, BalancedDollarError::InsufficientBalance );
-    //require!(ctx.accounts.state.bn_usd_token == ctx.accounts.token_program.key(), BalancedDollarError::NotBalancedDollar);
+    require!(ctx.accounts.state.bn_usd_token == ctx.accounts.mint.key(), BalancedDollarError::NotBalancedDollar);
     let burn_ctx = CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
         Burn {
