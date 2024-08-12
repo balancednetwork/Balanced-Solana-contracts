@@ -2,16 +2,6 @@ use rlp::{DecoderError, Rlp};
 
 use crate::{errors::AssetManagerError, structs::{deposit_revert::{DepositRevert, DEPOSIT_REVERT}, withdraw_message::WithdrawTo}};
 
-
-
-pub enum WithdrawToStruct {
-    WithdrawTo(WithdrawTo),
-}
-
-pub enum DepositRevertDecodedStruct {
-    DepositRevert(DepositRevert),
-}
-
 pub fn decode_method(data: &[u8]) -> Result<String, AssetManagerError> {
     let rlp: Rlp = Rlp::new(data);
 

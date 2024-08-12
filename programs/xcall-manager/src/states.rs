@@ -1,7 +1,5 @@
 use anchor_lang::{prelude::*, solana_program::sysvar};
 
-use crate::errors::XCallManagerError;
-
 #[derive(Accounts)]
 pub struct Initialize<'info> {
      #[account(init, payer = admin, seeds=["state".as_bytes()], bump, space = 8 + XmState::INIT_SPACE)]

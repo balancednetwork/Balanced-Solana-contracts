@@ -2,7 +2,7 @@
 use anchor_lang::prelude::*;
 use rlp::{Encodable, RlpStream};
 
-#[derive(AnchorSerialize, AnchorDeserialize, Default, Debug, PartialEq, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct CrossTransferMsg {
     pub from: String,
     pub to: String,
@@ -36,15 +36,6 @@ impl CrossTransferMsg {
             to,
             value,
             data,
-        }
-    }
-
-    pub fn null() -> Self {
-        Self {
-            from: String::new(),
-            to: String::new(),
-            value: 0,
-            data: vec![],
         }
     }
 

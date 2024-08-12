@@ -26,7 +26,7 @@ pub struct ConfigureRateLimit<'info> {
 
     #[account(mut, has_one = mint)]
     pub vault_token_account: Account<'info, TokenAccount>,
-    pub mint: Account<'info, Mint>, // This ensures vault_token_account is for the specified token
+    pub mint: Account<'info, Mint>,
     pub system_program: Program<'info, System>
 }
 
@@ -47,7 +47,6 @@ pub struct ResetLimit<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(token: Pubkey)]
 pub struct GetWithdrawLimit<'info> {
     #[account()]
     pub token_state: Account<'info, TokenState>,
@@ -119,7 +118,6 @@ pub struct HandleCallMessage<'info> {
     #[account(mut)]
     pub mint: Option<Account<'info, Mint>>,
     
-    ///CHECK: not required
     #[account(seeds = [b"vault", mint.clone().unwrap().key().as_ref()], bump)]
     pub valult_authority: Option<AccountInfo<'info>>,
     

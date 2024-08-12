@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use rlp::{Encodable, RlpStream};
 
 
-#[derive(AnchorSerialize, AnchorDeserialize, Default, Debug, PartialEq, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct ConfigureProtocols {
     pub sources: Vec<String>,
     pub destinations: Vec<String>,

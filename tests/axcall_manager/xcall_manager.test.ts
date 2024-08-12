@@ -27,8 +27,8 @@ const xcallProgram: anchor.Program<Xcall> = new anchor.Program(xcallIdlJson as a
     CSResponseType,
     MessageType,
   } from "../utils/types";
-  import { TestContext as XcallContext, XcallPDA } from "../../scripts/xcall/setup";
-import { TestContext as ConnectionContext, ConnectionPDA } from "../../scripts/centralized_connection/setup";
+  import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
+import { TestContext as ConnectionContext, ConnectionPDA } from "../xcall/centralized_connection/setup";
 
 
 
@@ -44,18 +44,33 @@ describe("balanced xcall manager", () => {
       connection, txnHelpers, wallet.payer
   );
 
+  let networkId = "solana";
   let iconGovernance = "icon/hxcnjsd";
   let iconConnection = "icon/cxjkefnskdjfe";
 
-  beforeEach(async () => {
-        
+  beforeAll(async () => {
+    await connectionCtx.initialize();
+    console.log("connection initialized");
+    sleep(3);
+    await xcallCtx.initialize(networkId);
+    console.log("xcall initialized");
+    sleep(3);
+
+    console.log("setting fee");
+    await connectionProgram.methods
+      .setFee("icon", new anchor.BN(50), new anchor.BN(50))
+      .accountsStrict({
+        config: ConnectionPDA.config().pda,
+        networkFee: ConnectionPDA.network_fee("icon").pda,
+        admin: wallet.publicKey,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .signers([wallet.payer])
+      .rpc();
+      console.log("fee set");
   });
 
   it("Test initialized!", async () => {
-        // let xcallKeyPair = Keypair.generate();
-        // let source1 = Keypair.generate();
-        // let source2 = Keypair.generate();
-
         await ctx.initialize(
             xcallProgram.programId,
             iconGovernance,
@@ -70,8 +85,6 @@ describe("balanced xcall manager", () => {
   });
 
   it("Test set protocols!", async () => {
-    let source1 = Keypair.generate();
-    let source2 = Keypair.generate();
     let setProtocolIx = await program.methods
       .setProtocols([connectionProgram.programId.toString()],
       [iconConnection])

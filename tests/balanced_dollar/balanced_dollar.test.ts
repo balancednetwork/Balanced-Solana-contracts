@@ -16,7 +16,6 @@ import {
     getOrCreateAssociatedTokenAccount,
     Account
 } from "@solana/spl-token";
-import { BN } from "bn.js";
 const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
@@ -35,8 +34,8 @@ const xcallProgram: anchor.Program<Xcall> = new anchor.Program(xcallIdlJson as a
     CSResponseType,
     MessageType,
   } from "../utils/types";
-import { TestContext as XcallContext, XcallPDA } from "../../scripts/xcall/setup";
-import { TestContext as ConnectionContext, ConnectionPDA } from "../../scripts/centralized_connection/setup";
+import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
+import { TestContext as ConnectionContext, ConnectionPDA } from "../xcall/centralized_connection/setup";
 
 
 describe("balanced dollar manager", () => {

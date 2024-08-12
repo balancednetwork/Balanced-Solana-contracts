@@ -119,12 +119,16 @@ pub fn handle_call_message<'info>(
             message: XCallManagerError::NotTheIconGovernance.to_string()
         });
     }
-    if !ctx.accounts.state.whitelisted_actions.contains(&data) {
+
+    let xcall_manager = &mut ctx.accounts.state;
+    if !xcall_manager.whitelisted_actions.contains(&data) {
         return Ok(HandleCallMessageResponse {
             success: false,
             message: XCallManagerError::ActionNotWhitelisted.to_string()
         });
     }
+    xcall_manager.whitelisted_actions.retain(|a| a != &data);
+
     let verified: bool = verify_protocol_recovery(ctx.accounts.state.proposed_protocol_to_remove.clone(), &ctx.accounts.state.sources, &protocols)?;
     if !verified {
         return Ok(HandleCallMessageResponse {
@@ -152,7 +156,7 @@ pub fn handle_call_message<'info>(
     }
 }
 
-pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, data: Vec<u8>) -> Result<ParamAccounts>{
+pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>) -> Result<ParamAccounts>{
     let  accounts: Vec<ParamAccountProps>  = vec![
         ParamAccountProps::new(sysvar::instructions::id(), false),
         ParamAccountProps::new(ctx.accounts.state.key(), false),

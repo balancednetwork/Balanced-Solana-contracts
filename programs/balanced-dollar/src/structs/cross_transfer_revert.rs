@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use rlp::{ Encodable, RlpStream};
 
-#[derive(AnchorSerialize, AnchorDeserialize, Default, Debug, PartialEq, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct CrossTransferRevert{
     pub account: String,
     pub amount: u64,
@@ -30,15 +30,7 @@ impl CrossTransferRevert {
         }
     }
 
-    pub fn null() -> Self {
-        Self {
-            account: String::new(),
-            amount: 0,
-        }
-    }
-
     pub fn encode(&self) -> Vec<u8> {
         rlp::encode(&self.clone()).to_vec()
     }
-
 }

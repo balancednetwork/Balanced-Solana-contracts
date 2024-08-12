@@ -1,8 +1,7 @@
 use anchor_lang::prelude::*;
 use rlp::{Encodable, RlpStream};
 
-
-#[derive(AnchorSerialize, AnchorDeserialize, Default, Debug, PartialEq, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct WithdrawTo {
     pub token_address: String,
     pub user_address: String,
@@ -30,17 +29,5 @@ impl WithdrawTo {
             user_address,
             amount,
         }
-    }
-
-    pub fn null() -> Self {
-        Self {
-            token_address: String::new(),
-            user_address: String::new(),
-            amount: 0,
-        }
-    }
-
-    pub fn encode(&self) -> Vec<u8> {
-        rlp::encode(&self.clone()).to_vec()
     }
 }

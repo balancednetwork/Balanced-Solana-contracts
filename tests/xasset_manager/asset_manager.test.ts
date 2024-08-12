@@ -37,9 +37,8 @@ const xcallProgram: anchor.Program<Xcall> = new anchor.Program(xcallIdlJson as a
     CSResponseType,
     MessageType,
   } from "../utils/types";
-import { TestContext as XcallContext, XcallPDA } from "../../scripts/xcall/setup";
-import { TestContext as ConnectionContext, ConnectionPDA } from "../../scripts/centralized_connection/setup";
-import { assert } from "console";
+import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
+import { TestContext as ConnectionContext, ConnectionPDA } from "../xcall/centralized_connection/setup";
 
 
 describe("xx asset manager test", () => {

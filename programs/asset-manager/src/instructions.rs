@@ -87,6 +87,7 @@ pub fn deposit_token<'info>(
     to: Option<String>,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
+    require!(amount > 0, AssetManagerError::InvalidAmount);
     let from  = ctx.accounts.from.as_ref().ok_or(AssetManagerError::InvalidFromAddress)?;
     let vault_token_account  = ctx.accounts.vault_token_account.as_ref().ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
     let cpi_accounts = Transfer {

@@ -1,8 +1,7 @@
 use anchor_lang::prelude::*;
-use borsh::{BorshDeserialize, BorshSerialize};
 use rlp::{ Encodable, RlpStream};
 
-#[derive(BorshSerialize, BorshDeserialize, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct DepositRevert {
     pub token_address: String,
     pub account: String,

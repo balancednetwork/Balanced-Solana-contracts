@@ -18,8 +18,7 @@ pub struct CrossTransfer<'info> {
     pub from: Account<'info, TokenAccount>,
     #[account(mut)]
     pub from_authority: Signer<'info>,
-    // #[account(mut)]
-    // pub to: Option<Account<'info, TokenAccount>>,
+    
     #[account(mut, seeds=[b"state"], bump)]
     pub state: Account<'info, State>,
     #[account(mut)]
@@ -37,7 +36,7 @@ pub struct CrossTransfer<'info> {
 #[derive(Accounts)]
 pub struct HandleCallMessage<'info> {
     pub signer: Signer<'info>,
-    /// CHECK: account constraints checked in account trait
+    ///CHECK: account constraints checked in account trait
     #[account(address = sysvar::instructions::id())]
     pub instruction_sysvar: UncheckedAccount<'info>,
     pub state: Account<'info, State>,
@@ -45,7 +44,7 @@ pub struct HandleCallMessage<'info> {
     pub to: Account<'info, TokenAccount>,
     #[account(mut)]
     pub mint: Account<'info, Mint>,
-    ///CHECK: validated in the method
+    ///CHECK: program signs onbehalf of the authority pda
     #[account(seeds = [b"bnusd_authority"], bump)]
     pub mint_authority: AccountInfo<'info>,
     pub token_program: Program<'info, Token>,

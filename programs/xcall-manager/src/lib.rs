@@ -49,9 +49,9 @@ pub mod xcall_manager {
     }
 
     pub fn query_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, _from: String,
-        data: Vec<u8>,
+        _data: Vec<u8>,
         _protocols: Vec<String>
     ) -> Result<ParamAccounts>{
-        return instructions:: get_handle_call_message_accounts(ctx, data);
+        return instructions:: get_handle_call_message_accounts(ctx);
     }
 }

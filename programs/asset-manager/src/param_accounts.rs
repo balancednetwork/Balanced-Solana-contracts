@@ -1,5 +1,5 @@
 use anchor_lang::{prelude::*, solana_program::{self, sysvar}};
-use crate::{errors::*, helpers::{decode_deposit_revert_msg, decode_withdraw_to_msg}, states::*, ID};
+use crate::{errors::*, helpers::{decode_deposit_revert_msg, decode_withdraw_to_msg}, states::*};
 use std::str::FromStr;
 use anchor_spl::{associated_token::get_associated_token_address, token::ID as TOKEN_PROGRAM_ID};
 use solana_program::system_program::ID as SYSTEM_PROGRAM_ID;
