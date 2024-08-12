@@ -10,7 +10,7 @@ pub struct Initialize<'info> {
 }
 
 #[account]
-#[derive(InitSpace)]
+#[derive(InitSpace, Debug)]
 pub struct XmState {
      pub admin: Pubkey,
      pub xcall: Pubkey,

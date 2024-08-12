@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Keypair, PublicKey, Connection, ComputeBudgetProgram } from "@solana/web3.js";
+import { Keypair, PublicKey, ComputeBudgetProgram } from "@solana/web3.js";
 
 import { TransactionHelper, sleep } from "../utils";
 import { TestContext, AssetManagerPDA } from "./setup";
@@ -32,9 +32,7 @@ const xcallProgram: anchor.Program<Xcall> = new anchor.Program(xcallIdlJson as a
   import {
     CSMessage,
     CSMessageRequest,
-    CSMessageResult,
     CSMessageType,
-    CSResponseType,
     MessageType,
   } from "../utils/types";
 import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
@@ -58,11 +56,8 @@ describe("xx asset manager test", () => {
       connection, txnHelpers, wallet.payer
   );
   let iconAssetManager = "icon/hxcnjsdkdfgjdjuf";
-  let iconConnection = "icon/cxjkefnskdjfe";
 
   let xcallKeyPair = Keypair.generate();
-  let xcallManagerKeyPair = Keypair.generate();
-  let mintKeyPair: Keypair;
   let mint: PublicKey;
   let vaultTokenAccount: Account;
 

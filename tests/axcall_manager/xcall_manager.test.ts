@@ -71,17 +71,60 @@ describe("balanced xcall manager", () => {
   });
 
   it("Test initialized!", async () => {
-        await ctx.initialize(
-            xcallProgram.programId,
-            iconGovernance,
-            [connectionProgram.programId.toString()],
-            [iconConnection]
-        );
+    await ctx.initialize(
+        xcallProgram.programId,
+        iconGovernance,
+        [connectionProgram.programId.toString()],
+        [iconConnection]
+    );
 
     const stateAccount = await program.account.xmState.fetch(XcallManagerPDA.state().pda);
     expect(stateAccount.xcall.toString()).toBe(xcallProgram.programId.toString());
     expect(stateAccount.iconGovernance).toBe("icon/hxcnjsd");
     expect(stateAccount.admin.toString()).toBe( wallet.payer.publicKey.toString());
+  });
+
+  it("Test proposal removal", async () => {
+    let protocolToRemove = Keypair.generate();
+    let protocolRemoveIx = await program.methods
+      .proposeRemoval(protocolToRemove.publicKey.toString())
+      .accountsStrict({
+        state: XcallManagerPDA.state().pda,
+        admin: ctx.admin.publicKey,
+      }).instruction();
+
+    let tx = await ctx.txnHelpers.buildV0Txn([protocolRemoveIx], [ctx.admin]);
+    await ctx.connection.sendTransaction(tx);
+    await sleep(3);
+
+    const stateAccount = await program.account.xmState.fetch(XcallManagerPDA.state().pda);
+    expect(stateAccount.proposedProtocolToRemove).toBe(protocolToRemove.publicKey.toString());
+  });
+
+  it("Test set multi protocols!", async () => {
+    let extra_protocol = Keypair.generate();
+    let setProtocolIx = await program.methods
+      .setProtocols([connectionProgram.programId.toString(), extra_protocol.publicKey.toString()],
+      [iconConnection, "icon/icon_extra"])
+      .accountsStrict({
+        state: XcallManagerPDA.state().pda,
+        admin: ctx.admin.publicKey,
+      }).instruction();
+
+    let tx = await ctx.txnHelpers.buildV0Txn([setProtocolIx], [ctx.admin]);
+    let txHash = await ctx.connection.sendTransaction(tx);
+    await sleep(3);
+
+    const stateAccount = await program.account.xmState.fetch(XcallManagerPDA.state().pda);
+    let sources = stateAccount.sources;
+    console.log("sources: ", sources);
+
+    let verified = await program.methods
+      .verifyProtocols(sources)
+      .accounts({
+        state: XcallManagerPDA.state().pda,
+      }).view();
+      expect(verified).toBe(true);
   });
 
   it("Test set protocols!", async () => {
@@ -94,10 +137,34 @@ describe("balanced xcall manager", () => {
       }).instruction();
 
     let tx = await ctx.txnHelpers.buildV0Txn([setProtocolIx], [ctx.admin]);
-    await ctx.connection.sendTransaction(tx);
+    let txHash = await ctx.connection.sendTransaction(tx);
+    txnHelpers.logParsedTx(txHash);
     await sleep(3);
 
+    const stateAccount = await program.account.xmState.fetch(XcallManagerPDA.state().pda);
+    let sources = stateAccount.sources;
+    console.log("sources: ", sources);
+
+    let verified = await program.methods
+      .verifyProtocols(sources)
+      .accounts({
+        state: XcallManagerPDA.state().pda,
+      }).view();
+      expect(verified).toBe(true);
   });
+
+  // it("Test verify protocol", async () => {
+  //   const stateAccount = await program.account.xmState.fetch(XcallManagerPDA.state().pda);
+  //   let sources = stateAccount.sources;
+  //   console.log("sources: ", sources);
+
+  //   let verified = await program.methods
+  //     .verifyProtocols(sources)
+  //     .accounts({
+  //       state: XcallManagerPDA.state().pda,
+  //     }).view();
+  //     expect(verified).toBe(true);
+  // });
 
   it("Test set admin!", async () => {
     let admin = Keypair.generate();
@@ -180,17 +247,7 @@ describe("balanced xcall manager", () => {
     expect(stateAccount.proposedProtocolToRemove).toBe(protocolToRemove.publicKey.toString());
   });
 
-  it("Test verify protocol", async () => {
-    const stateAccount = await program.account.xmState.fetch(XcallManagerPDA.state().pda);
-    let sources = stateAccount.sources;
-
-    let verified = await program.methods
-      .verifyProtocols(sources)
-      .accounts({
-        state: XcallManagerPDA.state().pda,
-      }).view();
-      expect(verified).toBe(true);
-  });
+  
 
   // it("Test handle call message", async () => {
   //   const stateAccount = await program.account.xmState.fetch(XcallManagerPDA.state().pda);

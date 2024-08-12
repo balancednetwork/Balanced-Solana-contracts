@@ -11,10 +11,10 @@ const program: anchor.Program<BalancedDollar> = anchor.workspace.BalancedDollar;
 const xcall_manager_program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 import {
-    TOKEN_PROGRAM_ID,
     createMint,
     getOrCreateAssociatedTokenAccount,
-    Account
+    Account,
+    TOKEN_PROGRAM_ID
 } from "@solana/spl-token";
 const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
@@ -29,9 +29,7 @@ const xcallProgram: anchor.Program<Xcall> = new anchor.Program(xcallIdlJson as a
   import {
     CSMessage,
     CSMessageRequest,
-    CSMessageResult,
     CSMessageType,
-    CSResponseType,
     MessageType,
   } from "../utils/types";
 import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
@@ -50,8 +48,8 @@ describe("balanced dollar manager", () => {
   let connectionCtx =  new ConnectionContext(
       connection, txnHelpers, wallet.payer
   );
+  const xcall_program: anchor.Program<Xcall> = anchor.workspace.Xcall;
   let iconBnUSD = "icon/hxcnjsdkdfgj";
-  let iconConnection = "icon/cxjkefnskdjfe";
 
   let mint: PublicKey;
   let program_authority = BalancedDollarPDA.program_authority();
@@ -174,99 +172,6 @@ describe("balanced dollar manager", () => {
     
   // });
 
-  // it("cross transfer test", async() => {
-  //   let { pda } = XcallPDA.config();
-  //   let xcall_config = await xcall_program.account.config.fetch(pda);
-  //   console.log("sequence no: ", xcall_config.sequenceNo);
-  //   const stateAccount = await program.account.state.fetch(BalancedDollarPDA.state().pda);
-  //   let iconBnUsd = stateAccount.iconBnUsd;
-  //   let sender = Keypair.generate();
-  //   const data = ["xCrossTransfer", sender.publicKey.toString(), withdrawerKeyPair.publicKey.toString(), 20000000000,  Buffer.alloc(0)];
-  //   const rlpEncodedData = rlp.encode(data);
-  
-  //   let protocols = xcall_manager_program.account.xmState.fetch(BalancedDollarPDA.xcall_manager_state().pda);
-  //   await program.methods
-  //   .handleCallMessage(iconBnUsd, Buffer.from(rlpEncodedData), (await protocols).sources )
-  //   .accountsStrict({
-  //     signer: wallet.payer.publicKey,
-  //     instructionSysvar: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
-  //     state: BalancedDollarPDA.state().pda,
-  //     to: withdrawerTokenAccount.address,
-  //     mint: mint,
-  //     mintAuthority: program_authority.pda,
-  //     xcallManager: xcall_manager_program.programId,
-  //     tokenProgram: TOKEN_PROGRAM_ID,
-  //     xcallManagerState: BalancedDollarPDA.xcall_manager_state().pda
-  //   }).signers([ctx.admin]).rpc();
-  //   await  sleep(3);
-    
-  //   const tokenAccountInfo = await connection.getTokenAccountBalance(withdrawerTokenAccount.address);
-
-  //   let balance = tokenAccountInfo.value.amount;
-  //   console.log("balanced of withdrawer: {}", balance);
-  //   expect(balance).toBe("20000000000");
-  //   await txnHelpers.airdrop(withdrawerKeyPair.publicKey, 5000000000);
-  //   await  sleep(3);
-  //   let bytes = Buffer.alloc(0);
-  //   let crossTransferTx = await program.methods
-  //     .crossTransfer("", new BN(1000000000), bytes)
-  //     .accountsStrict({
-  //       from: withdrawerTokenAccount.address,
-  //       fromAuthority: withdrawerKeyPair.publicKey,
-  //       state: BalancedDollarPDA.state().pda,
-  //       mint: mint,
-  //       xcallManagerState: BalancedDollarPDA.xcall_manager_state().pda,
-  //       xcallConfig: XcallPDA.config().pda,
-  //       xcall: xcall_program.programId,
-  //       tokenProgram: TOKEN_PROGRAM_ID,
-  //       systemProgram: SYSTEM_PROGRAM_ID,
-  //     }).remainingAccounts([
-  //       {
-  //         pubkey: XcallPDA.config().pda,
-  //         isSigner: false,
-  //         isWritable: true,
-  //       },
-  //       {
-  //         pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber() + 1).pda,
-  //         isSigner: false,
-  //         isWritable: true,
-  //       },
-  //       {
-  //         pubkey: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
-  //         isSigner: false,
-  //         isWritable: false,
-  //       },
-  //       {
-  //         pubkey: xcall_config.feeHandler,
-  //         isSigner: false,
-  //         isWritable: true,
-  //       },
-  //       //connection params
-  //       {
-  //         pubkey: connectionProgram.programId,
-  //         isSigner: false,
-  //         isWritable: true,
-  //       },
-  //       {
-  //         pubkey: ConnectionPDA.config().pda,
-  //         isSigner: false,
-  //         isWritable: true,
-  //       },
-  //       {
-  //         pubkey: ConnectionPDA.fee("icon").pda,
-  //         isSigner: false,
-  //         isWritable: true,
-  //       }
-  //     ]).instruction();
-  //     let tx = await ctx.txnHelpers.buildV0Txn([crossTransferTx], [withdrawerKeyPair]);
-  //     let txHash = await ctx.connection.sendTransaction(tx);
-  //     await txnHelpers.logParsedTx(txHash);
-
-  //   const updatedTokenAccountInfo = await connection.getTokenAccountBalance(withdrawerTokenAccount.address);
-  //   let updatedBalance = tokenAccountInfo.value.amount;
-  //   console.log("balanced of withdrawer: {}", updatedBalance);
-  //   //expect(updatedBalance).toBe(20000000000-1000000000);
-  // });
 
   it("test handle call message complete flow with xcall", async () => {
     let xcallConfig = await xcallCtx.getConfig();
@@ -432,20 +337,74 @@ describe("balanced dollar manager", () => {
       .rpc();
   });
 
-  // it("test account list", async () => {
-  //   let from = Keypair.generate();
-  //   let bytes = Buffer.alloc(0);
-  //   const data = ["xCrossTransfer", from.publicKey.toString(), withdrawerKeyPair.publicKey.toString(), 20000000000,  bytes];
-  //   const rlpEncodedData = rlp.encode(data);
-    
-  //   let accounts = await program.methods
-  //     .queryHandleCallMessageAccounts("", Buffer.from(rlpEncodedData), [])
-  //     .accounts({
-  //       state: BalancedDollarPDA.state().pda,
-  //     }).view();
-      
-  //     console.log("accounts: {}", accounts);
+  it("cross transfer test", async() => {
+    const tokenAccountInfo = await connection.getTokenAccountBalance(withdrawerTokenAccount.address);
+    let { pda } = XcallPDA.config();
+    let xcall_config = await xcall_program.account.config.fetch(pda);
+    let balance = tokenAccountInfo.value.amount;
+    console.log("balanced of withdrawer: {}", balance);
+    expect(balance).toBe("20000000000");
+    await txnHelpers.airdrop(withdrawerKeyPair.publicKey, 5000000000);
+    await  sleep(3);
+    let bytes = Buffer.alloc(0);
+    let crossTransferTx = await program.methods
+      .crossTransfer("", new anchor.BN(1000000000), bytes)
+      .accountsStrict({
+        from: withdrawerTokenAccount.address,
+        fromAuthority: withdrawerKeyPair.publicKey,
+        state: BalancedDollarPDA.state().pda,
+        mint: mint,
+        xcallManagerState: BalancedDollarPDA.xcall_manager_state().pda,
+        xcallConfig: XcallPDA.config().pda,
+        xcall: xcall_program.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      }).remainingAccounts([
+        {
+          pubkey: XcallPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber()+1).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
+          isSigner: false,
+          isWritable: false,
+        },
+        {
+          pubkey: xcall_config.feeHandler,
+          isSigner: false,
+          isWritable: true,
+        },
+        //connection params
+        {
+          pubkey: connectionProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.network_fee("icon").pda,
+          isSigner: false,
+          isWritable: true,
+        }
+      ]).instruction();
+      let tx = await ctx.txnHelpers.buildV0Txn([crossTransferTx], [withdrawerKeyPair]);
+      let txHash = await ctx.connection.sendTransaction(tx);
+      await txnHelpers.logParsedTx(txHash);
 
-  // });
+    const updatedTokenAccountInfo = await connection.getTokenAccountBalance(withdrawerTokenAccount.address);
+    let updatedBalance = updatedTokenAccountInfo.value.amount;
+    console.log("balanced of withdrawer: {}", updatedBalance);
+    expect(updatedBalance).toBe((20000000000-1000000000)+"");
+  });
   
 });

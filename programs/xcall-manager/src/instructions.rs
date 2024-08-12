@@ -54,6 +54,7 @@ pub fn set_protocols(ctx: Context<AdminAction>, sources: Vec<String>, destinatio
     );
     xcall_manager.sources = sources;
     xcall_manager.destinations = destinations;
+    msg!("state is: {:?}", xcall_manager);
     Ok(())
 }
 
