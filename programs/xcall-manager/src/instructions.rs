@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::sysvar;
-use anchor_lang::solana_program::sysvar::instructions::get_instruction_relative;
 use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 use crate::configure_protocols::CONFIGURE_PROTOCOLS;
 use crate::helpers::{decode_handle_call_msg, decode_method};
@@ -54,7 +53,6 @@ pub fn set_protocols(ctx: Context<AdminAction>, sources: Vec<String>, destinatio
     );
     xcall_manager.sources = sources;
     xcall_manager.destinations = destinations;
-    msg!("state is: {:?}", xcall_manager);
     Ok(())
 }
 
@@ -104,15 +102,7 @@ pub fn handle_call_message<'info>(
     data: Vec<u8>,
     protocols: Vec<String>,
 ) -> Result<HandleCallMessageResponse> {
-    let state = ctx.accounts.state.clone();
-    let sysvar_account = &ctx.accounts.instruction_sysvar.to_account_info();
-    let current_ix = get_instruction_relative(0, sysvar_account)?;
-    if current_ix.program_id != state.xcall {
-        return Ok(HandleCallMessageResponse {
-            success: false,
-            message: XCallManagerError::OnlyXcall.to_string()
-        });
-    }
+    let mut state = ctx.accounts.state.clone();
 
     if from != ctx.accounts.state.icon_governance  {
         return Ok(HandleCallMessageResponse {
@@ -121,14 +111,13 @@ pub fn handle_call_message<'info>(
         });
     }
 
-    let xcall_manager = &mut ctx.accounts.state;
-    if !xcall_manager.whitelisted_actions.contains(&data) {
+    if !state.whitelisted_actions.contains(&data) {
         return Ok(HandleCallMessageResponse {
             success: false,
             message: XCallManagerError::ActionNotWhitelisted.to_string()
         });
     }
-    xcall_manager.whitelisted_actions.retain(|a| a != &data);
+    state.whitelisted_actions.retain(|a| a != &data);
 
     let verified: bool = verify_protocol_recovery(ctx.accounts.state.proposed_protocol_to_remove.clone(), &ctx.accounts.state.sources, &protocols)?;
     if !verified {
@@ -142,9 +131,8 @@ pub fn handle_call_message<'info>(
     let message = decode_handle_call_msg(&data)?;
     if method == CONFIGURE_PROTOCOLS {
         require!(from == ctx.accounts.state.icon_governance, XCallManagerError::InvalidSender);
-        let xcall_manager = &mut ctx.accounts.state;
-        xcall_manager.sources = message.sources;
-        xcall_manager.destinations = message.destinations;
+        state.sources = message.sources;
+        state.destinations = message.destinations;
         return Ok(HandleCallMessageResponse {
             success: true,
             message: "Success".to_owned()
@@ -159,7 +147,7 @@ pub fn handle_call_message<'info>(
 
 pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>) -> Result<ParamAccounts>{
     let  accounts: Vec<ParamAccountProps>  = vec![
-        ParamAccountProps::new(sysvar::instructions::id(), false),
+        //ParamAccountProps::new(sysvar::instructions::id(), false),
         ParamAccountProps::new(ctx.accounts.state.key(), false),
     ];
     Ok(ParamAccounts{

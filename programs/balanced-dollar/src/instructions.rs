@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::sysvar::instructions::get_instruction_relative;
 use anchor_spl::
     token::{
         self, Burn, MintTo,
@@ -102,14 +101,6 @@ pub fn handle_call_message<'info>(
     protocols: Vec<String>
 ) -> Result<HandleCallMessageResponse> {
     let state = ctx.accounts.state.clone();
-    let sysvar_account = &ctx.accounts.instruction_sysvar.to_account_info();
-    let current_ix = get_instruction_relative(0, sysvar_account)?;
-    if current_ix.program_id != state.xcall{
-        return Ok(HandleCallMessageResponse {
-            success: false,
-            message: BalancedDollarError::OnlyXcall.to_string()
-        });
-    }
     
     if !verify_protocols(&ctx.accounts.xcall_manager, &ctx.accounts.xcall_manager_state, &protocols)? {
         return Ok(HandleCallMessageResponse {
@@ -122,7 +113,7 @@ pub fn handle_call_message<'info>(
     let signer = &[&seeds[..]];
     let method = decode_method(&data)?;
     if method == CROSS_TRANSFER {
-        if from != ctx.accounts.state.icon_bn_usd {
+        if from != state.icon_bn_usd {
             return Ok(HandleCallMessageResponse {
                 success: false,
                 message: BalancedDollarError::InvalidSender.to_string()
@@ -142,7 +133,7 @@ pub fn handle_call_message<'info>(
             message: "Success".to_owned()
         });
     } else if method == CROSS_TRANSFER_REVERT {
-        if from != ctx.accounts.state.xcall.to_string() {
+        if from != state.xcall.to_string() {
             return Ok(HandleCallMessageResponse {
                 success: false,
                 message: BalancedDollarError::InvalidSender.to_string()

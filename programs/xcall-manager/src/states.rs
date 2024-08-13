@@ -1,5 +1,7 @@
 use anchor_lang::{prelude::*, solana_program::sysvar};
 
+use crate::errors::XCallManagerError;
+
 #[derive(Accounts)]
 pub struct Initialize<'info> {
      #[account(init, payer = admin, seeds=["state".as_bytes()], bump, space = 8 + XmState::INIT_SPACE)]
@@ -47,9 +49,11 @@ pub struct VerifyProtocols<'info> {
 #[derive(Accounts)]
 pub struct HandleCallMessage<'info> {
     pub signer: Signer<'info>,
+    #[account(owner=state.xcall @XCallManagerError::OnlyXcall)]
+    pub xcall_singer: Signer<'info>,
     /// CHECK: account constraints checked in account trait
-    #[account(address = sysvar::instructions::id())]
-    pub instruction_sysvar: UncheckedAccount<'info>,
+    // #[account(address = sysvar::instructions::id())]
+    // pub instruction_sysvar: UncheckedAccount<'info>,
     #[account(mut)]
     pub state: Account<'info, XmState>,
 }

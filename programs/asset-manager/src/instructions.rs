@@ -272,9 +272,11 @@ fn handle_token_call_message<'info>(
     protocols: Vec<String>
 ) -> Result<bool> {
     let state = ctx.accounts.state.clone();
-    let sysvar_account = &ctx.accounts.instruction_sysvar.to_account_info();
-    let current_ix = get_instruction_relative(0, sysvar_account)?;
-    require!(current_ix.program_id == state.xcall, AssetManagerError::OnlyXcall);
+    // let sysvar_account = &ctx.accounts.instruction_sysvar.to_account_info();
+    // let current_ix = get_instruction_relative(0, sysvar_account)?;
+    // require!(current_ix.program_id == state.xcall, AssetManagerError::OnlyXcall);
+    // msg!("xcall validated: {:?}", *ctx.accounts.signer.owner == state.xcall);
+    // require!(*ctx.accounts.xcall_singer.owner == state.xcall, AssetManagerError::OnlyXcall);
     
     let bump = ctx.bumps.valult_authority.unwrap();
     require!(

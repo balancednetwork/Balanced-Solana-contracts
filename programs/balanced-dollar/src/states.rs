@@ -3,6 +3,8 @@ use anchor_spl::token::{Token, TokenAccount, Mint};
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
 
+use crate::errors::BalancedDollarError;
+
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(init, payer = admin, seeds=[b"state"], bump, space = 8 + State::INIT_SPACE)]
@@ -39,9 +41,11 @@ pub struct CrossTransfer<'info> {
 #[derive(Accounts)]
 pub struct HandleCallMessage<'info> {
     pub signer: Signer<'info>,
+    #[account(owner=state.xcall @BalancedDollarError::OnlyXcall)]
+    pub xcall_singer: Signer<'info>,
     ///CHECK: account constraints checked in account trait
-    #[account(address = sysvar::instructions::id())]
-    pub instruction_sysvar: UncheckedAccount<'info>,
+    // #[account(address = sysvar::instructions::id())]
+    // pub instruction_sysvar: UncheckedAccount<'info>,
     pub state: Account<'info, State>,
     #[account(mut)]
     pub to: Account<'info, TokenAccount>,
