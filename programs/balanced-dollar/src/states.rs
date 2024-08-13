@@ -1,4 +1,4 @@
-use anchor_lang::{prelude::*, solana_program::sysvar};
+use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount, Mint};
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
@@ -43,9 +43,6 @@ pub struct HandleCallMessage<'info> {
     pub signer: Signer<'info>,
     #[account(owner=state.xcall @BalancedDollarError::OnlyXcall)]
     pub xcall_singer: Signer<'info>,
-    ///CHECK: account constraints checked in account trait
-    // #[account(address = sysvar::instructions::id())]
-    // pub instruction_sysvar: UncheckedAccount<'info>,
     pub state: Account<'info, State>,
     #[account(mut)]
     pub to: Account<'info, TokenAccount>,

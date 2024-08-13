@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::sysvar;
 use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 use crate::configure_protocols::CONFIGURE_PROTOCOLS;
 use crate::helpers::{decode_handle_call_msg, decode_method};
@@ -147,7 +146,6 @@ pub fn handle_call_message<'info>(
 
 pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>) -> Result<ParamAccounts>{
     let  accounts: Vec<ParamAccountProps>  = vec![
-        //ParamAccountProps::new(sysvar::instructions::id(), false),
         ParamAccountProps::new(ctx.accounts.state.key(), false),
     ];
     Ok(ParamAccounts{
