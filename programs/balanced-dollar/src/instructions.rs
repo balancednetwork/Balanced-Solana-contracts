@@ -73,17 +73,19 @@ pub fn cross_transfer<'info>(
     let fee_handler = &ctx.remaining_accounts[3];
     // the accounts for centralized connections is contained here.
     let remaining_accounts = ctx.remaining_accounts.split_at(4).1;
+    let xcall_authority = &ctx.accounts.xcall_authority;
     let cpi_accounts: SendCallCtx = SendCallCtx {
         config: xcall_config.to_account_info(),
         rollback_account: Some(rollback_account.to_account_info()),
         fee_handler: fee_handler.to_account_info(),
         signer: ctx.accounts.from_authority.to_account_info(),
         instruction_sysvar: sysvar_account.to_account_info(),
+        dapp_authority: Some(xcall_authority.to_account_info()),
         system_program: ctx.accounts.system_program.to_account_info(),
     };
-    let bump = ctx.bumps.state;
+    let bump = ctx.bumps.xcall_authority;
     let seeds = &[
-        b"state".as_ref(),
+        Authority::SEED_PREFIX.as_bytes().as_ref(),
         &[bump],
     ];
     let signer_seeds = &[&seeds[..]];

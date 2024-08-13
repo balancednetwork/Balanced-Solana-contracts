@@ -166,19 +166,28 @@ fn send_deposit_message<'info>(
     let sysvar_account = &ctx.remaining_accounts[2];
     let fee_handler = &ctx.remaining_accounts[3];
     let from_authority = &ctx.accounts.from_authority;
+    let xcall_authority = &ctx.accounts.xcall_authority;
     // the accounts for centralized connections is contained here.
     let remaining_accounts: &[AccountInfo<'info>] = ctx.remaining_accounts.split_at(4).1;
+    let bump = ctx.bumps.xcall_authority;
+    let seeds = &[
+        Authority::SEED_PREFIX.as_bytes().as_ref(),
+        &[bump],
+    ];
+    let signer_seeds = &[&seeds[..]];
+    
     let cpi_accounts: SendCallCtx = SendCallCtx {
         config: xcall_config.to_account_info(),
         rollback_account: Some(rollback_account.to_account_info()),
         fee_handler: fee_handler.to_account_info(),
         signer: from_authority.to_account_info(),
         instruction_sysvar: sysvar_account.to_account_info(),
+        dapp_authority: Some(xcall_authority.to_account_info()),
         system_program: ctx.accounts.system_program.to_account_info(),
     };
 
     let xcall_program = ctx.accounts.xcall.to_account_info();
-    let cpi_ctx = CpiContext::new(xcall_program, cpi_accounts).with_remaining_accounts(remaining_accounts.to_vec());
+    let cpi_ctx = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seeds).with_remaining_accounts(remaining_accounts.to_vec());
     let result = xcall::cpi::send_call(cpi_ctx, envelope_encoded, icon_asset_manager)?;
     Ok(result.get())
     

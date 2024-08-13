@@ -27,7 +27,10 @@ pub struct CrossTransfer<'info> {
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
     #[account(mut)]
     pub xcall_config: Account<'info, xcall::state::Config>,
-
+    #[account(
+        init_if_needed, payer=from_authority, space = Authority::MAX_SPACE, seeds = [Authority::SEED_PREFIX.as_bytes()], bump
+      )]
+      pub xcall_authority: Account<'info, Authority>,
     pub xcall: Program<'info, Xcall>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -99,4 +102,14 @@ impl ParamAccountProps {
             is_writable: false,
         }
     }
+}
+
+#[account]
+pub struct Authority {
+    pub bump: u8,
+}
+
+impl Authority {
+    pub const SEED_PREFIX: &'static str = "dapp_authority";
+    pub const MAX_SPACE: usize = 8 + 1;
 }

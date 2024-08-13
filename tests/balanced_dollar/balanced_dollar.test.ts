@@ -359,6 +359,7 @@ describe("balanced dollar manager", () => {
         xcall: xcall_program.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SYSTEM_PROGRAM_ID,
+        xcallAuthority: BalancedDollarPDA.xcall_authority().pda,
       }).remainingAccounts([
         {
           pubkey: XcallPDA.config().pda,

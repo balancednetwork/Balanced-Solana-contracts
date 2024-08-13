@@ -170,6 +170,7 @@ describe("xx asset manager test", () => {
         xcallManager: xcall_manager_program.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SYSTEM_PROGRAM_ID,
+        xcallAuthority: AssetManagerPDA.xcall_authority().pda,
       }).remainingAccounts([
         {
           pubkey: XcallPDA.config().pda,
@@ -248,6 +249,7 @@ describe("xx asset manager test", () => {
         xcallManager: xcall_manager_program.programId,
         tokenProgram: null,
         systemProgram: SYSTEM_PROGRAM_ID,
+        xcallAuthority: AssetManagerPDA.xcall_authority().pda,
       }).remainingAccounts([
         {
           pubkey: XcallPDA.config().pda,

@@ -94,5 +94,14 @@ export class AssetManagerPDA {
 
     return { bump, pda };
   }
+
+  static xcall_authority() {
+    let [pda, bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("dapp_authority")],
+      assetManagerProgram.programId
+    );
+
+    return { bump, pda };
+  }
   
 }

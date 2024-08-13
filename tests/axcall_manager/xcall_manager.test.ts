@@ -22,9 +22,7 @@ const xcallProgram: anchor.Program<Xcall> = new anchor.Program(xcallIdlJson as a
   import {
     CSMessage,
     CSMessageRequest,
-    CSMessageResult,
     CSMessageType,
-    CSResponseType,
     MessageType,
   } from "../utils/types";
   import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
