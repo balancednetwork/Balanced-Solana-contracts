@@ -62,7 +62,7 @@ pub struct HandleCallMessage<'info> {
 #[derive(InitSpace)]
 pub struct State {
     pub xcall: Pubkey,
-    #[max_len(50)]
+    #[max_len(100)]
     pub icon_bn_usd: String,
     pub xcall_manager: Pubkey,
     pub bn_usd_token: Pubkey,

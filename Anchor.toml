@@ -6,14 +6,14 @@ skip-lint = false
 
 [programs."https://api.devnet.solana.com"]
 asset_manager = "8tJx9uFHvK33etttKFi8XWHEKMo3q3K6UdSWLTTKnUvX"
-balanced_dollar = "7pvzYSgsMmK81xtXFCD5VQVbCZurTFxPNQ2FZHUd5rTY"
+balanced_dollar = "3UsdbGPu41ytqZtqgu6Wr7XocXcsnFBPKujBJxQbsBd9"
 centralized_connection = "4vfkXyxMxptmREF3RaFKUwnPRuqsXJJeUFzpCjPSSVMb"
 xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
 xcall_manager = "EEtvdnChxMfrd2wFouin5UToTcwrrshHuCzkSECKxd3p"
 
 [programs.localnet]
 asset_manager = "8tJx9uFHvK33etttKFi8XWHEKMo3q3K6UdSWLTTKnUvX"
-balanced_dollar = "2ks4W95v2vdx4D8PLNitPJaA2jmcwBPC4gX16fjP7u8P"
+balanced_dollar = "3UsdbGPu41ytqZtqgu6Wr7XocXcsnFBPKujBJxQbsBd9"
 centralized_connection = "4vfkXyxMxptmREF3RaFKUwnPRuqsXJJeUFzpCjPSSVMb"
 xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
 xcall_manager = "EEtvdnChxMfrd2wFouin5UToTcwrrshHuCzkSECKxd3p"
@@ -22,7 +22,7 @@ xcall_manager = "EEtvdnChxMfrd2wFouin5UToTcwrrshHuCzkSECKxd3p"
 url = "https://api.devnet.solana.com"
 
 [provider]
-cluster = "devnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
