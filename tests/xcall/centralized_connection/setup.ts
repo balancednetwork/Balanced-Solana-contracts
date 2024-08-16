@@ -9,13 +9,19 @@ import { CSMessageType } from "../xcall/types";
 import { Xcall } from "../../../types/xcall";
 import { XcallPDA } from "../xcall/setup";
 let provider = anchor.AnchorProvider.env();
-    anchor.setProvider(provider);
+anchor.setProvider(provider);
 
-  import connectionIdlJson from "../../../target/idl/centralized_connection.json";
+import connectionIdlJson from "../../../target/idl/centralized_connection.json";
 const connectionProgram: anchor.Program<CentralizedConnection> =
-  new anchor.Program(connectionIdlJson as anchor.Idl, provider) as unknown as anchor.Program<CentralizedConnection> ;
-  import xcallIdlJson from "../../../target/idl/xcall.json";
-const xcallProgram: anchor.Program<Xcall> = new anchor.Program(xcallIdlJson as anchor.Idl, provider) as unknown as anchor.Program<Xcall> ;
+  new anchor.Program(
+    connectionIdlJson as anchor.Idl,
+    provider
+  ) as unknown as anchor.Program<CentralizedConnection>;
+import xcallIdlJson from "../../../target/idl/xcall.json";
+const xcallProgram: anchor.Program<Xcall> = new anchor.Program(
+  xcallIdlJson as anchor.Idl,
+  provider
+) as unknown as anchor.Program<Xcall>;
 
 export class TestContext {
   program: anchor.Program<CentralizedConnection>;
@@ -27,8 +33,11 @@ export class TestContext {
   txnHelpers: TransactionHelper;
   isInitialized: boolean;
 
-  constructor(connection: Connection, txnHelpers: TransactionHelper, admin: Keypair) {
-    
+  constructor(
+    connection: Connection,
+    txnHelpers: TransactionHelper,
+    admin: Keypair
+  ) {
     this.program = connectionProgram;
     this.signer = admin;
     this.admin = admin;
@@ -39,8 +48,8 @@ export class TestContext {
   }
 
   async initialize() {
-    try{
-      console.log("program is: ", );
+    try {
+      console.log("program is: ");
       await this.program.methods
         .initialize(xcallProgram.programId, this.signer.publicKey)
         .signers([this.signer])
@@ -50,8 +59,8 @@ export class TestContext {
           config: ConnectionPDA.config().pda,
         })
         .rpc();
-        console.log("cc initialized");
-    }catch(err){
+      console.log("cc initialized");
+    } catch (err) {
       console.log("error initializing: ", err);
     }
   }

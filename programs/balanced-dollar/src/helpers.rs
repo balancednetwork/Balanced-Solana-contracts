@@ -1,7 +1,12 @@
 use rlp::{DecoderError, Rlp};
 
-use crate::{errors::BalancedDollarError, structs::{cross_transfer::{CrossTransferMsg, CROSS_TRANSFER}, cross_transfer_revert::{CrossTransferRevert, CROSS_TRANSFER_REVERT}}};
-
+use crate::{
+    errors::BalancedDollarError,
+    structs::{
+        cross_transfer::{CrossTransferMsg, CROSS_TRANSFER},
+        cross_transfer_revert::{CrossTransferRevert, CROSS_TRANSFER_REVERT},
+    },
+};
 
 pub fn decode_method(data: &[u8]) -> Result<String, BalancedDollarError> {
     let rlp = Rlp::new(data);
@@ -24,7 +29,7 @@ pub fn decode_cross_transfer(data: &[u8]) -> Result<CrossTransferMsg, BalancedDo
     if method != CROSS_TRANSFER {
         return Err(DecoderError::RlpInvalidLength.into());
     }
-   
+
     if rlp.item_count()? != 5 {
         return Err(DecoderError::RlpInvalidLength.into());
     }
@@ -36,12 +41,14 @@ pub fn decode_cross_transfer(data: &[u8]) -> Result<CrossTransferMsg, BalancedDo
         from,
         to,
         value,
-        data
+        data,
     };
     Ok(cross_transfer)
 }
 
-pub fn decode_cross_transfer_revert(data: &[u8]) -> Result<CrossTransferRevert, BalancedDollarError> {
+pub fn decode_cross_transfer_revert(
+    data: &[u8],
+) -> Result<CrossTransferRevert, BalancedDollarError> {
     let rlp = Rlp::new(data);
     if !rlp.is_list() {
         return Err(DecoderError::RlpExpectedToBeList.into());
@@ -54,9 +61,6 @@ pub fn decode_cross_transfer_revert(data: &[u8]) -> Result<CrossTransferRevert, 
     let account: String = rlp.val_at(1)?;
     let amount: u64 = rlp.val_at(2)?;
 
-    let cross_transfer_revert: CrossTransferRevert = CrossTransferRevert {
-        account,
-        amount,
-    };
+    let cross_transfer_revert: CrossTransferRevert = CrossTransferRevert { account, amount };
     Ok(cross_transfer_revert)
 }

@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, Mint, TokenAccount};
+use anchor_spl::token::{Mint, Token, TokenAccount};
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
 
@@ -11,7 +11,7 @@ pub struct Initialize<'info> {
     pub state: Account<'info, State>,
     #[account(mut)]
     pub admin: Signer<'info>,
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -29,7 +29,7 @@ pub struct ConfigureRateLimit<'info> {
     #[account(mut, has_one = mint)]
     pub vault_token_account: Account<'info, TokenAccount>,
     pub mint: Account<'info, Mint>,
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -45,7 +45,7 @@ pub struct ResetLimit<'info> {
 
     #[account(mut, has_one = mint)]
     pub vault_token_account: Account<'info, TokenAccount>,
-    pub mint: Account<'info, Mint>
+    pub mint: Account<'info, Mint>,
 }
 
 #[derive(Accounts)]
@@ -54,7 +54,7 @@ pub struct GetWithdrawLimit<'info> {
     pub token_state: Account<'info, TokenState>,
     #[account(mut, has_one = mint)]
     pub vault_token_account: Account<'info, TokenAccount>,
-    pub mint: Account<'info, Mint>
+    pub mint: Account<'info, Mint>,
 }
 
 #[derive(Accounts)]
@@ -62,8 +62,8 @@ pub struct DepositToken<'info> {
     #[account(mut)]
     pub from: Option<Account<'info, TokenAccount>>,
     #[account(mut)]
-    pub from_authority:  Signer<'info>,
-    
+    pub from_authority: Signer<'info>,
+
     #[account(mut)]
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
     #[account(mut)]
@@ -82,7 +82,7 @@ pub struct DepositToken<'info> {
     pub xcall_config: Account<'info, xcall::state::Config>,
     pub xcall_manager: Program<'info, XcallManager>,
     pub token_program: Option<Program<'info, Token>>,
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
 }
 
 #[account]
@@ -122,15 +122,14 @@ pub struct HandleCallMessage<'info> {
     pub vault_native_account: Option<AccountInfo<'info>>,
     #[account(mut)]
     pub mint: Option<Account<'info, Mint>>,
-    
+
     #[account(seeds = [b"vault", mint.clone().unwrap().key().as_ref()], bump)]
     pub valult_authority: Option<AccountInfo<'info>>,
-    
+
     pub token_program: Option<Program<'info, Token>>,
     pub xcall_manager: Program<'info, XcallManager>,
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
     pub system_program: Program<'info, System>,
-
 }
 
 #[derive(Accounts)]
@@ -139,15 +138,15 @@ pub struct GetParams<'info> {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
-pub struct ParamAccountProps{
+pub struct ParamAccountProps {
     pub pubkey: Pubkey,
     pub is_writable: bool,
-    pub is_signer: bool
+    pub is_signer: bool,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize,Debug)]
-pub struct ParamAccounts{
-    pub accounts: Vec<ParamAccountProps>
+#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
+pub struct ParamAccounts {
+    pub accounts: Vec<ParamAccountProps>,
 }
 
 impl ParamAccountProps {
@@ -177,5 +176,3 @@ impl Authority {
     pub const SEED_PREFIX: &'static str = "dapp_authority";
     pub const MAX_SPACE: usize = 8 + 1;
 }
-
-

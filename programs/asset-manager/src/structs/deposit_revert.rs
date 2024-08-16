@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use rlp::{ Encodable, RlpStream};
+use rlp::{Encodable, RlpStream};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct DepositRevert {
@@ -22,11 +22,7 @@ impl Encodable for DepositRevert {
 }
 
 impl DepositRevert {
-    pub fn create(
-        token_address: String,
-        account: String,
-        amount: u64,
-    ) -> Self {
+    pub fn create(token_address: String, account: String, amount: u64) -> Self {
         Self {
             token_address,
             account,

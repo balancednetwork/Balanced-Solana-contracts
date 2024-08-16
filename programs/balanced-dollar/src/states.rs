@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount, Mint};
+use anchor_spl::token::{Mint, Token, TokenAccount};
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
 
@@ -20,7 +20,7 @@ pub struct CrossTransfer<'info> {
     pub from: Account<'info, TokenAccount>,
     #[account(mut)]
     pub from_authority: Signer<'info>,
-    
+
     #[account(mut, seeds=[b"state"], bump)]
     pub state: Account<'info, State>,
     #[account(mut)]
@@ -32,7 +32,7 @@ pub struct CrossTransfer<'info> {
     #[account(
         init_if_needed, payer=from_authority, space = Authority::MAX_SPACE, seeds = [Authority::SEED_PREFIX.as_bytes()], bump
       )]
-      pub xcall_authority: Account<'info, Authority>,
+    pub xcall_authority: Account<'info, Authority>,
     pub xcall: Program<'info, Xcall>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -58,12 +58,11 @@ pub struct HandleCallMessage<'info> {
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
 }
 
-
 #[account]
 #[derive(InitSpace)]
 pub struct State {
     pub xcall: Pubkey,
-    #[max_len(100)]
+    #[max_len(50)]
     pub icon_bn_usd: String,
     pub xcall_manager: Pubkey,
     pub bn_usd_token: Pubkey,
@@ -76,15 +75,15 @@ pub struct GetParams<'info> {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
-pub struct ParamAccountProps{
+pub struct ParamAccountProps {
     pub pubkey: Pubkey,
     pub is_writable: bool,
-    pub is_signer: bool
+    pub is_signer: bool,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
-pub struct ParamAccounts{
-    pub accounts: Vec<ParamAccountProps>
+pub struct ParamAccounts {
+    pub accounts: Vec<ParamAccountProps>,
 }
 
 impl ParamAccountProps {

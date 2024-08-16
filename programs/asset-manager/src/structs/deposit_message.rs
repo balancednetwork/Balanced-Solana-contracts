@@ -1,4 +1,3 @@
-
 use anchor_lang::prelude::*;
 use rlp::{Encodable, RlpStream};
 

@@ -5,7 +5,8 @@ import { XcallManager } from "../../target/types/xcall_manager";
 import { TransactionHelper, sleep } from "../utils";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
-const xcallManagerProgram: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
+const xcallManagerProgram: anchor.Program<XcallManager> =
+  anchor.workspace.XcallManager;
 
 export class TestContext {
   nid: String;
@@ -14,23 +15,31 @@ export class TestContext {
   connection: Connection;
   txnHelpers: TransactionHelper;
 
-  constructor(connection: Connection, txnHelpers: TransactionHelper, admin: Keypair) {
+  constructor(
+    connection: Connection,
+    txnHelpers: TransactionHelper,
+    admin: Keypair
+  ) {
     this.connection = connection;
     this.txnHelpers = txnHelpers;
     this.admin = admin;
     this.fee_handler = admin;
   }
-  
 
-  async initialize(xcall: PublicKey, icon_governance: string, sources: Array<string>, destinations: Array<string>) {
-    
+  async initialize(
+    xcall: PublicKey,
+    icon_governance: string,
+    sources: Array<string>,
+    destinations: Array<string>
+  ) {
     let initializeIx = await xcallManagerProgram.methods
       .initialize(xcall, icon_governance, sources, destinations)
       .accountsStrict({
         state: XcallManagerPDA.state().pda,
         admin: this.admin.publicKey,
-        systemProgram: SYSTEM_PROGRAM_ID
-      }).instruction();
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .instruction();
 
     let tx = await this.txnHelpers.buildV0Txn([initializeIx], [this.admin]);
     await this.connection.sendTransaction(tx);
@@ -48,5 +57,4 @@ export class XcallManagerPDA {
 
     return { bump, pda };
   }
-
 }

@@ -1,6 +1,12 @@
 use rlp::{DecoderError, Rlp};
 
-use crate::{errors::AssetManagerError, structs::{deposit_revert::{DepositRevert, DEPOSIT_REVERT}, withdraw_message::WithdrawTo}};
+use crate::{
+    errors::AssetManagerError,
+    structs::{
+        deposit_revert::{DepositRevert, DEPOSIT_REVERT},
+        withdraw_message::WithdrawTo,
+    },
+};
 
 pub fn decode_method(data: &[u8]) -> Result<String, AssetManagerError> {
     let rlp: Rlp = Rlp::new(data);
@@ -12,7 +18,6 @@ pub fn decode_method(data: &[u8]) -> Result<String, AssetManagerError> {
     let method: String = rlp.val_at(0)?;
 
     Ok(method)
-
 }
 
 pub fn decode_token_address(data: &[u8]) -> std::result::Result<String, AssetManagerError> {
@@ -25,7 +30,6 @@ pub fn decode_token_address(data: &[u8]) -> std::result::Result<String, AssetMan
     let method: String = rlp.val_at(1)?;
 
     Ok(method)
-
 }
 
 pub fn decode_withdraw_to_msg(data: &[u8]) -> std::result::Result<WithdrawTo, AssetManagerError> {
@@ -49,10 +53,11 @@ pub fn decode_withdraw_to_msg(data: &[u8]) -> std::result::Result<WithdrawTo, As
     };
 
     Ok(withdraw_to)
-       
 }
 
-pub fn decode_deposit_revert_msg(data: &[u8]) -> std::result::Result<DepositRevert, AssetManagerError> {
+pub fn decode_deposit_revert_msg(
+    data: &[u8],
+) -> std::result::Result<DepositRevert, AssetManagerError> {
     let rlp = Rlp::new(data);
     if !rlp.is_list() {
         return Err(DecoderError::RlpExpectedToBeList.into());

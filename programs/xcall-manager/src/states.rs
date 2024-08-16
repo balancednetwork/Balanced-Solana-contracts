@@ -4,28 +4,28 @@ use crate::errors::XCallManagerError;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-     #[account(init, payer = admin, seeds=["state".as_bytes()], bump, space = 8 + XmState::INIT_SPACE)]
-     pub state: Account<'info, XmState>,
-     #[account(mut)]
-     pub admin: Signer<'info>,
-     pub system_program: Program<'info, System>,
+    #[account(init, payer = admin, seeds=["state".as_bytes()], bump, space = 8 + XmState::INIT_SPACE)]
+    pub state: Account<'info, XmState>,
+    #[account(mut)]
+    pub admin: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[account]
 #[derive(InitSpace, Debug)]
 pub struct XmState {
-     pub admin: Pubkey,
-     pub xcall: Pubkey,
-     #[max_len(50)]
-     pub icon_governance: String,
-     #[max_len(5, 50)]
-     pub sources: Vec<String>,
-     #[max_len(5, 50)]
-     pub destinations: Vec<String>,
-     #[max_len(50, 50)]
-     pub whitelisted_actions: Vec<Vec<u8>>,
-     #[max_len(50)]
-     pub proposed_protocol_to_remove: String,
+    pub admin: Pubkey,
+    pub xcall: Pubkey,
+    #[max_len(50)]
+    pub icon_governance: String,
+    #[max_len(5, 50)]
+    pub sources: Vec<String>,
+    #[max_len(5, 50)]
+    pub destinations: Vec<String>,
+    #[max_len(5, 500)]
+    pub whitelisted_actions: Vec<Vec<u8>>,
+    #[max_len(50)]
+    pub proposed_protocol_to_remove: String,
 }
 
 #[derive(Accounts)]
@@ -51,7 +51,7 @@ pub struct HandleCallMessage<'info> {
     pub signer: Signer<'info>,
     #[account(owner=state.xcall @XCallManagerError::OnlyXcall)]
     pub xcall_singer: Signer<'info>,
-    
+
     #[account(mut)]
     pub state: Account<'info, XmState>,
 }
@@ -62,15 +62,15 @@ pub struct GetParams<'info> {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
-pub struct ParamAccountProps{
+pub struct ParamAccountProps {
     pub pubkey: Pubkey,
     pub is_writable: bool,
-    pub is_signer: bool
+    pub is_signer: bool,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
-pub struct ParamAccounts{
-    pub accounts: Vec<ParamAccountProps>
+pub struct ParamAccounts {
+    pub accounts: Vec<ParamAccountProps>,
 }
 
 impl ParamAccountProps {

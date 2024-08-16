@@ -1,9 +1,8 @@
 use rlp::{DecoderError, Rlp};
 
-use crate::{errors::XCallManagerError, configure_protocols::ConfigureProtocols};
+use crate::{configure_protocols::ConfigureProtocols, errors::XCallManagerError};
 
 pub const CONFIGURE_PROTOCOLS: &str = "ConfigureProtocols";
-
 
 pub fn decode_method(data: &[u8]) -> Result<String, XCallManagerError> {
     let rlp = Rlp::new(data);
@@ -27,7 +26,7 @@ pub fn decode_handle_call_msg(data: &[u8]) -> Result<ConfigureProtocols, XCallMa
     }
 
     Ok(ConfigureProtocols {
-            sources: rlp.list_at::<String>(1)?,
-            destinations: rlp.list_at::<String>(2)?,
-        })
+        sources: rlp.list_at::<String>(1)?,
+        destinations: rlp.list_at::<String>(2)?,
+    })
 }

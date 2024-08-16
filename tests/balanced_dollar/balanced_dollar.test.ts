@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Keypair, PublicKey, Connection } from "@solana/web3.js";
-import * as rlp from 'rlp';
+import * as rlp from "rlp";
 
 import { BalancedDollar } from "../../target/types/balanced_dollar";
 import { XcallManager } from "../../target/types/xcall_manager";
@@ -8,33 +8,42 @@ import { XcallManager } from "../../target/types/xcall_manager";
 import { TransactionHelper, sleep } from "../utils";
 import { TestContext, BalancedDollarPDA } from "./setup";
 const program: anchor.Program<BalancedDollar> = anchor.workspace.BalancedDollar;
-const xcall_manager_program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
+const xcall_manager_program: anchor.Program<XcallManager> =
+  anchor.workspace.XcallManager;
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 import {
-    createMint,
-    getOrCreateAssociatedTokenAccount,
-    Account,
-    TOKEN_PROGRAM_ID
+  createMint,
+  getOrCreateAssociatedTokenAccount,
+  Account,
+  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 const provider = anchor.AnchorProvider.env();
-  anchor.setProvider(provider);
+anchor.setProvider(provider);
 
 import { Xcall } from "../../types/xcall";
 import { CentralizedConnection } from "../../types/centralized_connection";
 import connectionIdlJson from "../../target/idl/centralized_connection.json";
 const connectionProgram: anchor.Program<CentralizedConnection> =
-new anchor.Program(connectionIdlJson as anchor.Idl, provider) as unknown as anchor.Program<CentralizedConnection> ;
+  new anchor.Program(
+    connectionIdlJson as anchor.Idl,
+    provider
+  ) as unknown as anchor.Program<CentralizedConnection>;
 import xcallIdlJson from "../../target/idl/xcall.json";
-const xcallProgram: anchor.Program<Xcall> = new anchor.Program(xcallIdlJson as anchor.Idl, provider) as unknown as anchor.Program<Xcall> ;
-  import {
-    CSMessage,
-    CSMessageRequest,
-    CSMessageType,
-    MessageType,
-  } from "../utils/types";
+const xcallProgram: anchor.Program<Xcall> = new anchor.Program(
+  xcallIdlJson as anchor.Idl,
+  provider
+) as unknown as anchor.Program<Xcall>;
+import {
+  CSMessage,
+  CSMessageRequest,
+  CSMessageType,
+  MessageType,
+} from "../utils/types";
 import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
-import { TestContext as ConnectionContext, ConnectionPDA } from "../xcall/centralized_connection/setup";
-
+import {
+  TestContext as ConnectionContext,
+  ConnectionPDA,
+} from "../xcall/centralized_connection/setup";
 
 describe("balanced dollar manager", () => {
   const provider = anchor.AnchorProvider.env();
@@ -45,8 +54,10 @@ describe("balanced dollar manager", () => {
   let txnHelpers = new TransactionHelper(connection, wallet.payer);
   let ctx = new TestContext(connection, txnHelpers, wallet.payer);
   let xcallCtx = new XcallContext(connection, txnHelpers, wallet.payer);
-  let connectionCtx =  new ConnectionContext(
-      connection, txnHelpers, wallet.payer
+  let connectionCtx = new ConnectionContext(
+    connection,
+    txnHelpers,
+    wallet.payer
   );
   const xcall_program: anchor.Program<Xcall> = anchor.workspace.Xcall;
   let iconBnUSD = "icon/hxcnjsdkdfgj";
@@ -58,34 +69,40 @@ describe("balanced dollar manager", () => {
 
   beforeAll(async () => {
     mint = await createMint(
-        provider.connection,
-        wallet.payer,
-        program_authority.pda,
-        null,
-        9
-      );
-      console.log("mint")
-      withdrawerTokenAccount = await getOrCreateAssociatedTokenAccount(
-        provider.connection,
-        wallet.payer,
-        mint,
-        withdrawerKeyPair.publicKey,
-        true
-      );
+      provider.connection,
+      wallet.payer,
+      program_authority.pda,
+      null,
+      9
+    );
+    console.log("mint");
+    withdrawerTokenAccount = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      mint,
+      withdrawerKeyPair.publicKey,
+      true
+    );
   });
 
   it("should initialize the state properly", async () => {
     await ctx.initialize(
-        xcallProgram.programId,
-        iconBnUSD,
-        xcall_manager_program.programId,
-        mint,
-        BalancedDollarPDA.xcall_manager_state().pda
+      xcallProgram.programId,
+      iconBnUSD,
+      xcall_manager_program.programId,
+      mint,
+      BalancedDollarPDA.xcall_manager_state().pda
     );
-    const stateAccount = await program.account.state.fetch(BalancedDollarPDA.state().pda);
-    expect(stateAccount.xcall.toString()).toBe(xcallProgram.programId.toString());
+    const stateAccount = await program.account.state.fetch(
+      BalancedDollarPDA.state().pda
+    );
+    expect(stateAccount.xcall.toString()).toBe(
+      xcallProgram.programId.toString()
+    );
     expect(stateAccount.iconBnUsd).toBe(iconBnUSD);
-    expect(stateAccount.xcallManager.toString()).toBe(xcall_manager_program.programId.toString());
+    expect(stateAccount.xcallManager.toString()).toBe(
+      xcall_manager_program.programId.toString()
+    );
     expect(stateAccount.bnUsdToken.toString()).toBe(mint.toString());
   });
 
@@ -99,7 +116,7 @@ describe("balanced dollar manager", () => {
   //   let bytes = Buffer.alloc(0);
   //   const data = ["xCrossTransfer", sender.publicKey.toString(), withdrawerKeyPair.publicKey.toString(), 20000000000,  bytes];
   //   const rlpEncodedData = rlp.encode(data);
-  
+
   //   let protocols = xcall_manager_program.account.xmState.fetch(BalancedDollarPDA.xcall_manager_state().pda);
   //   let program_authority = BalancedDollarPDA.program_authority();
   //   let handleCallMessageIx = await program.methods
@@ -118,7 +135,7 @@ describe("balanced dollar manager", () => {
   //   let tx = await ctx.txnHelpers.buildV0Txn([handleCallMessageIx], [ctx.admin]);
   //   let txHash = await ctx.connection.sendTransaction(tx);
   //   await txnHelpers.logParsedTx(txHash);
-    
+
   //   console.log("handle call message balanced dollar");
 
   //   // Fetch the token balance
@@ -128,7 +145,7 @@ describe("balanced dollar manager", () => {
   //   console.log("balanced of withdrawer: {}", balance);
   //   expect(balance).toBe("20000000000");
   //   await  sleep(3);
-    
+
   // });
 
   // it("Handle call message cross trasfer revert", async() => {
@@ -139,7 +156,7 @@ describe("balanced dollar manager", () => {
   //   const stateAccount = await program.account.state.fetch(BalancedDollarPDA.state().pda);
   //   const data = ["xCrossTransferRevert", withdrawerKeyPair.publicKey.toString(), 20000000000];
   //   const rlpEncodedData = rlp.encode(data);
-  
+
   //   let protocols = xcall_manager_program.account.xmState.fetch(BalancedDollarPDA.xcall_manager_state().pda);
   //   let program_authority = BalancedDollarPDA.program_authority();
   //   console.log("bnusd authority is: ", program_authority.pda);
@@ -159,7 +176,7 @@ describe("balanced dollar manager", () => {
   //   let tx = await ctx.txnHelpers.buildV0Txn([handleCallMessageIx], [ctx.admin]);
   //   let txHash = await ctx.connection.sendTransaction(tx);
   //   await txnHelpers.logParsedTx(txHash);
-    
+
   //   console.log("handle call message balanced dollar");
 
   //   // Fetch the token balance
@@ -169,9 +186,8 @@ describe("balanced dollar manager", () => {
   //   console.log("balanced of withdrawer: {}", balance);
   //   expect(balance).toBe("20000000000");
   //   await  sleep(3);
-    
-  // });
 
+  // });
 
   it("test handle call message complete flow with xcall", async () => {
     let xcallConfig = await xcallCtx.getConfig();
@@ -181,11 +197,19 @@ describe("balanced dollar manager", () => {
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
-    const stateAccount = await program.account.state.fetch(BalancedDollarPDA.state().pda);
+    const stateAccount = await program.account.state.fetch(
+      BalancedDollarPDA.state().pda
+    );
     let iconBnUsd = stateAccount.iconBnUsd;
     let bytes = Buffer.alloc(0);
     let sender = Keypair.generate();
-    const data = ["xCrossTransfer", sender.publicKey.toString(), "solana/"+withdrawerTokenAccount.address.toString(), 20000000000,  bytes];
+    const data = [
+      "xCrossTransfer",
+      sender.publicKey.toString(),
+      "solana/" + withdrawerTokenAccount.address.toString(),
+      20000000000,
+      bytes,
+    ];
     const rlpEncodedData = rlp.encode(data);
 
     let request = new CSMessageRequest(
@@ -263,11 +287,17 @@ describe("balanced dollar manager", () => {
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
-    const stateAccount = await program.account.state.fetch(BalancedDollarPDA.state().pda);
+    const stateAccount = await program.account.state.fetch(
+      BalancedDollarPDA.state().pda
+    );
     let iconBnUsd = stateAccount.iconBnUsd;
     let bytes = Buffer.alloc(0);
     let sender = Keypair.generate();
-    const data = ["xCrossTransferRevert", withdrawerTokenAccount.address.toString(), 20000000000];
+    const data = [
+      "xCrossTransferRevert",
+      withdrawerTokenAccount.address.toString(),
+      20000000000,
+    ];
     const rlpEncodedData = rlp.encode(data);
 
     let request = new CSMessageRequest(
@@ -337,15 +367,17 @@ describe("balanced dollar manager", () => {
       .rpc();
   });
 
-  it("cross transfer test", async() => {
-    const tokenAccountInfo = await connection.getTokenAccountBalance(withdrawerTokenAccount.address);
+  it("cross transfer test", async () => {
+    const tokenAccountInfo = await connection.getTokenAccountBalance(
+      withdrawerTokenAccount.address
+    );
     let { pda } = XcallPDA.config();
     let xcall_config = await xcall_program.account.config.fetch(pda);
     let balance = tokenAccountInfo.value.amount;
     console.log("balanced of withdrawer: {}", balance);
     expect(balance).toBe("20000000000");
     await txnHelpers.airdrop(withdrawerKeyPair.publicKey, 5000000000);
-    await  sleep(3);
+    await sleep(3);
     let bytes = Buffer.alloc(0);
     let crossTransferTx = await program.methods
       .crossTransfer("", new anchor.BN(1000000000), bytes)
@@ -360,14 +392,15 @@ describe("balanced dollar manager", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SYSTEM_PROGRAM_ID,
         xcallAuthority: BalancedDollarPDA.xcall_authority().pda,
-      }).remainingAccounts([
+      })
+      .remainingAccounts([
         {
           pubkey: XcallPDA.config().pda,
           isSigner: false,
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber()+1).pda,
+          pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber() + 1).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -396,16 +429,21 @@ describe("balanced dollar manager", () => {
           pubkey: ConnectionPDA.network_fee("icon").pda,
           isSigner: false,
           isWritable: true,
-        }
-      ]).instruction();
-      let tx = await ctx.txnHelpers.buildV0Txn([crossTransferTx], [withdrawerKeyPair]);
-      let txHash = await ctx.connection.sendTransaction(tx);
-      await txnHelpers.logParsedTx(txHash);
+        },
+      ])
+      .instruction();
+    let tx = await ctx.txnHelpers.buildV0Txn(
+      [crossTransferTx],
+      [withdrawerKeyPair]
+    );
+    let txHash = await ctx.connection.sendTransaction(tx);
+    await txnHelpers.logParsedTx(txHash);
 
-    const updatedTokenAccountInfo = await connection.getTokenAccountBalance(withdrawerTokenAccount.address);
+    const updatedTokenAccountInfo = await connection.getTokenAccountBalance(
+      withdrawerTokenAccount.address
+    );
     let updatedBalance = updatedTokenAccountInfo.value.amount;
     console.log("balanced of withdrawer: {}", updatedBalance);
-    expect(updatedBalance).toBe((20000000000-1000000000)+"");
+    expect(updatedBalance).toBe(20000000000 - 1000000000 + "");
   });
-  
 });

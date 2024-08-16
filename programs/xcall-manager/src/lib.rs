@@ -1,18 +1,24 @@
+pub mod configure_protocols;
 pub mod errors;
+pub mod helpers;
 pub mod instructions;
 pub mod states;
-pub mod helpers;
-pub mod configure_protocols;
 use anchor_lang::prelude::*;
 pub use states::*;
 use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
-declare_id!("7vfrBqZFbvfKCqVC3v7dEh8V6RV9afRu1ySuLLauCMTL");
+declare_id!("EEtvdnChxMfrd2wFouin5UToTcwrrshHuCzkSECKxd3p");
 
 #[program]
 pub mod xcall_manager {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, xcall: Pubkey, icon_governance: String, sources: Vec<String>, destinations: Vec<String>) -> Result<()> {
+    pub fn initialize(
+        ctx: Context<Initialize>,
+        xcall: Pubkey,
+        icon_governance: String,
+        sources: Vec<String>,
+        destinations: Vec<String>,
+    ) -> Result<()> {
         instructions::initialize(ctx, xcall, icon_governance, sources, destinations)
     }
 
@@ -31,11 +37,18 @@ pub mod xcall_manager {
     pub fn set_admin(ctx: Context<AdminAction>, new_admin: Pubkey) -> Result<()> {
         instructions::set_admin(ctx, new_admin)
     }
-    pub fn set_protocols(ctx: Context<AdminAction>, sources: Vec<String>, destinations: Vec<String>) -> Result<()> {
+    pub fn set_protocols(
+        ctx: Context<AdminAction>,
+        sources: Vec<String>,
+        destinations: Vec<String>,
+    ) -> Result<()> {
         instructions::set_protocols(ctx, sources, destinations)
     }
 
-    pub fn verify_protocols<'info>(ctx: Context<'_, '_, '_, 'info, VerifyProtocols<'info>>, protocols: Vec<String>) -> Result<bool> {
+    pub fn verify_protocols<'info>(
+        ctx: Context<'_, '_, '_, 'info, VerifyProtocols<'info>>,
+        protocols: Vec<String>,
+    ) -> Result<bool> {
         instructions::verify_protocols(ctx, &protocols)
     }
 
@@ -48,10 +61,12 @@ pub mod xcall_manager {
         instructions::handle_call_message(ctx, from, data, protocols)
     }
 
-    pub fn query_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, _from: String,
+    pub fn query_handle_call_message_accounts<'info>(
+        ctx: Context<'_, '_, '_, 'info, GetParams<'info>>,
+        _from: String,
         _data: Vec<u8>,
-        _protocols: Vec<String>
-    ) -> Result<ParamAccounts>{
-        return instructions:: get_handle_call_message_accounts(ctx);
+        _protocols: Vec<String>,
+    ) -> Result<ParamAccounts> {
+        return instructions::get_handle_call_message_accounts(ctx);
     }
 }

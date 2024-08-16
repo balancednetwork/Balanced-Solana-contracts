@@ -32,5 +32,4 @@ export const uint128ToArray = (num: any) => {
   return new Uint8Array(buffer);
 };
 
-
 export * from "./transaction_helper";

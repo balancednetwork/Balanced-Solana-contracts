@@ -1,4 +1,3 @@
-
 use anchor_lang::prelude::*;
 use rlp::{Encodable, RlpStream};
 
@@ -25,12 +24,7 @@ impl Encodable for CrossTransferMsg {
 }
 
 impl CrossTransferMsg {
-    pub fn create(
-        from: String,
-        to: String,
-        value: u64,
-        data: Vec<u8>,
-    ) -> Self {
+    pub fn create(from: String, to: String, value: u64, data: Vec<u8>) -> Self {
         Self {
             from,
             to,

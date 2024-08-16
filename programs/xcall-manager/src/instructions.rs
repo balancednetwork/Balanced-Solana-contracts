@@ -1,12 +1,17 @@
-use anchor_lang::prelude::*;
-use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 use crate::configure_protocols::CONFIGURE_PROTOCOLS;
+use crate::errors::*;
 use crate::helpers::{decode_handle_call_msg, decode_method};
 use crate::states::*;
-use crate::errors::*;
+use anchor_lang::prelude::*;
+use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 
-
-pub fn initialize(ctx: Context<Initialize>, xcall: Pubkey, icon_governance: String, sources: Vec<String>, destinations: Vec<String>) -> Result<()> {
+pub fn initialize(
+    ctx: Context<Initialize>,
+    xcall: Pubkey,
+    icon_governance: String,
+    sources: Vec<String>,
+    destinations: Vec<String>,
+) -> Result<()> {
     let state = &mut ctx.accounts.state;
     state.xcall = xcall;
     state.icon_governance = icon_governance;
@@ -37,17 +42,23 @@ pub fn propose_removal(ctx: Context<AdminAction>, protocol: String) -> Result<()
 pub fn set_admin(ctx: Context<AdminAction>, new_admin: Pubkey) -> Result<()> {
     let xcall_manager = &mut ctx.accounts.state;
     require_keys_eq!(
-        ctx.accounts.admin.key(),xcall_manager.admin,
+        ctx.accounts.admin.key(),
+        xcall_manager.admin,
         XCallManagerError::Unauthorized
     );
     xcall_manager.admin = new_admin;
     Ok(())
 }
 
-pub fn set_protocols(ctx: Context<AdminAction>, sources: Vec<String>, destinations: Vec<String>) -> Result<()> {
+pub fn set_protocols(
+    ctx: Context<AdminAction>,
+    sources: Vec<String>,
+    destinations: Vec<String>,
+) -> Result<()> {
     let xcall_manager = &mut ctx.accounts.state;
     require_keys_eq!(
-        ctx.accounts.admin.key(),xcall_manager.admin,
+        ctx.accounts.admin.key(),
+        xcall_manager.admin,
         XCallManagerError::Unauthorized
     );
     xcall_manager.sources = sources;
@@ -55,15 +66,24 @@ pub fn set_protocols(ctx: Context<AdminAction>, sources: Vec<String>, destinatio
     Ok(())
 }
 
-pub fn verify_protocols(
-    ctx: Context<VerifyProtocols>, protocols: &Vec<String>
- )-> Result<bool> {
-    let verified = verify_protocol_recovery(ctx.accounts.state.proposed_protocol_to_remove.clone(), &ctx.accounts.state.sources, protocols)?;
-     Ok(verified)
- }
+pub fn verify_protocols(ctx: Context<VerifyProtocols>, protocols: &Vec<String>) -> Result<bool> {
+    let verified = verify_protocol_recovery(
+        ctx.accounts.state.proposed_protocol_to_remove.clone(),
+        &ctx.accounts.state.sources,
+        protocols,
+    )?;
+    Ok(verified)
+}
 
-fn verify_protocol_recovery(proposal_to_remove: String, sources: &Vec<String>, protocols: &Vec<String>) -> Result<bool> {
-    require!(proposal_to_remove != "".to_string(), XCallManagerError::NoProposalForRemovalExists);
+fn verify_protocol_recovery(
+    proposal_to_remove: String,
+    sources: &Vec<String>,
+    protocols: &Vec<String>,
+) -> Result<bool> {
+    require!(
+        proposal_to_remove != "".to_string(),
+        XCallManagerError::NoProposalForRemovalExists
+    );
     let mut modified_sources = Vec::new();
     for source in sources {
         let non_ref_source = source.clone();
@@ -71,7 +91,10 @@ fn verify_protocol_recovery(proposal_to_remove: String, sources: &Vec<String>, p
             modified_sources.push(non_ref_source);
         }
     }
-    require!(verify_protocols_unordered(&modified_sources, &protocols), XCallManagerError::ProtocolMismatch);
+    require!(
+        verify_protocols_unordered(&modified_sources, &protocols),
+        XCallManagerError::ProtocolMismatch
+    );
     Ok(true)
 }
 
@@ -103,52 +126,58 @@ pub fn handle_call_message<'info>(
 ) -> Result<HandleCallMessageResponse> {
     let mut state = ctx.accounts.state.clone();
 
-    if from != ctx.accounts.state.icon_governance  {
+    if from != ctx.accounts.state.icon_governance {
         return Ok(HandleCallMessageResponse {
             success: false,
-            message: XCallManagerError::NotTheIconGovernance.to_string()
+            message: XCallManagerError::NotTheIconGovernance.to_string(),
         });
     }
 
     if !state.whitelisted_actions.contains(&data) {
         return Ok(HandleCallMessageResponse {
             success: false,
-            message: XCallManagerError::ActionNotWhitelisted.to_string()
+            message: XCallManagerError::ActionNotWhitelisted.to_string(),
         });
     }
     state.whitelisted_actions.retain(|a| a != &data);
 
-    let verified: bool = verify_protocol_recovery(ctx.accounts.state.proposed_protocol_to_remove.clone(), &ctx.accounts.state.sources, &protocols)?;
+    let verified: bool = verify_protocol_recovery(
+        ctx.accounts.state.proposed_protocol_to_remove.clone(),
+        &ctx.accounts.state.sources,
+        &protocols,
+    )?;
     if !verified {
         return Ok(HandleCallMessageResponse {
             success: false,
-            message: XCallManagerError::ProtocolMismatch.to_string()
+            message: XCallManagerError::ProtocolMismatch.to_string(),
         });
     }
 
     let method = decode_method(&data)?;
     let message = decode_handle_call_msg(&data)?;
     if method == CONFIGURE_PROTOCOLS {
-        require!(from == ctx.accounts.state.icon_governance, XCallManagerError::InvalidSender);
+        require!(
+            from == ctx.accounts.state.icon_governance,
+            XCallManagerError::InvalidSender
+        );
         state.sources = message.sources;
         state.destinations = message.destinations;
         return Ok(HandleCallMessageResponse {
             success: true,
-            message: "Success".to_owned()
+            message: "Success".to_owned(),
         });
     } else {
         return Ok(HandleCallMessageResponse {
             success: false,
-            message: XCallManagerError::UnknownMessageType.to_string()
+            message: XCallManagerError::UnknownMessageType.to_string(),
         });
     }
 }
 
-pub fn get_handle_call_message_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>) -> Result<ParamAccounts>{
-    let  accounts: Vec<ParamAccountProps>  = vec![
-        ParamAccountProps::new(ctx.accounts.state.key(), false),
-    ];
-    Ok(ParamAccounts{
-        accounts,
-    })
+pub fn get_handle_call_message_accounts<'info>(
+    ctx: Context<'_, '_, '_, 'info, GetParams<'info>>,
+) -> Result<ParamAccounts> {
+    let accounts: Vec<ParamAccountProps> =
+        vec![ParamAccountProps::new(ctx.accounts.state.key(), false)];
+    Ok(ParamAccounts { accounts })
 }

@@ -24,7 +24,7 @@ pub enum AssetManagerError {
     #[msg["Token not configured"]]
     TokenNotConfigured,
     #[msg["Xcall manager required"]]
-    XcallManagerRequired, 
+    XcallManagerRequired,
     #[msg["Not the icon asset manager"]]
     NotIconAssetManager,
     #[msg["Protocol Mismatch"]]
@@ -54,7 +54,7 @@ pub enum AssetManagerError {
     #[msg["Only Xcall"]]
     OnlyXcall,
     #[msg["Invalid Program"]]
-    InvalidProgram
+    InvalidProgram,
 }
 
 impl From<DecoderError> for AssetManagerError {

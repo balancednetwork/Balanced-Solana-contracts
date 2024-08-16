@@ -1,9 +1,12 @@
-use anchor_lang::prelude::*;
 use crate::states::*;
+use anchor_lang::prelude::*;
 use anchor_spl::token::ID as TOKEN_PROGRAM_ID;
 
-pub fn get_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, to: Pubkey) -> Result<Vec<ParamAccountProps>> {
-    let  accounts: Vec<ParamAccountProps>  = vec![
+pub fn get_accounts<'info>(
+    ctx: Context<'_, '_, '_, 'info, GetParams<'info>>,
+    to: Pubkey,
+) -> Result<Vec<ParamAccountProps>> {
+    let accounts: Vec<ParamAccountProps> = vec![
         //ParamAccountProps::new(sysvar::instructions::id(), false),
         ParamAccountProps::new(ctx.accounts.state.key(), false),
         ParamAccountProps::new(to, false),
@@ -17,7 +20,9 @@ pub fn get_accounts<'info>(ctx: Context<'_, '_, '_, 'info, GetParams<'info>>, to
     Ok(accounts)
 }
 
-pub fn mint_authority<'info>(ctx: &Context<'_, '_, '_, 'info, GetParams<'info>>) -> Result<(Pubkey, u8)> {
+pub fn mint_authority<'info>(
+    ctx: &Context<'_, '_, '_, 'info, GetParams<'info>>,
+) -> Result<(Pubkey, u8)> {
     let seeds: &[&[u8]] = &[b"bnusd_authority"];
     let (pda, bump) = Pubkey::find_program_address(seeds, ctx.program_id);
     Ok((pda, bump))

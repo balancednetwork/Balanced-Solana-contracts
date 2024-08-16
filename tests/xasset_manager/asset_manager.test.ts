@@ -5,39 +5,46 @@ import { TransactionHelper, sleep } from "../utils";
 import { TestContext, AssetManagerPDA } from "./setup";
 import { TestContext as xCallManagerContext } from "../axcall_manager/setup";
 
-
 import { AssetManager } from "../../target/types/asset_manager";
 import { XcallManager } from "../../target/types/xcall_manager";
-import * as rlp from 'rlp';
+import * as rlp from "rlp";
 
 import {
   TOKEN_PROGRAM_ID,
   createMint,
   mintTo,
   getOrCreateAssociatedTokenAccount,
-  Account
+  Account,
 } from "@solana/spl-token";
 import { BN, min } from "bn.js";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 const provider = anchor.AnchorProvider.env();
-  anchor.setProvider(provider);
+anchor.setProvider(provider);
 
 import { Xcall } from "../../types/xcall";
 import { CentralizedConnection } from "../../types/centralized_connection";
 import connectionIdlJson from "../../target/idl/centralized_connection.json";
 const connectionProgram: anchor.Program<CentralizedConnection> =
-new anchor.Program(connectionIdlJson as anchor.Idl, provider) as unknown as anchor.Program<CentralizedConnection> ;
+  new anchor.Program(
+    connectionIdlJson as anchor.Idl,
+    provider
+  ) as unknown as anchor.Program<CentralizedConnection>;
 import xcallIdlJson from "../../target/idl/xcall.json";
-const xcallProgram: anchor.Program<Xcall> = new anchor.Program(xcallIdlJson as anchor.Idl, provider) as unknown as anchor.Program<Xcall> ;
-  import {
-    CSMessage,
-    CSMessageRequest,
-    CSMessageType,
-    MessageType,
-  } from "../utils/types";
+const xcallProgram: anchor.Program<Xcall> = new anchor.Program(
+  xcallIdlJson as anchor.Idl,
+  provider
+) as unknown as anchor.Program<Xcall>;
+import {
+  CSMessage,
+  CSMessageRequest,
+  CSMessageType,
+  MessageType,
+} from "../utils/types";
 import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
-import { TestContext as ConnectionContext, ConnectionPDA } from "../xcall/centralized_connection/setup";
-
+import {
+  TestContext as ConnectionContext,
+  ConnectionPDA,
+} from "../xcall/centralized_connection/setup";
 
 describe("xx asset manager test", () => {
   const provider = anchor.AnchorProvider.env();
@@ -45,15 +52,22 @@ describe("xx asset manager test", () => {
   const connection = provider.connection; // new Connection("http://127.0.0.1:8899", "confirmed");
   const wallet = provider.wallet as anchor.Wallet;
   const program: anchor.Program<AssetManager> = anchor.workspace.AssetManager;
-  const xcall_manager_program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
+  const xcall_manager_program: anchor.Program<XcallManager> =
+    anchor.workspace.XcallManager;
   const xcall_program: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
   let txnHelpers = new TransactionHelper(connection, wallet.payer);
   let ctx = new TestContext(connection, txnHelpers, wallet.payer);
-  let xcallManagerCtx = new xCallManagerContext(connection, txnHelpers, wallet.payer);
+  let xcallManagerCtx = new xCallManagerContext(
+    connection,
+    txnHelpers,
+    wallet.payer
+  );
   let xcallCtx = new XcallContext(connection, txnHelpers, wallet.payer);
-  let connectionCtx =  new ConnectionContext(
-      connection, txnHelpers, wallet.payer
+  let connectionCtx = new ConnectionContext(
+    connection,
+    txnHelpers,
+    wallet.payer
   );
   let iconAssetManager = "icon/hxcnjsdkdfgjdjuf";
 
@@ -83,20 +97,28 @@ describe("xx asset manager test", () => {
 
   it("should initialize the state properly", async () => {
     await ctx.initialize(
-      xcall_program.programId,//xcallKeyPair.publicKey,
+      xcall_program.programId, //xcallKeyPair.publicKey,
       iconAssetManager,
       xcall_manager_program.programId,
       AssetManagerPDA.xcall_manager_state().pda
     );
-    const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
-    expect(stateAccount.xcall.toString()).toBe(xcall_program.programId.toString());
+    const stateAccount = await program.account.state.fetch(
+      AssetManagerPDA.state().pda
+    );
+    expect(stateAccount.xcall.toString()).toBe(
+      xcall_program.programId.toString()
+    );
     expect(stateAccount.iconAssetManager).toBe(iconAssetManager);
-    expect(stateAccount.xcallManager.toString()).toBe(xcall_manager_program.programId.toString());
-    expect(stateAccount.admin.toString()).toBe( wallet.payer.publicKey.toString());
+    expect(stateAccount.xcallManager.toString()).toBe(
+      xcall_manager_program.programId.toString()
+    );
+    expect(stateAccount.admin.toString()).toBe(
+      wallet.payer.publicKey.toString()
+    );
   });
 
-  it("configure rate limit test", async() => {
-      let configureIx = await program.methods
+  it("configure rate limit test", async () => {
+    let configureIx = await program.methods
       .configureRateLimit(mint, bn(300), bn(900))
       .accountsStrict({
         admin: ctx.admin.publicKey,
@@ -104,29 +126,29 @@ describe("xx asset manager test", () => {
         tokenState: AssetManagerPDA.token_state(mint).pda,
         vaultTokenAccount: vaultTokenAccount.address,
         mint: mint,
-        systemProgram: SYSTEM_PROGRAM_ID
-      }).instruction();
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .instruction();
     let tx = await ctx.txnHelpers.buildV0Txn([configureIx], [ctx.admin]);
     await ctx.connection.sendTransaction(tx);
 
-
-    await  sleep(3);
+    await sleep(3);
     console.log("rate limit configured");
   });
 
-  async function setUpXcallManager(){
+  async function setUpXcallManager() {
     let source1 = Keypair.generate();
     let source2 = Keypair.generate();
     await xcallManagerCtx.initialize(
-        xcallKeyPair.publicKey,
-        "icon/hxcnjsd",
-        [source1.publicKey.toString(), source2.publicKey.toString()],
-        ["icon/cxjkefnskdjfe", "icon/cxjdkfndjwk"]
+      xcallKeyPair.publicKey,
+      "icon/hxcnjsd",
+      [source1.publicKey.toString(), source2.publicKey.toString()],
+      ["icon/cxjkefnskdjfe", "icon/cxjdkfndjwk"]
     );
     await sleep(3);
   }
 
-  it("deposit token", async() => {
+  it("deposit token", async () => {
     let { pda } = XcallPDA.config();
     let xcall_config = await xcall_program.account.config.fetch(pda);
     let depositorKeyPair = Keypair.generate();
@@ -137,7 +159,7 @@ describe("xx asset manager test", () => {
       depositorKeyPair.publicKey,
       true
     );
-    await  sleep(3);
+    await sleep(3);
 
     await mintTo(
       provider.connection,
@@ -150,14 +172,18 @@ describe("xx asset manager test", () => {
       null,
       TOKEN_PROGRAM_ID
     );
-    await  sleep(3);
+    await sleep(3);
 
     //console.log("xcall program id is: ", xcall_program.programId)
     await txnHelpers.airdrop(depositorKeyPair.publicKey, 5000000000);
-    await  sleep(3);
+    await sleep(3);
     let bytes = Buffer.alloc(0);
     let depositTokenIx = await program.methods
-      .depositToken(bn(1000000000), depositorTokenAccount.address.toString(), bytes)
+      .depositToken(
+        bn(1000000000),
+        depositorTokenAccount.address.toString(),
+        bytes
+      )
       .accountsStrict({
         from: depositorTokenAccount.address,
         vaultNativeAccount: null,
@@ -171,14 +197,15 @@ describe("xx asset manager test", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SYSTEM_PROGRAM_ID,
         xcallAuthority: AssetManagerPDA.xcall_authority().pda,
-      }).remainingAccounts([
+      })
+      .remainingAccounts([
         {
           pubkey: XcallPDA.config().pda,
           isSigner: false,
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber()+1).pda,
+          pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber() + 1).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -207,36 +234,45 @@ describe("xx asset manager test", () => {
           pubkey: ConnectionPDA.network_fee("icon").pda,
           isSigner: false,
           isWritable: true,
-        }
-      ]).instruction();
-      const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({ 
-        units: 1000000 
-      });
-      
-      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({ 
-        microLamports: 0
-      });
-      let tx = await ctx.txnHelpers.buildV0Txn([modifyComputeUnits, addPriorityFee, depositTokenIx], [depositorKeyPair]);
-      let txHash = await ctx.connection.sendTransaction(tx);
-      await txnHelpers.logParsedTx(txHash);
-   
+        },
+      ])
+      .instruction();
+    const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 1000000,
+    });
+
+    const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+      microLamports: 0,
+    });
+    let tx = await ctx.txnHelpers.buildV0Txn(
+      [modifyComputeUnits, addPriorityFee, depositTokenIx],
+      [depositorKeyPair]
+    );
+    let txHash = await ctx.connection.sendTransaction(tx);
+    await txnHelpers.logParsedTx(txHash);
+
     console.log("deposited");
   });
 
-  it("deposit native token", async() => {
+  it("deposit native token", async () => {
     let { pda } = XcallPDA.config();
     let xcall_config = await xcall_program.account.config.fetch(pda);
     let nativeDepositor = Keypair.generate();
     await txnHelpers.airdrop(nativeDepositor.publicKey, 5000000000);
     // Check the balance to ensure it has been funded
-    const initialBalance = await provider.connection.getBalance(nativeDepositor.publicKey);
+    const initialBalance = await provider.connection.getBalance(
+      nativeDepositor.publicKey
+    );
     expect(initialBalance > 0).toBe(true);
-    
-    await  sleep(3);
+
+    await sleep(3);
     let bytes = Buffer.alloc(0);
-    let depositTokenIx = 
-    await program.methods
-      .depositNative(bn(1000000000), nativeDepositor.publicKey.toString(), bytes)
+    let depositTokenIx = await program.methods
+      .depositNative(
+        bn(1000000000),
+        nativeDepositor.publicKey.toString(),
+        bytes
+      )
       .accountsStrict({
         from: null,
         fromAuthority: nativeDepositor.publicKey,
@@ -250,14 +286,15 @@ describe("xx asset manager test", () => {
         tokenProgram: null,
         systemProgram: SYSTEM_PROGRAM_ID,
         xcallAuthority: AssetManagerPDA.xcall_authority().pda,
-      }).remainingAccounts([
+      })
+      .remainingAccounts([
         {
           pubkey: XcallPDA.config().pda,
           isSigner: false,
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber()+1).pda,
+          pubkey: XcallPDA.rollback(xcall_config.sequenceNo.toNumber() + 1).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -287,13 +324,17 @@ describe("xx asset manager test", () => {
           isSigner: false,
           isWritable: true,
         },
-      ]).instruction();
-    let tx = await ctx.txnHelpers.buildV0Txn([depositTokenIx], [nativeDepositor]);
+      ])
+      .instruction();
+    let tx = await ctx.txnHelpers.buildV0Txn(
+      [depositTokenIx],
+      [nativeDepositor]
+    );
     await ctx.connection.sendTransaction(tx);
     console.log("native deposited");
-});
+  });
 
-  function bn(number: number){
+  function bn(number: number) {
     return new BN(number);
   }
 
@@ -324,7 +365,7 @@ describe("xx asset manager test", () => {
   //   let iconAssetManager = stateAccount.iconAssetManager;
   //   const data = ["WithdrawTo", mint.toString(), withdrawerTokenAccount.address.toString(), 1000000000];
   //   const rlpEncodedData = rlp.encode(data);
-  
+
   //   let protocols = xcall_manager_program.account.xmState.fetch(AssetManagerPDA.xcall_manager_state().pda);
   //   let configureIx = await program.methods
   //   .handleCallMessage(iconAssetManager, Buffer.from(rlpEncodedData), (await protocols).sources )
@@ -378,7 +419,7 @@ describe("xx asset manager test", () => {
   //   let iconAssetManager = stateAccount.iconAssetManager;
   //   const data = ["DepositRevert", mint.toString(), withdrawerTokenAccount.address.toString(), 1000000000];
   //   const rlpEncodedData = rlp.encode(data);
-  
+
   //   let protocols = xcall_manager_program.account.xmState.fetch(AssetManagerPDA.xcall_manager_state().pda);
   //   let configureIx = await program.methods
   //   .handleCallMessage(xcall_program.programId.toString(), Buffer.from(rlpEncodedData), (await protocols).sources )
@@ -453,7 +494,7 @@ describe("xx asset manager test", () => {
   //   // let iconAssetManager = stateAccount.iconAssetManager;
   //   const data = ["DepositRevert", "11111111111111111111111111111111", withdrawerKeyPair.publicKey.toString(), 1000000000];
   //   const rlpEncodedData = rlp.encode(data);
-  
+
   //   let protocols = xcall_manager_program.account.xmState.fetch(AssetManagerPDA.xcall_manager_state().pda);
   //   let configureIx = await program.methods
   //   .handleCallMessage(xcall_program.programId.toString(), Buffer.from(rlpEncodedData), (await protocols).sources )
@@ -476,10 +517,8 @@ describe("xx asset manager test", () => {
   //   await ctx.connection.sendTransaction(tx);
   //   console.log("handle call message asset manager native");
   //   await  sleep(3);
-    
-  // });
 
-  
+  // });
 
   it("test handle call message complete flow with xcall", async () => {
     let xcallConfig = await xcallCtx.getConfig();
@@ -499,9 +538,14 @@ describe("xx asset manager test", () => {
       true
     );
     let sender = Keypair.generate();
-    const data = ["WithdrawTo", mint.toString(), withdrawerTokenAccount.address.toString(), 1000000000];
+    const data = [
+      "WithdrawTo",
+      mint.toString(),
+      withdrawerTokenAccount.address.toString(),
+      1000000000,
+    ];
     const rlpEncodedData = rlp.encode(data);
-    console.log("data encoded")
+    console.log("data encoded");
 
     let request = new CSMessageRequest(
       iconAssetManager,
@@ -589,9 +633,14 @@ describe("xx asset manager test", () => {
       true
     );
     let sender = Keypair.generate();
-    const data = ["DepositRevert", mint.toString(), withdrawerTokenAccount.address.toString(), 1000000000];
+    const data = [
+      "DepositRevert",
+      mint.toString(),
+      withdrawerTokenAccount.address.toString(),
+      1000000000,
+    ];
     const rlpEncodedData = rlp.encode(data);
-    console.log("data encoded")
+    console.log("data encoded");
 
     let request = new CSMessageRequest(
       iconAssetManager,
@@ -671,8 +720,13 @@ describe("xx asset manager test", () => {
 
     //const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
     let withdrawerKeyPair = Keypair.generate();
-    
-    const data = ["WithdrawNativeTo", "11111111111111111111111111111111", withdrawerKeyPair.publicKey.toString(), 1000000000];
+
+    const data = [
+      "WithdrawNativeTo",
+      "11111111111111111111111111111111",
+      withdrawerKeyPair.publicKey.toString(),
+      1000000000,
+    ];
     const rlpEncodedData = rlp.encode(data);
     console.log("encoded for native");
     let request = new CSMessageRequest(
@@ -753,8 +807,13 @@ describe("xx asset manager test", () => {
 
     //const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
     let withdrawerKeyPair = Keypair.generate();
-    
-    const data = ["DepositRevert", "11111111111111111111111111111111", withdrawerKeyPair.publicKey.toString(), 1000000000];
+
+    const data = [
+      "DepositRevert",
+      "11111111111111111111111111111111",
+      withdrawerKeyPair.publicKey.toString(),
+      1000000000,
+    ];
     const rlpEncodedData = rlp.encode(data);
     console.log("encoded for native");
     let request = new CSMessageRequest(
@@ -824,19 +883,17 @@ describe("xx asset manager test", () => {
       .signers([ctx.admin])
       .rpc();
   });
-  
 
   // it("test account list", async () => {
   //   let to = Keypair.generate();
   //   const data = ["WithdrawTo", mint.toString(), to.publicKey.toString(), 1000000000];
   //   const rlpEncodedData = rlp.encode(data);
-    
+
   //   let accounts = await program.methods
   //     .queryHandleCallMessageAccounts("", Buffer.from(rlpEncodedData), [])
   //     .accounts({
   //       state: AssetManagerPDA.state().pda,
   //     }).view();
-      
+
   // });
-  
 });
