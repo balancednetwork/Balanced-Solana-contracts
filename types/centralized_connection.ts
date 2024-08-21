@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/centralized_connection.json`.
  */
 export type CentralizedConnection = {
-  "address": "4vfkXyxMxptmREF3RaFKUwnPRuqsXJJeUFzpCjPSSVMb",
+  "address": "337ToYrue4zSSyS3Th3DDS6qHvFRG6JA7Zkx2zJxLXAS",
   "metadata": {
     "name": "centralizedConnection",
     "version": "0.1.0",
@@ -108,6 +108,10 @@ export type CentralizedConnection = {
           "docs": [
             "config"
           ],
+          "writable": true
+        },
+        {
+          "name": "authority",
           "writable": true
         }
       ],
@@ -227,8 +231,16 @@ export type CentralizedConnection = {
       ],
       "args": [
         {
-          "name": "dstNetwork",
+          "name": "to",
           "type": "string"
+        },
+        {
+          "name": "sn",
+          "type": "i64"
+        },
+        {
+          "name": "msg",
+          "type": "bytes"
         }
       ],
       "returns": {
@@ -268,6 +280,9 @@ export type CentralizedConnection = {
         {
           "name": "receipt",
           "writable": true
+        },
+        {
+          "name": "authority"
         }
       ],
       "args": [
@@ -316,6 +331,9 @@ export type CentralizedConnection = {
             "config"
           ],
           "writable": true
+        },
+        {
+          "name": "authority"
         }
       ],
       "args": [
@@ -469,6 +487,19 @@ export type CentralizedConnection = {
   ],
   "accounts": [
     {
+      "name": "authority",
+      "discriminator": [
+        36,
+        108,
+        254,
+        18,
+        167,
+        144,
+        27,
+        36
+      ]
+    },
+    {
       "name": "config",
       "discriminator": [
         155,
@@ -552,6 +583,18 @@ export type CentralizedConnection = {
           {
             "name": "isSigner",
             "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "authority",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }

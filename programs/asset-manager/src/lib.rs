@@ -9,7 +9,7 @@ use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 
 use states::*;
 
-declare_id!("8tJx9uFHvK33etttKFi8XWHEKMo3q3K6UdSWLTTKnUvX");
+declare_id!("afx4C1hQjFdw7q1esUEceZiKNGdSHaudUTRAbc3HQJw");
 
 #[program]
 pub mod asset_manager {

@@ -1,5 +1,5 @@
 {
-  "address": "4vfkXyxMxptmREF3RaFKUwnPRuqsXJJeUFzpCjPSSVMb",
+  "address": "337ToYrue4zSSyS3Th3DDS6qHvFRG6JA7Zkx2zJxLXAS",
   "metadata": {
     "name": "centralized_connection",
     "version": "0.1.0",
@@ -102,6 +102,10 @@
           "docs": [
             "Config"
           ],
+          "writable": true
+        },
+        {
+          "name": "authority",
           "writable": true
         }
       ],
@@ -221,8 +225,16 @@
       ],
       "args": [
         {
-          "name": "dst_network",
+          "name": "to",
           "type": "string"
+        },
+        {
+          "name": "sn",
+          "type": "i64"
+        },
+        {
+          "name": "msg",
+          "type": "bytes"
         }
       ],
       "returns": {
@@ -262,6 +274,9 @@
         {
           "name": "receipt",
           "writable": true
+        },
+        {
+          "name": "authority"
         }
       ],
       "args": [
@@ -310,6 +325,9 @@
             "Config"
           ],
           "writable": true
+        },
+        {
+          "name": "authority"
         }
       ],
       "args": [
@@ -463,6 +481,19 @@
   ],
   "accounts": [
     {
+      "name": "Authority",
+      "discriminator": [
+        36,
+        108,
+        254,
+        18,
+        167,
+        144,
+        27,
+        36
+      ]
+    },
+    {
       "name": "Config",
       "discriminator": [
         155,
@@ -546,6 +577,18 @@
           {
             "name": "is_signer",
             "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Authority",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }

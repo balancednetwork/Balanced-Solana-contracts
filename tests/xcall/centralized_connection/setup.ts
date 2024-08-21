@@ -57,6 +57,7 @@ export class TestContext {
           signer: this.signer.publicKey,
           systemProgram: SYSTEM_PROGRAM_ID,
           config: ConnectionPDA.config().pda,
+          authority: ConnectionPDA.authority().pda
         })
         .rpc();
       console.log("cc initialized");
@@ -187,5 +188,14 @@ export class ConnectionPDA {
     );
 
     return { pda, bump };
+  }
+
+  static authority() {
+    let [pda, bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("connection_authority")],
+      connectionProgram.programId
+    );
+
+    return { bump, pda };
   }
 }

@@ -15,6 +15,24 @@ export type Xcall = {
   "instructions": [
     {
       "name": "decodeCsMessage",
+      "docs": [
+        "Instruction: Decode CS Message",
+        "",
+        "Decodes a cross-chain message into its constituent parts.",
+        "",
+        "This function takes a serialized cross-chain message (`CSMessage`) and decodes it into",
+        "a structured format (`CSMessageDecoded`). Depending on the message type, it will decode",
+        "the message as either a `CSMessageRequest` or `CSMessageResult`. The decoded message",
+        "is returned as a `CSMessageDecoded` struct, which contains either the request or the result.",
+        "",
+        "# Parameters",
+        "- `ctx`: The context of the solana program instruction",
+        "- `message`: A vector of bytes representing the serialized cross-chain message to be decoded",
+        "",
+        "# Returns",
+        "- `Result<CSMessageDecoded>`: Returns the decoded message as a `CSMessageDecoded` struct",
+        "if successful, otherwise returns an error."
+      ],
       "discriminator": [
         144,
         173,
@@ -27,7 +45,10 @@ export type Xcall = {
       ],
       "accounts": [
         {
-          "name": "systemProgram"
+          "name": "systemProgram",
+          "docs": [
+            "The solana system program account, used for creating and managing accounts."
+          ]
         }
       ],
       "args": [
@@ -44,6 +65,24 @@ export type Xcall = {
     },
     {
       "name": "executeCall",
+      "docs": [
+        "Instruction: Execute Call",
+        "",
+        "Executes a call of specified `req_id`.",
+        "",
+        "This instruction processes a call by verifying the provided data against the request's data",
+        "and then invoking the `handle_call_message` instruction on the DApp. Depending on the message",
+        "type, it handles the response accordingly, potentially sending a result back through the",
+        "connection program.",
+        "",
+        "# Parameters",
+        "- `ctx`: The context of the solana program instruction",
+        "- `req_id`: The unique identifier for the request being processed.",
+        "- `data`: The data associated with the call request, which will be verified and processed.",
+        "",
+        "# Returns",
+        "- `Result<()>`: Returns `Ok(())` if the call was executed successfully, or an error if it failed."
+      ],
       "discriminator": [
         62,
         92,
@@ -57,22 +96,38 @@ export type Xcall = {
       "accounts": [
         {
           "name": "signer",
+          "docs": [
+            "The account that signs and pays for the transaction. This account is mutable",
+            "because it will be debited for any fees or rent required during the transaction."
+          ],
           "writable": true,
           "signer": true
         },
         {
-          "name": "systemProgram"
+          "name": "systemProgram",
+          "docs": [
+            "The solana system program account, used for creating and managing accounts."
+          ]
         },
         {
           "name": "config",
-          "writable": true
+          "docs": [
+            "The configuration account, which stores important settings and counters for the program."
+          ]
         },
         {
           "name": "admin",
+          "docs": [
+            "it is valid."
+          ],
           "writable": true
         },
         {
           "name": "proxyRequest",
+          "docs": [
+            "The proxy request account, identified by a request ID, which is used for executing",
+            "calls. The account is closed after use, with any remaining funds sent to the `admin`."
+          ],
           "writable": true
         }
       ],
@@ -84,15 +139,27 @@ export type Xcall = {
         {
           "name": "data",
           "type": "bytes"
-        },
-        {
-          "name": "fromNid",
-          "type": "string"
         }
       ]
     },
     {
       "name": "executeRollback",
+      "docs": [
+        "Instruction: Execute Rollback",
+        "",
+        "Executes a rollback operation using the stored rollback data.",
+        "",
+        "This function initiates a rollback process by delegating to the `instructions::execute_rollback`.",
+        "It handles the rollback of a operation with the specified context and sequence number.",
+        "",
+        "# Arguments",
+        "- `ctx`: The context containing all the necessary accounts and program state.",
+        "- `sn`: The sequence number associated with the rollback operation.",
+        "",
+        "# Returns",
+        "- `Result<()>`: Returns `Ok(())` if the rollback was executed successfully, or an error if it",
+        "failed."
+      ],
       "discriminator": [
         10,
         217,
@@ -106,24 +173,38 @@ export type Xcall = {
       "accounts": [
         {
           "name": "signer",
+          "docs": [
+            "The account that signs and pays for the transaction. This account is mutable",
+            "because it will be debited for any fees or rent required during the transaction."
+          ],
           "writable": true,
           "signer": true
         },
         {
-          "name": "systemProgram"
+          "name": "systemProgram",
+          "docs": [
+            "The solana system program account, used for creating and managing accounts."
+          ]
         },
         {
-          "name": "config"
+          "name": "config",
+          "docs": [
+            "The configuration account, which stores important settings and counters for the program."
+          ]
         },
         {
           "name": "admin",
           "docs": [
-            "CHECK : need to be the owner of the pda"
+            "it is valid."
           ],
           "writable": true
         },
         {
           "name": "rollbackAccount",
+          "docs": [
+            "The rollback account, identified by a sequence number (`sn`), used for executing rollback.",
+            "The account is closed after use, with any remaining funds sent to the `admin`."
+          ],
           "writable": true
         }
       ],
@@ -136,6 +217,21 @@ export type Xcall = {
     },
     {
       "name": "getAdmin",
+      "docs": [
+        "Instruction: Get Admin",
+        "",
+        "Retrieves the admin public key from the configuration.",
+        "",
+        "This function returns the public key of the admin account, as stored in the configuration",
+        "account.",
+        "",
+        "# Arguments",
+        "- `ctx`: The context of the solana program instruction",
+        "",
+        "# Returns",
+        "- `Result<Pubkey>`: Returns the public key of the admin account if successful,",
+        "otherwise returns an error."
+      ],
       "discriminator": [
         136,
         243,
@@ -149,40 +245,36 @@ export type Xcall = {
       "accounts": [
         {
           "name": "config",
-          "writable": true
+          "docs": [
+            "The configuration account, which stores important settings for the program."
+          ]
         }
       ],
       "args": [],
       "returns": "pubkey"
     },
     {
-      "name": "getDefaultConnection",
-      "discriminator": [
-        144,
-        154,
-        189,
-        172,
-        38,
-        195,
-        153,
-        14
-      ],
-      "accounts": [
-        {
-          "name": "config",
-          "writable": true
-        }
-      ],
-      "args": [
-        {
-          "name": "nid",
-          "type": "string"
-        }
-      ],
-      "returns": "pubkey"
-    },
-    {
       "name": "getFee",
+      "docs": [
+        "Instruction: Get Fee",
+        "",
+        "Calculates and retrieves the total fee for a cross-chain message, including the protocol fee",
+        "and connection-specific fees.",
+        "",
+        "This function computes the total fee required to send a cross-chain message by adding the",
+        "protocol fee stored in the configuration account and any additional fees specific to the",
+        "connections used in the message.",
+        "",
+        "# Arguments",
+        "- `ctx`: The context of the solana program instruction.",
+        "- `nid`: A string representing the network ID for which the fee is being calculated.",
+        "- `is_rollback`: A boolean indicating whether a rollback is required, affecting the fee.",
+        "- `sources`: A vector of strings representing the source protocols involved in the transaction.",
+        "",
+        "# Returns",
+        "- `Result<u64>`: Returns the total fee as a `u64` value if successful, otherwise returns",
+        "an error."
+      ],
       "discriminator": [
         115,
         195,
@@ -195,7 +287,10 @@ export type Xcall = {
       ],
       "accounts": [
         {
-          "name": "config"
+          "name": "config",
+          "docs": [
+            "The configuration account, which stores important settings for the program."
+          ]
         }
       ],
       "args": [
@@ -204,7 +299,7 @@ export type Xcall = {
           "type": "string"
         },
         {
-          "name": "rollback",
+          "name": "isRollback",
           "type": "bool"
         },
         {
@@ -220,6 +315,21 @@ export type Xcall = {
     },
     {
       "name": "getNetworkAddress",
+      "docs": [
+        "Instruction: Get Network Address",
+        "",
+        "Retrieves the network address from the configuration.",
+        "",
+        "This function constructs and returns a `NetworkAddress` based on the network ID stored",
+        "in the configuration account and the program's ID.",
+        "",
+        "# Arguments",
+        "- `ctx`: The context of the solana program instruction",
+        "",
+        "# Returns",
+        "- `Result<NetworkAddress>`: Returns the constructed `NetworkAddress` if successful,",
+        "otherwise returns an error."
+      ],
       "discriminator": [
         30,
         225,
@@ -233,7 +343,9 @@ export type Xcall = {
       "accounts": [
         {
           "name": "config",
-          "writable": true
+          "docs": [
+            "The configuration account, which stores important settings for the program."
+          ]
         }
       ],
       "args": [],
@@ -245,6 +357,22 @@ export type Xcall = {
     },
     {
       "name": "getProtocolFee",
+      "docs": [
+        "Instruction: Get Protocol Fee",
+        "",
+        "Retrieves the current protocol fee from the configuration.",
+        "",
+        "This function returns the protocol fee amount stored in the configuration account.",
+        "The protocol fee is a value used to determine the amount charged for each cross-chain",
+        "message.",
+        "",
+        "# Arguments",
+        "- `ctx`: The context of the solana program instruction",
+        "",
+        "# Returns",
+        "- `Result<u64>`: Returns the protocol fee as a `u64` value if successful,",
+        "otherwise returns an error."
+      ],
       "discriminator": [
         196,
         255,
@@ -258,7 +386,9 @@ export type Xcall = {
       "accounts": [
         {
           "name": "config",
-          "writable": true
+          "docs": [
+            "The configuration account, which stores important settings for the program."
+          ]
         }
       ],
       "args": [],
@@ -266,6 +396,21 @@ export type Xcall = {
     },
     {
       "name": "getProtocolFeeHandler",
+      "docs": [
+        "Instruction: Get Protocol Fee Handler",
+        "",
+        "Retrieves the protocol fee handler public key from the configuration.",
+        "",
+        "This function returns the public key of the protocol fee handler account, as stored",
+        "in the configuration account.",
+        "",
+        "# Arguments",
+        "- `ctx`: The context of the solana program instruction",
+        "",
+        "# Returns",
+        "- `Result<Pubkey>`: Returns the public key of the fee handler account if successful,",
+        "otherwise returns an error."
+      ],
       "discriminator": [
         67,
         5,
@@ -279,7 +424,9 @@ export type Xcall = {
       "accounts": [
         {
           "name": "config",
-          "writable": true
+          "docs": [
+            "The configuration account, which stores important settings for the program."
+          ]
         }
       ],
       "args": [],
@@ -299,23 +446,36 @@ export type Xcall = {
       ],
       "accounts": [
         {
-          "name": "connection",
-          "signer": true
-        },
-        {
           "name": "signer",
+          "docs": [
+            "The account that signs and pays for the transaction. This account is mutable",
+            "because it will be debited for any fees or rent required during the transaction."
+          ],
           "writable": true,
           "signer": true
         },
         {
-          "name": "systemProgram"
+          "name": "connection",
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "The solana system program account, used for creating and managing accounts."
+          ]
         },
         {
           "name": "config",
-          "writable": true
+          "docs": [
+            "The configuration account, which stores important settings and counters for the",
+            "program. This account is mutable because the last request ID of config will be updated."
+          ]
         },
         {
           "name": "admin",
+          "docs": [
+            "it is valid."
+          ],
           "writable": true
         },
         {
@@ -349,23 +509,37 @@ export type Xcall = {
       ],
       "accounts": [
         {
-          "name": "connection",
-          "signer": true
-        },
-        {
           "name": "signer",
+          "docs": [
+            "The account that signs and pays for the transaction. This account is mutable",
+            "because it will be debited for any fees or rent required during the transaction."
+          ],
           "writable": true,
           "signer": true
         },
         {
-          "name": "systemProgram"
+          "name": "connection",
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "The solana system program account, used for creating and managing accounts."
+          ]
         },
         {
           "name": "config",
+          "docs": [
+            "The configuration account, which stores important settings and counters for the",
+            "program. This account is mutable because the last request ID of config will be updated."
+          ],
           "writable": true
         },
         {
           "name": "admin",
+          "docs": [
+            "it is valid."
+          ],
           "writable": true
         },
         {
@@ -411,6 +585,22 @@ export type Xcall = {
     },
     {
       "name": "initialize",
+      "docs": [
+        "Instruction: Initialize",
+        "",
+        "Initializes the initial program configuration",
+        "",
+        "This function sets up the initial configuration for the program, including specifying",
+        "the network ID.",
+        "",
+        "# Arguments",
+        "- `ctx`: The context of the solana program instruction",
+        "- `network_id`: A string representing the network ID to be set in the configuration.",
+        "",
+        "# Returns",
+        "- `Result<()>`: Returns `Ok(())` if the initialization is successful, otherwise returns an",
+        "error."
+      ],
       "discriminator": [
         175,
         175,
@@ -424,15 +614,27 @@ export type Xcall = {
       "accounts": [
         {
           "name": "config",
+          "docs": [
+            "The configuration account, which stores important settings for the program.",
+            "This account is initialized only once during the lifetime of program and it will",
+            "throw error if tries to initialize twice"
+          ],
           "writable": true
         },
         {
           "name": "signer",
+          "docs": [
+            "The account that signs and pays for the transaction. This account is mutable",
+            "because it will be debited for any fees or rent required during the transaction."
+          ],
           "writable": true,
           "signer": true
         },
         {
-          "name": "systemProgram"
+          "name": "systemProgram",
+          "docs": [
+            "The solana system program account, used for creating and managing accounts."
+          ]
         }
       ],
       "args": [
@@ -601,6 +803,23 @@ export type Xcall = {
     },
     {
       "name": "sendCall",
+      "docs": [
+        "Instruction: Send Call",
+        "",
+        "Sends a cross-chain message to a specified network address.",
+        "",
+        "This function handles encoding, validation, and sending of a cross-chain message.",
+        "It also manages the creation of a rollback account if needed and emits an event upon successful",
+        "sending",
+        "",
+        "# Arguments",
+        "- `ctx`: The context of the solana program instruction",
+        "- `message`: The `Envelope` payload, encoded as rlp bytes",
+        "- `to`: The target network address where the message is to be sent",
+        "",
+        "# Returns",
+        "- `Result<u128>`: The sequence number of the message if successful, wrapped in a `Result`."
+      ],
       "discriminator": [
         254,
         95,
@@ -614,27 +833,56 @@ export type Xcall = {
       "accounts": [
         {
           "name": "signer",
+          "docs": [
+            "The account that signs and pays for the transaction. This account is mutable",
+            "because it will be debited for any fees or rent required during the transaction."
+          ],
           "writable": true,
           "signer": true
         },
         {
-          "name": "systemProgram"
+          "name": "dappAuthority",
+          "signer": true,
+          "optional": true
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "The solana system program account, used for creating and managing accounts."
+          ]
+        },
+        {
+          "name": "instructionSysvar",
+          "docs": [
+            "program invocation. This account is an unchecked account because the constraints are",
+            "verified within the account trait."
+          ]
         },
         {
           "name": "config",
+          "docs": [
+            "The configuration account, which stores important settings and counters for the",
+            "program. This account is mutable because the sequence number for messages will be updated."
+          ],
           "writable": true
         },
         {
           "name": "feeHandler",
+          "docs": [
+            "against the `config.fee_handler` to ensure it is valid. This is a safe unchecked account",
+            "because the validity of the fee handler is verified during instruction execution"
+          ],
           "writable": true
         },
         {
           "name": "rollbackAccount",
+          "docs": [
+            "An optional rollback account that stores information for undoing the effects of the call",
+            "if needed. The account is initialized when necessary, with the `signer` paying for its",
+            "creation."
+          ],
           "writable": true,
           "optional": true
-        },
-        {
-          "name": "instructionSysvar"
         }
       ],
       "args": [
@@ -655,6 +903,22 @@ export type Xcall = {
     },
     {
       "name": "setAdmin",
+      "docs": [
+        "Instruction: Set Admin",
+        "",
+        "Sets a new admin account in the configuration.",
+        "",
+        "This function updates the admin account in the program’s configuration. Only the current",
+        "admin (as verified by the context) can change the admin account.",
+        "",
+        "# Arguments",
+        "- `ctx`: The context of the solana program instruction",
+        "- `account`: The public key of the new admin account to be set.",
+        "",
+        "# Returns",
+        "- `Result<()>`: Returns `Ok(())` if the admin account is successfully updated, otherwise",
+        "returns an error."
+      ],
       "discriminator": [
         251,
         163,
@@ -668,10 +932,18 @@ export type Xcall = {
       "accounts": [
         {
           "name": "config",
+          "docs": [
+            "The configuration account, which stores important settings for the program.",
+            "This account is mutable because the admin of the program will be updated."
+          ],
           "writable": true
         },
         {
           "name": "admin",
+          "docs": [
+            "The account that signs and pays for the transaction. This account is checked",
+            "against the `config.admin` to ensure it is valid."
+          ],
           "writable": true,
           "signer": true
         }
@@ -685,6 +957,23 @@ export type Xcall = {
     },
     {
       "name": "setProtocolFee",
+      "docs": [
+        "Instruction: Set Protocol Fee",
+        "",
+        "Sets the protocol fee in the configuration account.",
+        "",
+        "This function verifies that the signer is an admin, and updates the protocol fee in the",
+        "program's configuration account. The protocol fee is the amount charged for each",
+        "cross-chain message sent.",
+        "",
+        "# Arguments",
+        "- `ctx`: The context of the solana program instruction",
+        "- `fee`: The new protocol fee to be set, specified as a `u64` value.",
+        "",
+        "# Returns",
+        "- `Result<()>`: Returns `Ok(())` if the protocol fee is successfully set, otherwise returns",
+        "an error."
+      ],
       "discriminator": [
         173,
         239,
@@ -698,10 +987,18 @@ export type Xcall = {
       "accounts": [
         {
           "name": "config",
+          "docs": [
+            "The configuration account, which stores important settings for the program.",
+            "This account is mutable because the fee handler of the protocol will be updated."
+          ],
           "writable": true
         },
         {
           "name": "admin",
+          "docs": [
+            "The account that signs and pays for the transaction. This account is checked",
+            "against the `config.admin` to ensure it is valid."
+          ],
           "writable": true,
           "signer": true
         }
@@ -715,6 +1012,21 @@ export type Xcall = {
     },
     {
       "name": "setProtocolFeeHandler",
+      "docs": [
+        "Instruction: Set Protocol Fee Handler",
+        "",
+        "Sets the specified pubkey as a protocol fee handler",
+        "",
+        "This function verifies that the signer is an admin of the program and sets `fee_handler` as",
+        "a protocol fee handler. Typically, this is a designated fee collector or treasury account",
+        "",
+        "# Arguments",
+        "- `ctx`: The context of the solana program instruction",
+        "- `fee_handler`: The pubkey of the new fee handler.",
+        "",
+        "# Returns",
+        "- `Result<()>`: Returns `Ok(())` if the transaction is successful, or an error if it fails."
+      ],
       "discriminator": [
         77,
         67,
@@ -728,10 +1040,18 @@ export type Xcall = {
       "accounts": [
         {
           "name": "config",
+          "docs": [
+            "The configuration account, which stores important settings for the program.",
+            "This account is mutable because the fee handler of the protocol will be updated."
+          ],
           "writable": true
         },
         {
           "name": "admin",
+          "docs": [
+            "The account that signs and pays for the transaction. This account is checked",
+            "against the `config.admin` to ensure it is valid."
+          ],
           "writable": true,
           "signer": true
         }
@@ -917,136 +1237,171 @@ export type Xcall = {
     },
     {
       "code": 6002,
+      "name": "invalidFeeHandler",
+      "msg": "Invalid few handler"
+    },
+    {
+      "code": 6003,
+      "name": "invalidSigner",
+      "msg": "Invalid signer"
+    },
+    {
+      "code": 6004,
       "name": "maxRollbackSizeExceeded",
       "msg": "Maximum rollback data size exceeded"
     },
     {
-      "code": 6003,
+      "code": 6005,
       "name": "invalidSn",
       "msg": "Invalid SN"
     },
     {
-      "code": 6004,
+      "code": 6006,
       "name": "rollbackNotEnabled",
       "msg": "Rollback not enabled"
     },
     {
-      "code": 6005,
+      "code": 6007,
       "name": "maxDataSizeExceeded",
       "msg": "Maximum data size exceeded"
     },
     {
-      "code": 6006,
+      "code": 6008,
       "name": "proxyRequestAccountNotSpecified",
       "msg": "Proxy request account is not specified"
     },
     {
-      "code": 6007,
+      "code": 6009,
+      "name": "proxyRequestAccountMustNotBeSpecified",
+      "msg": "Proxy request account must not be specified"
+    },
+    {
+      "code": 6010,
       "name": "rollbackAccountNotSpecified",
       "msg": "Rollback account is not specified"
     },
     {
-      "code": 6008,
-      "name": "rollbackCreatorNotSpecified",
-      "msg": "Rollback account creator not specified"
+      "code": 6011,
+      "name": "rollbackAccountMustNotBeSpecified",
+      "msg": "Rollback account must not be specified"
     },
     {
-      "code": 6009,
+      "code": 6012,
       "name": "pendingRequestAccountNotSpecified",
       "msg": "Pending request account is not specified"
     },
     {
-      "code": 6010,
-      "name": "pendingRequestCreatorNotSpecified",
-      "msg": "Pending request account creator is not specified"
+      "code": 6013,
+      "name": "pendingRequestAccountMustNotBeSpecified",
+      "msg": "Pending request account must not be specified"
     },
     {
-      "code": 6011,
+      "code": 6014,
       "name": "pendingResponseAccountNotSpecified",
       "msg": "Pending response account is not specified"
     },
     {
-      "code": 6012,
-      "name": "pendingResponseCreatorNotSpecified",
-      "msg": "Pending response account creator is not specified"
+      "code": 6015,
+      "name": "pendingResponseAccountMustNotBeSpecified",
+      "msg": "Pending response account must not be specified"
     },
     {
-      "code": 6013,
+      "code": 6016,
       "name": "invalidMessageSeed",
       "msg": "Invalid message seed"
     },
     {
-      "code": 6014,
+      "code": 6017,
       "name": "successfulResponseAccountNotSpecified",
       "msg": "Successful response account is not specified"
     },
     {
-      "code": 6015,
+      "code": 6018,
+      "name": "successfulResponseAccountMustNotBeSpecified",
+      "msg": "Successful response account must not be specified"
+    },
+    {
+      "code": 6019,
+      "name": "dappAuthorityNotProvided",
+      "msg": "Dapp authority not provided"
+    },
+    {
+      "code": 6020,
       "name": "protocolMismatch",
       "msg": "Protocol mismatch"
     },
     {
-      "code": 6016,
-      "name": "protocolNotSpecified",
-      "msg": "Connection protocol not specified"
+      "code": 6021,
+      "name": "sourceProtocolsNotSpecified",
+      "msg": "Source protocols not specified"
     },
     {
-      "code": 6017,
+      "code": 6022,
+      "name": "destinationProtocolsNotSpecified",
+      "msg": "Destination protocols not specified"
+    },
+    {
+      "code": 6023,
       "name": "rollbackNotPossible",
       "msg": "Rollback not possible"
     },
     {
-      "code": 6018,
+      "code": 6024,
       "name": "callRequestNotFound",
       "msg": "Call request not found"
     },
     {
-      "code": 6019,
+      "code": 6025,
       "name": "noRollbackData",
       "msg": "No rollback data"
     },
     {
-      "code": 6020,
+      "code": 6026,
+      "name": "revertFromDapp",
+      "msg": "Revert from dapp"
+    },
+    {
+      "code": 6027,
       "name": "invalidReplyReceived",
       "msg": "Invalid reply received"
     },
     {
-      "code": 6021,
+      "code": 6028,
       "name": "invalidMessageSequence",
       "msg": "Invalid message sequence received"
     },
     {
-      "code": 6022,
+      "code": 6029,
       "name": "decodeFailed",
       "msg": "Decode failed"
     },
     {
-      "code": 6023,
+      "code": 6030,
       "name": "invalidSource",
       "msg": "Invalid source"
     },
     {
-      "code": 6024,
+      "code": 6031,
       "name": "invalidRequestId",
       "msg": "Invalid request id"
     },
     {
-      "code": 6025,
+      "code": 6032,
       "name": "dataMismatch",
       "msg": "Data mismatch"
     },
     {
-      "code": 6026,
+      "code": 6033,
       "name": "invalidPubkey",
       "msg": "Invalid pubkey"
     },
     {
-      "code": 6027,
+      "code": 6034,
       "name": "invalidProxyCreator",
       "msg": "Invalid proxy request creator address"
     },
     {
-      "code": 6028,
+      "code": 6035,
       "name": "invalidResponse",
       "msg": "Invalid response from dapp"
     }

@@ -67,11 +67,7 @@ pub fn set_protocols(
 }
 
 pub fn verify_protocols(ctx: Context<VerifyProtocols>, protocols: &Vec<String>) -> Result<bool> {
-    let verified = verify_protocol_recovery(
-        ctx.accounts.state.proposed_protocol_to_remove.clone(),
-        &ctx.accounts.state.sources,
-        protocols,
-    )?;
+    let verified = verify_protocols_unordered(&ctx.accounts.state.sources, protocols);
     Ok(verified)
 }
 

@@ -245,8 +245,9 @@ describe("balanced dollar manager", () => {
         admin: ctx.admin.publicKey,
         receipt: ConnectionPDA.receipt(connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
+        authority: ConnectionPDA.authority().pda
       })
-      .remainingAccounts([...recvMessageAccounts.slice(3)])
+      .remainingAccounts([...recvMessageAccounts.slice(4)])
       .signers([ctx.admin])
       .rpc();
 
@@ -262,7 +263,6 @@ describe("balanced dollar manager", () => {
       .executeCall(
         new anchor.BN(nextReqId),
         Buffer.from(rlpEncodedData),
-        connectionCtx.dstNetworkId
       )
       .accounts({
         signer: ctx.admin.publicKey,
@@ -333,8 +333,9 @@ describe("balanced dollar manager", () => {
         admin: ctx.admin.publicKey,
         receipt: ConnectionPDA.receipt(connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
+        authority: ConnectionPDA.authority().pda
       })
-      .remainingAccounts([...recvMessageAccounts.slice(3)])
+      .remainingAccounts([...recvMessageAccounts.slice(4)])
       .signers([ctx.admin])
       .rpc();
 
@@ -350,7 +351,6 @@ describe("balanced dollar manager", () => {
       .executeCall(
         new anchor.BN(nextReqId),
         Buffer.from(rlpEncodedData),
-        connectionCtx.dstNetworkId
       )
       .accounts({
         signer: ctx.admin.publicKey,
