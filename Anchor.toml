@@ -5,11 +5,11 @@ resolution = false
 skip-lint = false
 
 [programs.localnet]
-asset_manager = "3VGEbHVP6vD6UBPNttghxc89rpSJCMkMXM77Y3Lw5TBH"
-balanced_dollar = "CHknKyr9WUX5yYBy3o1Biw3Yiw2orq6Hj6yw9na6C27"
+asset_manager = "BAcme7CyJFs93in8YULLDNYCnxa1sD5Wq54QqLRZ5MZU"
+balanced_dollar = "FMFjGpYNPfnDZAaJ2NjyADbtBxZuG4fRNmQgixq5mczE"
 centralized_connection = "337ToYrue4zSSyS3Th3DDS6qHvFRG6JA7Zkx2zJxLXAS"
 xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
-xcall_manager = "CyrJ6LT22j2s4JJYfGkB8yaoatt32DNdfnxNi5pvTmTa"
+xcall_manager = "FQ3G93FSqpg9nE1t8hfj7Sb5enCopR2FQXEeZ82C9R5L"
 
 [registry]
 url = "https://api.apr.dev"
@@ -20,6 +20,6 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 initialize-asset-manager = "yarn ts-node --project ./tsconfig.json ./scripts/initialize-asset-manager.ts"
-initialize-xcall-manager = "yarn ts-node --project ./tsconfig.json ./scripts/initialize-xcall-manager.ts"
 initialize-balanced-dollar = "yarn ts-node --project ./tsconfig.json ./scripts/initialize-balanced-dollar.ts"
+initialize-xcall-manager = "yarn ts-node --project ./tsconfig.json ./scripts/initialize-xcall-manager.ts"
 test = "yarn run jest --runTestsByPath --detectOpenHandles --forceExit --watchAll"

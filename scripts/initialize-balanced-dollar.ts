@@ -8,21 +8,22 @@ import { TestContext as BalancedDollarContext } from "./balanced_dollar/setup";
 import { XcallManager } from "../target/types/xcall_manager";
 
 
-const args = process.argv.slice(2);
+const args = process.argv.slice(3);
 
-const admin_address = args[0];
-const environment = args[1]
+const xcall_address = args[0];
+const icon_balanced_dollar = args[1];
+const environment_rpc = args[2]
 
-console.log("got values " , admin_address , environment)
-let xcall_program = new anchor.web3.PublicKey("7GoW5ACKgsKcjWKnfPXeGyZHMSNBJkqHFwjt5ex2i73z")
+let xcall_program = new anchor.web3.PublicKey(xcall_address)
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
-const connection = provider.connection; //new Connection("https://solana-rpc.venture23.xyz", "confirmed");
+const connection = new anchor.web3.Connection(environment_rpc, "confirmed");
 let wallet = provider.wallet as anchor.Wallet;
 let txnHelpers = new TransactionHelper(connection, wallet.payer);
 
 import xcallManagerIdlJson from "../target/idl/xcall_manager.json";
+import { env } from "process";
 const xcall_manager_program: anchor.Program<XcallManager> =
 new anchor.Program(xcallManagerIdlJson as anchor.Idl, provider) as unknown as anchor.Program<XcallManager> ;
 
@@ -31,7 +32,6 @@ let balancedDollarContext =  new BalancedDollarContext(
     connection, txnHelpers, wallet.payer
 );
 
-let icon_balanced_dollar = "0x2.icon/cx87f7f8ceaa054d46ba7343a2ecd21208e12913c6";
 
 async function init(){
     sleep(3);

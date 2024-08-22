@@ -7,21 +7,24 @@ import { XcallManagerPDA } from "./axcall_manager/setup";
 import { XcallManager } from "../target/types/xcall_manager";
 
 
-const args = process.argv.slice(2);
+const args = process.argv.slice(3);
 
-const admin_address = args[0];
-const environment = args[1]
+const xcall_address = args[0];
+const icon_asset_manager = args[1]
+const environment_rpc = args[2]
 
-console.log("got values " , admin_address , environment)
-let xcall_program = new anchor.web3.PublicKey("7GoW5ACKgsKcjWKnfPXeGyZHMSNBJkqHFwjt5ex2i73z")
+
+let xcall_program = new anchor.web3.PublicKey(xcall_address)
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
-const connection = provider.connection; //new Connection("https://solana-rpc.venture23.xyz", "confirmed");
+const connection = new anchor.web3.Connection(environment_rpc, "confirmed");
+// const connection = provider.connection; //new Connection("https://solana-rpc.venture23.xyz", "confirmed");
 let wallet = provider.wallet as anchor.Wallet;
 let txnHelpers = new TransactionHelper(connection, wallet.payer);
 
 import xcallManagerIdlJson from "../target/idl/xcall_manager.json";
+import { env } from "process";
 const xcall_manager_program: anchor.Program<XcallManager> =
 new anchor.Program(xcallManagerIdlJson as anchor.Idl, provider) as unknown as anchor.Program<XcallManager> ;
 
@@ -31,7 +34,6 @@ let assetManagerContext =  new AssetManagerContext(
 );
 
 
-let icon_asset_manager = "0x2.icon/cxe9d69372f6233673a6ebe07862e12af4c2dca632";
 
 async function init(){
     sleep(3);

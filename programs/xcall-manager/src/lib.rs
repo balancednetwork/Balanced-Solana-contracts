@@ -6,7 +6,7 @@ pub mod states;
 use anchor_lang::prelude::*;
 pub use states::*;
 use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
-declare_id!("CyrJ6LT22j2s4JJYfGkB8yaoatt32DNdfnxNi5pvTmTa");
+declare_id!("FQ3G93FSqpg9nE1t8hfj7Sb5enCopR2FQXEeZ82C9R5L");
 
 #[program]
 pub mod xcall_manager {

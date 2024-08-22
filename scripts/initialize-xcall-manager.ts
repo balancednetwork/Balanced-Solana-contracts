@@ -1,52 +1,69 @@
 //imports
 import * as anchor from "@coral-xyz/anchor";
 import { TransactionHelper, sleep } from "./utils";
-import { TestContext as xCallManagerContext, XcallManagerPDA } from "./axcall_manager/setup";
+import {
+  TestContext as xCallManagerContext,
+  XcallManagerPDA,
+} from "./axcall_manager/setup";
 import { AssetManager } from "../target/types/asset_manager";
 import { XcallManager } from "../target/types/xcall_manager";
 import { BalancedDollar } from "../target/types/balanced_dollar";
 
-const args = process.argv.slice(2);
+const args = process.argv.slice(3);
 
-const admin_address = args[0];
-const environment = args[1]
+const xcall_address = args[0];
+const cetralized_connection_address = args[1];
+const icon_connection_contract = args[2];
+const icon_governance = args[3];
+const environment_rpc = args[4];
 
-console.log("got values " , admin_address , environment)
-let xcall_program = new anchor.web3.PublicKey("7GoW5ACKgsKcjWKnfPXeGyZHMSNBJkqHFwjt5ex2i73z")
-let connection_program = new anchor.web3.PublicKey("7GoW5ACKgsKcjWKnfPXeGyZHMSNBJkqHFwjt5ex2i73z")
+let xcall_program = new anchor.web3.PublicKey(xcall_address);
+let connection_program = new anchor.web3.PublicKey(
+  cetralized_connection_address
+);
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
-const connection = provider.connection; //new Connection("https://solana-rpc.venture23.xyz", "confirmed");
+const connection = new anchor.web3.Connection(environment_rpc, "confirmed");
 let wallet = provider.wallet as anchor.Wallet;
 let txnHelpers = new TransactionHelper(connection, wallet.payer);
 
 import xcallManagerIdlJson from "../target/idl/xcall_manager.json";
-const xcall_manager_program: anchor.Program<XcallManager> =
-new anchor.Program(xcallManagerIdlJson as anchor.Idl, provider) as unknown as anchor.Program<XcallManager> ;
+const xcall_manager_program: anchor.Program<XcallManager> = new anchor.Program(
+  xcallManagerIdlJson as anchor.Idl,
+  provider
+) as unknown as anchor.Program<XcallManager>;
 import assetManagerIdlJson from "../target/idl/asset_manager.json";
-const asset_manager_program: anchor.Program<AssetManager> =
-new anchor.Program(assetManagerIdlJson as anchor.Idl, provider) as unknown as anchor.Program<AssetManager> ;
+const asset_manager_program: anchor.Program<AssetManager> = new anchor.Program(
+  assetManagerIdlJson as anchor.Idl,
+  provider
+) as unknown as anchor.Program<AssetManager>;
 import balancedDollarIdlJson from "../target/idl/balanced_dollar.json";
 const balanced_dollar_program: anchor.Program<BalancedDollar> =
-new anchor.Program(balancedDollarIdlJson as anchor.Idl, provider) as unknown as anchor.Program<BalancedDollar> ;
+  new anchor.Program(
+    balancedDollarIdlJson as anchor.Idl,
+    provider
+  ) as unknown as anchor.Program<BalancedDollar>;
 
-
-let xcallManagerCtx =  new xCallManagerContext(
-    connection, txnHelpers, wallet.payer
+let xcallManagerCtx = new xCallManagerContext(
+  connection,
+  txnHelpers,
+  wallet.payer
 );
 
-
-let icon_governance = "0x2.icon/cxdb3d3e2717d4896b336874015a4b23871e62fb6b";
-let icon_connection_contract = "cx6664f06c1e19dc1d8fcbd031e99e9d623a411136";
 let sources = [connection_program.toString()];
 let destinations = [icon_connection_contract];
 
-async function init(){
-    sleep(3);
-    console.log("initializing xcall manager contract");
-    await xcallManagerCtx.initialize(xcall_program, icon_governance, sources, destinations );
-    console.log("xcall manager contract initialized successfully");
+async function init() {
+  sleep(3);
+  console.log("initializing xcall manager contract");
+  await xcallManagerCtx.initialize(
+    xcall_program,
+    icon_governance,
+    sources,
+    destinations
+  );
+  console.log("xcall manager contract initialized successfully");
 }
 
 //NEEDED TO MOVE TO XCALL AND CENTRALIZED SCRIPT
@@ -67,9 +84,7 @@ async function init(){
 // }
 
 async function main() {
-    await init().catch(err => console.error(err));
+  await init().catch((err) => console.error(err));
 }
 
-main().catch(err => console.error(err));
-
-
+main().catch((err) => console.error(err));
