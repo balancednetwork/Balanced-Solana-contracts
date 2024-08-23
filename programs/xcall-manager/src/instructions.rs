@@ -41,11 +41,7 @@ pub fn propose_removal(ctx: Context<AdminAction>, protocol: String) -> Result<()
 
 pub fn set_admin(ctx: Context<AdminAction>, new_admin: Pubkey) -> Result<()> {
     let xcall_manager = &mut ctx.accounts.state;
-    require_keys_eq!(
-        ctx.accounts.admin.key(),
-        xcall_manager.admin,
-        XCallManagerError::Unauthorized
-    );
+    
     xcall_manager.admin = new_admin;
     Ok(())
 }
@@ -56,15 +52,11 @@ pub fn set_protocols(
     destinations: Vec<String>,
 ) -> Result<()> {
     let xcall_manager = &mut ctx.accounts.state;
-    require_keys_eq!(
-        ctx.accounts.admin.key(),
-        xcall_manager.admin,
-        XCallManagerError::Unauthorized
-    );
     xcall_manager.sources = sources;
     xcall_manager.destinations = destinations;
     Ok(())
 }
+
 
 pub fn verify_protocols(ctx: Context<VerifyProtocols>, protocols: &Vec<String>) -> Result<bool> {
     let verified = verify_protocols_unordered(&ctx.accounts.state.sources, protocols);
@@ -99,9 +91,9 @@ pub fn verify_protocols_unordered(array1: &Vec<String>, array2: &Vec<String>) ->
         return false;
     }
 
-    for item1 in array2 {
+    for item1 in array1 {
         let mut found = false;
-        for item2 in array1 {
+        for item2 in array2 {
             if item1 == item2 {
                 found = true;
                 break;

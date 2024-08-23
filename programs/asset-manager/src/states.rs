@@ -26,9 +26,6 @@ pub struct ConfigureRateLimit<'info> {
     #[account(init_if_needed, payer=admin, space = 8 + TokenState::INIT_SPACE, seeds=[b"token_state", token.as_ref()], bump)]
     pub token_state: Account<'info, TokenState>,
 
-    #[account(mut, has_one = mint)]
-    pub vault_token_account: Account<'info, TokenAccount>,
-    pub mint: Account<'info, Mint>,
     pub system_program: Program<'info, System>,
 }
 
@@ -50,11 +47,8 @@ pub struct ResetLimit<'info> {
 
 #[derive(Accounts)]
 pub struct GetWithdrawLimit<'info> {
-    #[account()]
     pub token_state: Account<'info, TokenState>,
-    #[account(mut, has_one = mint)]
     pub vault_token_account: Account<'info, TokenAccount>,
-    pub mint: Account<'info, Mint>,
 }
 
 #[derive(Accounts)]
@@ -115,7 +109,10 @@ pub struct HandleCallMessage<'info> {
     pub to: Option<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub to_native: Option<AccountInfo<'info>>,
+    #[account(seeds = [b"state"], bump)]
     pub state: Account<'info, State>,
+    #[account(mut)]
+    pub token_state: Account<'info, TokenState>,
     #[account(mut)]
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
     #[account(mut, seeds = [b"vault_native"], bump)]
@@ -134,6 +131,7 @@ pub struct HandleCallMessage<'info> {
 
 #[derive(Accounts)]
 pub struct GetParams<'info> {
+    #[account(seeds = [b"state"], bump)]
     pub state: Account<'info, State>,
 }
 

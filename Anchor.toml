@@ -6,7 +6,7 @@ skip-lint = false
 
 [programs.localnet]
 asset_manager = "afx4C1hQjFdw7q1esUEceZiKNGdSHaudUTRAbc3HQJw"
-balanced_dollar = "Bxh6sBWRvaXLqXfzh422NamVrfF63Ybrqkhi23Ho29hw"
+balanced_dollar = "FQnK1rxyPqHDpzVVrDzV4gEGHSBFQcsJ42w4926ktJCm"
 centralized_connection = "337ToYrue4zSSyS3Th3DDS6qHvFRG6JA7Zkx2zJxLXAS"
 xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
 xcall_manager = "AtrfzxadGeoLekrfsEETYCsEhbTVLxvvoFUxDdWFfbu4"

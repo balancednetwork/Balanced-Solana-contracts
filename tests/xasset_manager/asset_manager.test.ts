@@ -124,8 +124,33 @@ describe("xx asset manager test", () => {
         admin: ctx.admin.publicKey,
         state: AssetManagerPDA.state().pda,
         tokenState: AssetManagerPDA.token_state(mint).pda,
-        vaultTokenAccount: vaultTokenAccount.address,
-        mint: mint,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .instruction();
+    let tx = await ctx.txnHelpers.buildV0Txn([configureIx], [ctx.admin]);
+    await ctx.connection.sendTransaction(tx);
+
+    await sleep(3);
+    console.log("rate limit configured");
+
+    let withdraw_limit = await program.methods.
+      getWithdrawLimit()
+      .accounts({
+        tokenState: AssetManagerPDA.token_state(mint).pda,
+        vaultTokenAccount: vaultTokenAccount.address
+      }).view();
+    console.log("initial withdraw limit: ", withdraw_limit )
+    expect(withdraw_limit.toNumber()).toBe(0);
+  });
+
+  it("configure rate limit for native token test", async () => {
+    let native_token = new PublicKey("11111111111111111111111111111111")
+    let configureIx = await program.methods
+      .configureRateLimit(native_token, bn(300), bn(900))
+      .accountsStrict({
+        admin: ctx.admin.publicKey,
+        state: AssetManagerPDA.state().pda,
+        tokenState: AssetManagerPDA.token_state(native_token).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
       })
       .instruction();
@@ -135,18 +160,6 @@ describe("xx asset manager test", () => {
     await sleep(3);
     console.log("rate limit configured");
   });
-
-  async function setUpXcallManager() {
-    let source1 = Keypair.generate();
-    let source2 = Keypair.generate();
-    await xcallManagerCtx.initialize(
-      xcallKeyPair.publicKey,
-      "icon/hxcnjsd",
-      [source1.publicKey.toString(), source2.publicKey.toString()],
-      ["icon/cxjkefnskdjfe", "icon/cxjdkfndjwk"]
-    );
-    await sleep(3);
-  }
 
   it("deposit token", async () => {
     let { pda } = XcallPDA.config();
@@ -254,6 +267,18 @@ describe("xx asset manager test", () => {
     console.log("deposited");
   });
 
+  it("get withdraw limit test", async() => {
+    let withdraw_limit = await program.methods.
+      getWithdrawLimit()
+      .accounts({
+        tokenState: AssetManagerPDA.token_state(mint).pda,
+        vaultTokenAccount: vaultTokenAccount.address
+      }).view();
+    console.log("initial withdraw limit: ", withdraw_limit )
+    expect(withdraw_limit.toNumber()).toBeGreaterThan(0);
+  });
+
+
   it("deposit native token", async () => {
     let { pda } = XcallPDA.config();
     let xcall_config = await xcall_program.account.config.fetch(pda);
@@ -330,195 +355,14 @@ describe("xx asset manager test", () => {
       [depositTokenIx],
       [nativeDepositor]
     );
-    await ctx.connection.sendTransaction(tx);
+    let txHash = await ctx.connection.sendTransaction(tx);
+    await txnHelpers.logParsedTx(txHash);
     console.log("native deposited");
   });
 
   function bn(number: number) {
     return new BN(number);
   }
-
-  // it("Handle call message", async() => {
-  //   let withdrawerKeyPair = Keypair.generate();
-  //   let withdrawerTokenAccount = await getOrCreateAssociatedTokenAccount(
-  //     provider.connection,
-  //     wallet.payer,
-  //     mint,
-  //     withdrawerKeyPair.publicKey,
-  //     true
-  //   );
-  //   await mintTo(
-  //     provider.connection,
-  //     wallet.payer,
-  //     mint,
-  //     vaultTokenAccount.address,
-  //     wallet.payer,
-  //     100000000000,
-  //     [ctx.admin],
-  //     null,
-  //     TOKEN_PROGRAM_ID
-  //   );
-  //   await  sleep(3);
-  //   await txnHelpers.airdrop(vaultTokenAccount.address, 5000000000);
-  //   await  sleep(3);
-  //   const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
-  //   let iconAssetManager = stateAccount.iconAssetManager;
-  //   const data = ["WithdrawTo", mint.toString(), withdrawerTokenAccount.address.toString(), 1000000000];
-  //   const rlpEncodedData = rlp.encode(data);
-
-  //   let protocols = xcall_manager_program.account.xmState.fetch(AssetManagerPDA.xcall_manager_state().pda);
-  //   let configureIx = await program.methods
-  //   .handleCallMessage(iconAssetManager, Buffer.from(rlpEncodedData), (await protocols).sources )
-  //   .accountsStrict({
-  //     signer: wallet.payer.publicKey,
-  //     instructionSysvar: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
-  //     to: withdrawerTokenAccount.address,
-  //     toNative: null,
-  //     vaultNativeAccount: null,
-  //     state: AssetManagerPDA.state().pda,
-  //     vaultTokenAccount: vaultTokenAccount.address,
-  //     valultAuthority: AssetManagerPDA.vault(mint).pda,
-  //     xcallManager: xcall_manager_program.programId,
-  //     mint: mint,
-  //     tokenProgram: TOKEN_PROGRAM_ID,
-  //     xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
-  //     systemProgram: SYSTEM_PROGRAM_ID
-  //   }).instruction();
-  //   let tx = await ctx.txnHelpers.buildV0Txn([configureIx], [ctx.admin]);
-
-  //   let sig = await ctx.connection.sendTransaction(tx);
-  //   //await txnHelpers.logParsedTx(sig);
-  //   await  sleep(3);
-  //   console.log("handle call message asset manager");
-  // });
-
-  // it("Handle call message revert deposit token", async() => {
-  //   let withdrawerKeyPair = Keypair.generate();
-  //   let withdrawerTokenAccount = await getOrCreateAssociatedTokenAccount(
-  //     provider.connection,
-  //     wallet.payer,
-  //     mint,
-  //     withdrawerKeyPair.publicKey,
-  //     true
-  //   );
-  //   await mintTo(
-  //     provider.connection,
-  //     wallet.payer,
-  //     mint,
-  //     vaultTokenAccount.address,
-  //     wallet.payer,
-  //     100000000000,
-  //     [ctx.admin],
-  //     null,
-  //     TOKEN_PROGRAM_ID
-  //   );
-  //   await  sleep(3);
-  //   await txnHelpers.airdrop(vaultTokenAccount.address, 5000000000);
-  //   await  sleep(3);
-  //   const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
-  //   let iconAssetManager = stateAccount.iconAssetManager;
-  //   const data = ["DepositRevert", mint.toString(), withdrawerTokenAccount.address.toString(), 1000000000];
-  //   const rlpEncodedData = rlp.encode(data);
-
-  //   let protocols = xcall_manager_program.account.xmState.fetch(AssetManagerPDA.xcall_manager_state().pda);
-  //   let configureIx = await program.methods
-  //   .handleCallMessage(xcall_program.programId.toString(), Buffer.from(rlpEncodedData), (await protocols).sources )
-  //   .accountsStrict({
-  //     signer: wallet.payer.publicKey,
-  //     instructionSysvar: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
-  //     to: withdrawerTokenAccount.address,
-  //     toNative: null,
-  //     vaultNativeAccount: null,
-  //     state: AssetManagerPDA.state().pda,
-  //     vaultTokenAccount: vaultTokenAccount.address,
-  //     valultAuthority: AssetManagerPDA.vault(mint).pda,
-  //     xcallManager: xcall_manager_program.programId,
-  //     mint: mint,
-  //     tokenProgram: TOKEN_PROGRAM_ID,
-  //     xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
-  //     systemProgram: SYSTEM_PROGRAM_ID
-  //   }).instruction();
-  //   let tx = await ctx.txnHelpers.buildV0Txn([configureIx], [ctx.admin]);
-
-  //   let sig = await ctx.connection.sendTransaction(tx);
-  //   //await txnHelpers.logParsedTx(sig);
-  //   await  sleep(3);
-  //   console.log("handle call message asset manager");
-  // });
-
-  // it("Handle call message native", async() => {
-  //   let withdrawerKeyPair = Keypair.generate();
-  //   let vaultNativeAccount = AssetManagerPDA.vault_native().pda;
-  //   await  sleep(3);
-  //   await txnHelpers.airdrop(vaultNativeAccount, 5000000000);
-  //   await  sleep(3);
-  //   const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
-  //   let iconAssetManager = stateAccount.iconAssetManager;
-  //   const data = ["WithdrawNativeTo", "11111111111111111111111111111111", withdrawerKeyPair.publicKey.toString(), 1000000000];
-  //   const rlpEncodedData = rlp.encode(data);
-  //   console.log("vault native account js", vaultNativeAccount);
-  //   console.log("bump js is: ", AssetManagerPDA.vault_native().bump );
-  //   let protocols = xcall_manager_program.account.xmState.fetch(AssetManagerPDA.xcall_manager_state().pda);
-  //   let configureIx = await program.methods
-  //   .handleCallMessage(iconAssetManager, Buffer.from(rlpEncodedData), (await protocols).sources )
-  //   .accountsStrict({
-  //     signer: wallet.payer.publicKey,
-  //     instructionSysvar: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
-  //     to: null,
-  //     toNative: withdrawerKeyPair.publicKey,
-  //     state: AssetManagerPDA.state().pda,
-  //     vaultTokenAccount: null,
-  //     vaultNativeAccount: vaultNativeAccount,
-  //     valultAuthority: null,
-  //     xcallManager: xcall_manager_program.programId,
-  //     mint: null,
-  //     tokenProgram: null,
-  //     xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
-  //     systemProgram: SYSTEM_PROGRAM_ID
-
-  //   }).instruction();
-  //   let tx = await ctx.txnHelpers.buildV0Txn([configureIx], [ctx.admin]);
-  //   await ctx.connection.sendTransaction(tx);
-  //   await  sleep(3);
-  //   console.log("handle call message asset manager native");
-  // });
-
-  // it("Handle call message native revert", async() => {
-  //   let withdrawerKeyPair = Keypair.generate();
-  //   //let nativeValultAuthority = Keypair.generate();
-  //   let vaultNativetoken = AssetManagerPDA.vault_native().pda;
-  //   await  sleep(3);
-  //   await txnHelpers.airdrop(vaultNativetoken, 5000000000);
-  //   await  sleep(3);
-  //   // const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
-  //   // let iconAssetManager = stateAccount.iconAssetManager;
-  //   const data = ["DepositRevert", "11111111111111111111111111111111", withdrawerKeyPair.publicKey.toString(), 1000000000];
-  //   const rlpEncodedData = rlp.encode(data);
-
-  //   let protocols = xcall_manager_program.account.xmState.fetch(AssetManagerPDA.xcall_manager_state().pda);
-  //   let configureIx = await program.methods
-  //   .handleCallMessage(xcall_program.programId.toString(), Buffer.from(rlpEncodedData), (await protocols).sources )
-  //   .accountsStrict({
-  //     signer: wallet.payer.publicKey,
-  //     instructionSysvar: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
-  //     to: null,
-  //     toNative: withdrawerKeyPair.publicKey,
-  //     state: AssetManagerPDA.state().pda,
-  //     vaultTokenAccount: null,
-  //     vaultNativeAccount: vaultNativetoken,
-  //     valultAuthority: null,
-  //     xcallManager: xcall_manager_program.programId,
-  //     mint: null,
-  //     tokenProgram: null,
-  //     xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
-  //     systemProgram: SYSTEM_PROGRAM_ID
-  //   }).instruction();
-  //   let tx = await ctx.txnHelpers.buildV0Txn([configureIx], [ctx.admin]);
-  //   await ctx.connection.sendTransaction(tx);
-  //   console.log("handle call message asset manager native");
-  //   await  sleep(3);
-
-  // });
 
   it("test handle call message complete flow with xcall", async () => {
     let xcallConfig = await xcallCtx.getConfig();
@@ -595,7 +439,7 @@ describe("xx asset manager test", () => {
       program.programId
     );
 
-    await xcallProgram.methods
+    let txHash = await xcallProgram.methods
       .executeCall(
         new anchor.BN(nextReqId),
         Buffer.from(rlpEncodedData),
@@ -613,6 +457,8 @@ describe("xx asset manager test", () => {
       ])
       .signers([ctx.admin])
       .rpc();
+
+      await txnHelpers.logParsedTx(txHash);
   });
 
   it("test handle call message rollback complete flow with xcall", async () => {
@@ -690,7 +536,7 @@ describe("xx asset manager test", () => {
       program.programId
     );
 
-    await xcallProgram.methods
+    let txHash = await xcallProgram.methods
       .executeCall(
         new anchor.BN(nextReqId),
         Buffer.from(rlpEncodedData),
@@ -708,6 +554,7 @@ describe("xx asset manager test", () => {
       ])
       .signers([ctx.admin])
       .rpc();
+      await txnHelpers.logParsedTx(txHash);
   });
 
   it("test handle call message for native token complete flow with xcall", async () => {
@@ -777,7 +624,7 @@ describe("xx asset manager test", () => {
       program.programId
     );
     console.log("execute call accounts: ", executeCallAccounts);
-    await xcallProgram.methods
+    let txHash = await xcallProgram.methods
       .executeCall(
         new anchor.BN(nextReqId),
         Buffer.from(rlpEncodedData),
@@ -795,6 +642,7 @@ describe("xx asset manager test", () => {
       ])
       .signers([ctx.admin])
       .rpc();
+      await txnHelpers.logParsedTx(txHash);
   });
 
   it("test handle call message for native token complete flow with xcall", async () => {
@@ -864,7 +712,7 @@ describe("xx asset manager test", () => {
       program.programId
     );
     console.log("execute call accounts: ", executeCallAccounts);
-    await xcallProgram.methods
+    let txHash = await xcallProgram.methods
       .executeCall(
         new anchor.BN(nextReqId),
         Buffer.from(rlpEncodedData),
@@ -882,18 +730,7 @@ describe("xx asset manager test", () => {
       ])
       .signers([ctx.admin])
       .rpc();
+      await txnHelpers.logParsedTx(txHash);
   });
 
-  // it("test account list", async () => {
-  //   let to = Keypair.generate();
-  //   const data = ["WithdrawTo", mint.toString(), to.publicKey.toString(), 1000000000];
-  //   const rlpEncodedData = rlp.encode(data);
-
-  //   let accounts = await program.methods
-  //     .queryHandleCallMessageAccounts("", Buffer.from(rlpEncodedData), [])
-  //     .accounts({
-  //       state: AssetManagerPDA.state().pda,
-  //     }).view();
-
-  // });
 });

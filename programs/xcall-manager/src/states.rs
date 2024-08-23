@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::errors::XCallManagerError;
+use crate::{errors::XCallManagerError, program::XcallManager};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -33,6 +33,15 @@ pub struct AdminAction<'info> {
     #[account(mut, seeds=["state".as_bytes()], bump, has_one=admin)]
     pub state: Account<'info, XmState>,
     pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct SetProtocols<'info> {
+    #[account(mut, seeds=["state".as_bytes()], bump)]
+    pub state: Account<'info, XmState>,
+    #[account(address = crate::ID)]
+    pub program: Program<'info, XcallManager>,
+    pub signer: Signer<'info>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]

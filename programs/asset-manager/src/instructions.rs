@@ -22,7 +22,7 @@ use crate::{
 };
 
 const POINTS: u64 = 10000;
-const _NATIVE_ADDRESS: &str = "11111111111111111111111111111111";
+pub const _NATIVE_ADDRESS: &str = "11111111111111111111111111111111";
 
 pub fn initialize(
     ctx: Context<Initialize>,
@@ -48,7 +48,7 @@ pub fn configure_rate_limit(
 ) -> Result<()> {
     require!(percentage <= POINTS, AssetManagerError::PercentageTooHigh);
 
-    let token_state = &mut ctx.accounts.token_state;
+    let token_state: &mut Account<TokenState> = &mut ctx.accounts.token_state;
     let current_limit = 0;
     let last_update = Clock::get()?.unix_timestamp;
     token_state.set_inner(TokenState {
@@ -85,9 +85,9 @@ fn calculate_limit(token_state: &TokenState, balance: u64) -> Result<u64> {
 }
 
 pub fn get_withdraw_limit(ctx: Context<GetWithdrawLimit>) -> Result<u64> {
-    let state = &ctx.accounts.token_state;
+    let token_state = &ctx.accounts.token_state;
     let balance = balance_of(&ctx.accounts.vault_token_account)?;
-    calculate_limit(state, balance)
+    calculate_limit(token_state, balance)
 }
 
 pub fn deposit_token<'info>(
@@ -275,12 +275,21 @@ pub fn handle_call_message<'info>(
     data: Vec<u8>,
     protocols: Vec<String>,
 ) -> Result<HandleCallMessageResponse> {
+    require!(
+        verify_protocols(
+            ctx.accounts.xcall_manager.clone(),
+            ctx.accounts.xcall_manager_state.clone(),
+            &protocols
+        )?,
+        AssetManagerError::ProtocolMismatch
+    );
+
     let token_address = decode_token_address(&data)?;
     let result;
     if token_address != _NATIVE_ADDRESS.to_string() {
-        result = handle_token_call_message(ctx, from, data, protocols);
+        result = handle_token_call_message(ctx, from, data);
     } else {
-        result = handle_native_call_message(ctx, from, data, protocols);
+        result = handle_native_call_message(ctx, from, data);
     }
 
     match result {
@@ -303,18 +312,9 @@ fn handle_token_call_message<'info>(
     ctx: Context<'_, '_, '_, 'info, HandleCallMessage<'info>>,
     from: String,
     data: Vec<u8>,
-    protocols: Vec<String>,
 ) -> Result<bool> {
     let state = ctx.accounts.state.clone();
     let bump = ctx.bumps.valult_authority.unwrap();
-    require!(
-        verify_protocols(
-            ctx.accounts.xcall_manager.clone(),
-            ctx.accounts.xcall_manager_state.clone(),
-            &protocols
-        )?,
-        AssetManagerError::ProtocolMismatch
-    );
     let method = decode_method(&data)?;
     let to = ctx
         .accounts
@@ -341,6 +341,7 @@ fn handle_token_call_message<'info>(
         .valult_authority
         .as_ref()
         .ok_or(AssetManagerError::ValultAuthorityIsRequired)?;
+    let mut token_state = &mut ctx.accounts.token_state;
     if method == WITHDRAW_TO {
         require!(
             from == state.icon_asset_manager,
@@ -360,6 +361,7 @@ fn handle_token_call_message<'info>(
             AssetManagerError::InvalidToAddress
         );
         withdraw_token(
+            &mut token_state,
             vault_token_account.to_account_info(),
             to.to_account_info(),
             message.amount as u64,
@@ -381,8 +383,9 @@ fn handle_token_call_message<'info>(
             recipient_pubkey == to.key(),
             AssetManagerError::InvalidToAddress
         );
-
+        
         withdraw_token(
+            &mut token_state,
             vault_token_account.to_account_info(),
             to.to_account_info(),
             message.amount as u64,
@@ -401,19 +404,10 @@ fn handle_token_call_message<'info>(
 fn handle_native_call_message<'info>(
     ctx: Context<'_, '_, '_, 'info, HandleCallMessage<'info>>,
     from: String,
-    data: Vec<u8>,
-    protocols: Vec<String>,
+    data: Vec<u8>
 ) -> Result<bool> {
+    
     let state = ctx.accounts.state.clone();
-
-    require!(
-        verify_protocols(
-            ctx.accounts.xcall_manager.clone(),
-            ctx.accounts.xcall_manager_state.clone(),
-            &protocols
-        )?,
-        AssetManagerError::ProtocolMismatch
-    );
     let bump = ctx.bumps.vault_native_account.unwrap();
     let method = decode_method(&data)?;
     let to_native = ctx
@@ -427,6 +421,7 @@ fn handle_native_call_message<'info>(
         .as_ref()
         .ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
     let system_program_info = ctx.accounts.system_program.to_account_info();
+    let mut token_state = &mut ctx.accounts.token_state;
     if method == WITHDRAW_TO_NATIVE {
         require!(
             from == state.icon_asset_manager,
@@ -444,6 +439,7 @@ fn handle_native_call_message<'info>(
             AssetManagerError::InvalidToAddress
         );
         withdraw_native_token(
+            &mut token_state,
             vault_native_account.clone(),
             to_native.clone(),
             system_program_info,
@@ -463,6 +459,7 @@ fn handle_native_call_message<'info>(
             AssetManagerError::InvalidToAddress
         );
         withdraw_native_token(
+            &mut token_state,
             vault_native_account.clone(),
             to_native.clone(),
             system_program_info,
@@ -477,6 +474,7 @@ fn handle_native_call_message<'info>(
 }
 
 fn withdraw_token<'info>(
+    token_state: &mut Account<TokenState>,
     vault_token_account: AccountInfo<'info>,
     recipient: AccountInfo<'info>,
     amount: u64,
@@ -492,6 +490,7 @@ fn withdraw_token<'info>(
         vault_balance >= amount,
         AssetManagerError::InsufficientBalance
     );
+    let _ = verify_withdraw(token_state, amount, vault_balance);
 
     let cpi_accounts = Transfer {
         from: vault_token_account,
@@ -509,6 +508,7 @@ fn withdraw_token<'info>(
 }
 
 fn withdraw_native_token<'info>(
+    token_state: &mut Account<TokenState>,
     vault_native_account: AccountInfo<'info>,
     recipient: AccountInfo<'info>,
     system_program: AccountInfo<'info>,
@@ -519,6 +519,7 @@ fn withdraw_native_token<'info>(
         amount <= **vault_native_account.try_borrow_lamports()?,
         AssetManagerError::InsufficientBalance
     );
+    let _ = verify_withdraw(token_state, amount, vault_native_account.get_lamports());
 
     let seeds = &[b"vault_native".as_ref(), &[bump]];
     let signer = &[&seeds[..]];
