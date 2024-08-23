@@ -8,7 +8,7 @@ pub mod structs;
 use states::*;
 use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 
-declare_id!("FQnK1rxyPqHDpzVVrDzV4gEGHSBFQcsJ42w4926ktJCm");
+declare_id!("9cmYrvKr6JxkQfkTM5Nuf1LTGSGPRH4x3VczCa6GqjkE");
 
 #[program]
 pub mod balanced_dollar {
