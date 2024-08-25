@@ -351,8 +351,15 @@ describe("xx asset manager test", () => {
         },
       ])
       .instruction();
+      const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+        units: 1000000,
+      });
+  
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 0,
+      });
     let tx = await ctx.txnHelpers.buildV0Txn(
-      [depositTokenIx],
+      [modifyComputeUnits, addPriorityFee, depositTokenIx],
       [nativeDepositor]
     );
     let txHash = await ctx.connection.sendTransaction(tx);

@@ -5,10 +5,10 @@
  * IDL can be found at `target/idl/xcall.json`.
  */
 export type Xcall = {
-  "address": "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW",
+  "address": "CnZLCetiXFr963LgQpPKhkQu7N9z64b4eKcBp28Wps4J",
   "metadata": {
     "name": "xcall",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
@@ -456,6 +456,9 @@ export type Xcall = {
         },
         {
           "name": "connection",
+          "docs": [
+            "The signer account representing the connection through which the message is being processed."
+          ],
           "signer": true
         },
         {
@@ -480,10 +483,22 @@ export type Xcall = {
         },
         {
           "name": "rollbackAccount",
+          "docs": [
+            "A rollback account created when initiating a rollback message to a destination chain.",
+            "This account stores crucial details about the message, which are necessary for processing",
+            "the response from the destination chain. In this instruction, the `rollback_account` is",
+            "used to enable and execute the rollback operation within the DApp that originally sent",
+            "the message."
+          ],
           "writable": true
         },
         {
           "name": "pendingResponse",
+          "docs": [
+            "An optional account created to track whether a response has been received from each connection",
+            "specified in a message. This account is only initialized if multiple connections are used for",
+            "sending and receiving messages, enhancing security by avoiding reliance on a single connection."
+          ],
           "writable": true,
           "optional": true
         }
@@ -497,6 +512,25 @@ export type Xcall = {
     },
     {
       "name": "handleMessage",
+      "docs": [
+        "Entry point for handling cross-chain messages within the xcall program.",
+        "",
+        "This function delegates the processing of an incoming message to the inner `handle_message`",
+        "function, passing along the necessary context and message details. It determines the type of",
+        "the message and invokes the appropriate logic to handle requests or responses from other",
+        "chains.",
+        "",
+        "# Parameters",
+        "- `ctx`: The context containing all necessary accounts and program-specific information.",
+        "- `from_nid`: The network ID of the chain that sent the message.",
+        "- `msg`: The encoded message payload received from the chain.",
+        "- `sequence_no`: The sequence number associated with the message, used to track message",
+        "ordering and responses.",
+        "",
+        "# Returns",
+        "- `Result<()>`: Returns `Ok(())` if the message is successfully handled, or an error if any",
+        "validation or processing fails."
+      ],
       "discriminator": [
         91,
         215,
@@ -519,6 +553,9 @@ export type Xcall = {
         },
         {
           "name": "connection",
+          "docs": [
+            "The signer account representing the connection through which the message is being processed."
+          ],
           "signer": true
         },
         {
@@ -528,14 +565,6 @@ export type Xcall = {
           ]
         },
         {
-          "name": "config",
-          "docs": [
-            "The configuration account, which stores important settings and counters for the",
-            "program. This account is mutable because the last request ID of config will be updated."
-          ],
-          "writable": true
-        },
-        {
           "name": "admin",
           "docs": [
             "it is valid."
@@ -543,27 +572,28 @@ export type Xcall = {
           "writable": true
         },
         {
-          "name": "proxyRequest",
-          "writable": true,
-          "optional": true
+          "name": "config",
+          "docs": [
+            "The configuration account, which stores important settings and counters for the program."
+          ]
         },
         {
-          "name": "pendingRequest",
-          "writable": true,
+          "name": "rollbackAccount",
+          "docs": [
+            "An optional account that is created when sending a rollback message to a destination chain.",
+            "It stores essential details related to the message, which are required to handle the response",
+            "from the destination chain. The `rollback_account` is only needed if a response is expected",
+            "for a specific sequence of the message that was sent from this chain."
+          ],
           "optional": true
         },
         {
           "name": "pendingResponse",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "successfulResponse",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "rollbackAccount",
+          "docs": [
+            "An optional account created to track whether a response has been received from each connection",
+            "specified in a message. This account is only initialized if multiple connections are used for",
+            "sending and receiving messages, enhancing security by avoiding reliance on a single connection."
+          ],
           "writable": true,
           "optional": true
         }
@@ -575,6 +605,182 @@ export type Xcall = {
         },
         {
           "name": "msg",
+          "type": "bytes"
+        },
+        {
+          "name": "sequenceNo",
+          "type": "u128"
+        }
+      ]
+    },
+    {
+      "name": "handleRequest",
+      "discriminator": [
+        94,
+        58,
+        189,
+        246,
+        63,
+        91,
+        40,
+        241
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "The account that signs and pays for the transaction. This account is mutable",
+            "because it will be debited for any fees or rent required during the transaction."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "connection",
+          "docs": [
+            "The signer account representing the connection through which the message is being processed."
+          ],
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "The solana system program account, used for creating and managing accounts."
+          ]
+        },
+        {
+          "name": "admin",
+          "docs": [
+            "it is valid."
+          ],
+          "writable": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "The configuration account, which stores important settings and counters for the program.",
+            "This account is mutable because the request sequence may be updated during instruction",
+            "processing"
+          ],
+          "writable": true
+        },
+        {
+          "name": "proxyRequest",
+          "docs": [
+            "Stores details of each cross-chain message request sent from the source to the destination chain."
+          ],
+          "writable": true
+        },
+        {
+          "name": "pendingRequest",
+          "docs": [
+            "Tracks the receipt of requests from a multi-connection message. This account is optional and",
+            "only created if multiple connections are used to send a message, ensuring the request is fully",
+            "received."
+          ],
+          "writable": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "fromNid",
+          "type": "string"
+        },
+        {
+          "name": "msgPayload",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "handleResult",
+      "discriminator": [
+        89,
+        67,
+        72,
+        120,
+        78,
+        209,
+        249,
+        144
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "The account that signs and pays for the transaction. This account is mutable",
+            "because it will be debited for any fees or rent required during the transaction."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "connection",
+          "docs": [
+            "The signer account representing the connection through which the message is being processed."
+          ],
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "The solana system program account, used for creating and managing accounts."
+          ]
+        },
+        {
+          "name": "admin",
+          "docs": [
+            "it is valid."
+          ],
+          "writable": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "The configuration account, which stores important settings and counters for the program.",
+            "This account is mutable because the request sequence may be updated during instruction",
+            "processing"
+          ],
+          "writable": true
+        },
+        {
+          "name": "rollbackAccount",
+          "docs": [
+            "A rollback account created when sending a rollback message to a destination chain.",
+            "It stores essential details related to the message, necessary for handling the response",
+            "from the destination chain. The `rollback_account` is required only if a response is",
+            "expected for a specific sequence of the message sent from this chain."
+          ],
+          "writable": true
+        },
+        {
+          "name": "proxyRequest",
+          "docs": [
+            "Stores details of each cross-chain message request sent from the source to the destination",
+            "chain."
+          ],
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "successfulResponse",
+          "docs": [
+            "Stores details of a successful response received from the destination chain. This account",
+            "is optional and created only when a successful response is expected for a specific sequence",
+            "number."
+          ],
+          "writable": true,
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "fromNid",
+          "type": "string"
+        },
+        {
+          "name": "msgPayload",
           "type": "bytes"
         },
         {
@@ -1653,26 +1859,6 @@ export type Xcall = {
           {
             "name": "lastReqId",
             "type": "u128"
-          },
-          {
-            "name": "replyState",
-            "type": {
-              "option": {
-                "defined": {
-                  "name": "csMessageRequest"
-                }
-              }
-            }
-          },
-          {
-            "name": "callReply",
-            "type": {
-              "option": {
-                "defined": {
-                  "name": "csMessageRequest"
-                }
-              }
-            }
           },
           {
             "name": "bump",

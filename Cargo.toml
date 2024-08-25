@@ -16,6 +16,6 @@ codegen-units = 1
 [workspace.dependencies]
 anchor-lang = { version = "0.30.1", features = ["init-if-needed"] }
 hex = { version = "0.4.3", default-features = false }
-xcall = { git = "https://github.com/icon-project/xcall-multi", branch = "solana/xcall-multi", features = ["cpi"] }
-xcall-lib = { git = "https://github.com/icon-project/xcall-multi", branch = "solana/xcall-multi" }
-rlp = { git = "https://github.com/icon-project/xcall-multi", branch = "solana/xcall-multi" }
+xcall = { git = "https://github.com/icon-project/xcall-multi", branch = "solana/test-xcall-multi", features = ["cpi"] }
+xcall-lib = { git = "https://github.com/icon-project/xcall-multi", branch = "solana/test-xcall-multi" }
+rlp = { git = "https://github.com/icon-project/xcall-multi", branch = "solana/test-xcall-multi" }

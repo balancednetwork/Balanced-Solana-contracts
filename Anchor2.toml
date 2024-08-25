@@ -4,21 +4,18 @@
 resolution = false
 skip-lint = false
 
-[programs."https://api.devnet.solana.com"]
-asset_manager = "Gk5un55A5ExrMvx7rp4HvygNik2trCrM325rTDBGGSbb"
-balanced_dollar = "9cmYrvKr6JxkQfkTM5Nuf1LTGSGPRH4x3VczCa6GqjkE"
-xcall_manager = "D8E4MdQH6p3vfiX23Kq5x4xM1v4aUfhp3sM2HYGinvzk"
-
 [programs.localnet]
 asset_manager = "Gk5un55A5ExrMvx7rp4HvygNik2trCrM325rTDBGGSbb"
 balanced_dollar = "9cmYrvKr6JxkQfkTM5Nuf1LTGSGPRH4x3VczCa6GqjkE"
+centralized_connection = "337ToYrue4zSSyS3Th3DDS6qHvFRG6JA7Zkx2zJxLXAS"
+xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
 xcall_manager = "D8E4MdQH6p3vfiX23Kq5x4xM1v4aUfhp3sM2HYGinvzk"
 
 [registry]
-url = "https://api.devnet.solana.com"
+url = "https://api.apr.dev"
 
 [provider]
-cluster = "Devnet"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
