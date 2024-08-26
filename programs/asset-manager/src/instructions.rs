@@ -341,25 +341,22 @@ fn handle_token_call_message<'info>(
         .valult_authority
         .as_ref()
         .ok_or(AssetManagerError::ValultAuthorityIsRequired)?;
-    let mut token_state = &mut ctx.accounts.token_state;
+    let mut token_state: &mut Account<'info, TokenState> = &mut ctx.accounts.token_state;
     if method == WITHDRAW_TO {
-        require!(
-            from == state.icon_asset_manager,
-            AssetManagerError::NotIconAssetManager
-        );
+        if from != state.icon_asset_manager{
+           return Err(AssetManagerError::NotIconAssetManager.into())
+        }
         let message = decode_withdraw_to_msg(&data)?;
         let token_pubkey = Pubkey::from_str(&message.token_address)
             .map_err(|_| AssetManagerError::NotAnAddress)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
-        require!(
-            recipient_pubkey == to.key(),
-            AssetManagerError::InvalidToAddress
-        );
-        require!(
-            token_pubkey == mint.key(),
-            AssetManagerError::InvalidToAddress
-        );
+        if recipient_pubkey != to.key() {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
+        if token_pubkey != mint.key() {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
         withdraw_token(
             &mut token_state,
             vault_token_account.to_account_info(),
@@ -371,18 +368,16 @@ fn handle_token_call_message<'info>(
             bump,
         )?;
     } else if method == DEPOSIT_REVERT {
-        require!(
-            from == state.xcall.key().to_string(),
-            AssetManagerError::UnauthorizedCaller
-        );
+        if from != state.xcall.key().to_string() {
+            return Err(AssetManagerError::UnauthorizedCaller.into())
+        }
 
         let message = decode_deposit_revert_msg(&data)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
-        require!(
-            recipient_pubkey == to.key(),
-            AssetManagerError::InvalidToAddress
-        );
+        if recipient_pubkey != to.key() {
+           return Err(AssetManagerError::InvalidToAddress.into())
+        }
         
         withdraw_token(
             &mut token_state,
@@ -423,21 +418,18 @@ fn handle_native_call_message<'info>(
     let system_program_info = ctx.accounts.system_program.to_account_info();
     let mut token_state = &mut ctx.accounts.token_state;
     if method == WITHDRAW_TO_NATIVE {
-        require!(
-            from == state.icon_asset_manager,
-            AssetManagerError::NotIconAssetManager
-        );
+        if from != state.icon_asset_manager {
+            return Err(AssetManagerError::NotIconAssetManager.into())
+        }
         let message = decode_withdraw_to_msg(&data)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
-        require!(
-            recipient_pubkey == to_native.key(),
-            AssetManagerError::InvalidToAddress
-        );
-        require!(
-            message.token_address == _NATIVE_ADDRESS,
-            AssetManagerError::InvalidToAddress
-        );
+        if recipient_pubkey != to_native.key() {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
+        if message.token_address != _NATIVE_ADDRESS {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
         withdraw_native_token(
             &mut token_state,
             vault_native_account.clone(),
@@ -447,17 +439,15 @@ fn handle_native_call_message<'info>(
             bump,
         )?;
     } else if method == DEPOSIT_REVERT {
-        require!(
-            from == state.xcall.key().to_string(),
-            AssetManagerError::NotIconAssetManager
-        );
+        if from != state.xcall.key().to_string() {
+           return Err(AssetManagerError::NotIconAssetManager.into())
+        }
         let message = decode_deposit_revert_msg(&data)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
-        require!(
-            recipient_pubkey == to_native.key(),
-            AssetManagerError::InvalidToAddress
-        );
+        if recipient_pubkey != to_native.key() {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
         withdraw_native_token(
             &mut token_state,
             vault_native_account.clone(),
@@ -486,10 +476,9 @@ fn withdraw_token<'info>(
     let account_data = spl_token::state::Account::unpack(&vault_token_account.data.borrow_mut())?;
     let vault_balance = account_data.amount;
 
-    require!(
-        vault_balance >= amount,
-        AssetManagerError::InsufficientBalance
-    );
+    if vault_balance < amount {
+        return Err(AssetManagerError::InsufficientBalance.into())
+    }
     let _ = verify_withdraw(token_state, amount, vault_balance);
 
     let cpi_accounts = Transfer {
@@ -515,10 +504,9 @@ fn withdraw_native_token<'info>(
     amount: u64,
     bump: u8,
 ) -> Result<()> {
-    require!(
-        amount <= **vault_native_account.try_borrow_lamports()?,
-        AssetManagerError::InsufficientBalance
-    );
+    if amount > **vault_native_account.try_borrow_lamports()? {
+        return Err(AssetManagerError::InsufficientBalance.into())
+    }
     let _ = verify_withdraw(token_state, amount, vault_native_account.get_lamports());
 
     let seeds = &[b"vault_native".as_ref(), &[bump]];
@@ -541,10 +529,9 @@ fn withdraw_native_token<'info>(
 
 pub fn verify_withdraw(token_state: &mut TokenState, amount: u64, balance: u64) -> Result<()> {
     let limit = calculate_limit(&token_state, balance)?;
-    require!(
-        balance.saturating_sub(amount) >= limit,
-        AssetManagerError::ExceedsWithdrawLimit
-    );
+    if balance.saturating_sub(amount) < limit {
+       return Err(AssetManagerError::ExceedsWithdrawLimit.into())
+    }
 
     token_state.current_limit = limit;
     token_state.last_update = Clock::get()?.unix_timestamp;
