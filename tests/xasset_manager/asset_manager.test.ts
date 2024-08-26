@@ -37,7 +37,9 @@ const xcallProgram: anchor.Program<Xcall> = new anchor.Program(
 import {
   CSMessage,
   CSMessageRequest,
+  CSMessageResult,
   CSMessageType,
+  CSResponseType,
   MessageType,
 } from "../utils/types";
 import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
@@ -74,6 +76,9 @@ describe("xx asset manager test", () => {
   let xcallKeyPair = Keypair.generate();
   let mint: PublicKey;
   let vaultTokenAccount: Account;
+  let depositorKeyPair = Keypair.generate();
+  let depositorTokenAccount: Account;
+  let nativeDepositor = Keypair.generate();
 
   beforeAll(async () => {
     mint = await createMint(
@@ -164,8 +169,8 @@ describe("xx asset manager test", () => {
   it("deposit token", async () => {
     let { pda } = XcallPDA.config();
     let xcall_config = await xcall_program.account.config.fetch(pda);
-    let depositorKeyPair = Keypair.generate();
-    let depositorTokenAccount = await getOrCreateAssociatedTokenAccount(
+    
+    depositorTokenAccount = await getOrCreateAssociatedTokenAccount(
       provider.connection,
       wallet.payer,
       mint,
@@ -263,7 +268,6 @@ describe("xx asset manager test", () => {
     );
     let txHash = await ctx.connection.sendTransaction(tx);
     await txnHelpers.logParsedTx(txHash);
-
     console.log("deposited");
   });
 
@@ -282,7 +286,7 @@ describe("xx asset manager test", () => {
   it("deposit native token", async () => {
     let { pda } = XcallPDA.config();
     let xcall_config = await xcall_program.account.config.fetch(pda);
-    let nativeDepositor = Keypair.generate();
+    
     await txnHelpers.airdrop(nativeDepositor.publicKey, 5000000000);
     // Check the balance to ensure it has been funded
     const initialBalance = await provider.connection.getBalance(
@@ -469,59 +473,115 @@ describe("xx asset manager test", () => {
   });
 
   it("test handle call message rollback complete flow with xcall", async () => {
+    let { pda } = XcallPDA.config();
+    let xcall_config = await xcall_program.account.config.fetch(pda);
+    let xcall_sequence_no = xcall_config.sequenceNo.toNumber() + 1
+    
+
+    let bytes = Buffer.alloc(0);
+    let depositTokenIx = await program.methods
+      .depositToken(
+        bn(1000000000),
+        depositorTokenAccount.address.toString(),
+        bytes
+      )
+      .accountsStrict({
+        from: depositorTokenAccount.address,
+        vaultNativeAccount: null,
+        fromAuthority: depositorKeyPair.publicKey,
+        vaultTokenAccount: vaultTokenAccount.address,
+        state: AssetManagerPDA.state().pda,
+        xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
+        xcallConfig: XcallPDA.config().pda,
+        xcall: xcall_program.programId,
+        xcallManager: xcall_manager_program.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        xcallAuthority: AssetManagerPDA.xcall_authority().pda,
+      })
+      .remainingAccounts([
+        {
+          pubkey: XcallPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: XcallPDA.rollback(xcall_sequence_no).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
+          isSigner: false,
+          isWritable: false,
+        },
+        {
+          pubkey: xcall_config.feeHandler,
+          isSigner: false,
+          isWritable: true,
+        },
+        //connection params
+        {
+          pubkey: connectionProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.network_fee("icon").pda,
+          isSigner: false,
+          isWritable: true,
+        },
+      ])
+      .instruction();
+    const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 1000000,
+    });
+
+    const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+      microLamports: 0,
+    });
+    let tx = await ctx.txnHelpers.buildV0Txn(
+      [modifyComputeUnits, addPriorityFee, depositTokenIx],
+      [depositorKeyPair]
+    );
+    let depositTxHash = await ctx.connection.sendTransaction(tx);
+    await txnHelpers.logParsedTx(depositTxHash);
+    
+
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 9;
     const fromNetwork = "icon";
-    let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
-    let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
+    console.log("spl token rollback")
 
-    //const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
-    let withdrawerKeyPair = Keypair.generate();
-    let withdrawerTokenAccount = await getOrCreateAssociatedTokenAccount(
-      provider.connection,
-      wallet.payer,
-      mint,
-      withdrawerKeyPair.publicKey,
-      true
+    let result = new CSMessageResult(
+      xcall_sequence_no,
+      CSResponseType.CSMessageFailure,
+      new Uint8Array([])
     );
-    let sender = Keypair.generate();
-    const data = [
-      "DepositRevert",
-      mint.toString(),
-      withdrawerTokenAccount.address.toString(),
-      1000000000,
-    ];
-    const rlpEncodedData = rlp.encode(data);
-    console.log("data encoded");
-
-    let request = new CSMessageRequest(
-      iconAssetManager,
-      program.programId.toString(),
-      nextSequenceNo,
-      MessageType.CallMessageWithRollback,
-      Buffer.from(rlpEncodedData),
-      [connectionProgram.programId.toString()]
-    );
-
-    let cs_message = new CSMessage(
-      CSMessageType.CSMessageRequest,
-      request.encode()
+    let csMessage = new CSMessage(
+      CSMessageType.CSMessageResult,
+      result.encode()
     ).encode();
 
     let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
       connSn,
-      nextSequenceNo,
-      cs_message,
-      CSMessageType.CSMessageRequest
+      xcall_sequence_no,
+      csMessage,
+      CSMessageType.CSMessageResult
     );
 
     await connectionProgram.methods
       .recvMessage(
         fromNetwork,
         new anchor.BN(connSn),
-        Buffer.from(cs_message),
-        new anchor.BN(nextSequenceNo)
+        Buffer.from(csMessage),
+        new anchor.BN(xcall_sequence_no)
       )
       .accountsStrict({
         config: ConnectionPDA.config().pda,
@@ -533,35 +593,35 @@ describe("xx asset manager test", () => {
       .remainingAccounts([...recvMessageAccounts.slice(4)])
       .signers([ctx.admin])
       .rpc();
-    console.log("receive message complete");
+    console.log("rollback receive message complete");
     await sleep(2);
     // call xcall execute_call
-    let executeCallAccounts = await xcallCtx.getExecuteCallAccounts(
-      nextReqId,
-      Buffer.from(rlpEncodedData),
-      AssetManagerPDA.state().pda,
-      program.programId
-    );
+      let executeRollbackAccounts = await xcallCtx.getExecuteRollbackAccounts(
+        xcall_sequence_no,
+        AssetManagerPDA.state().pda,
+        program.programId
+      );
 
-    let txHash = await xcallProgram.methods
-      .executeCall(
-        new anchor.BN(nextReqId),
-        Buffer.from(rlpEncodedData),
-      )
-      .accounts({
-        signer: ctx.admin.publicKey,
-        systemProgram: SYSTEM_PROGRAM_ID,
-        config: XcallPDA.config().pda,
-        admin: xcallConfig.admin,
-        proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
-      })
-      .remainingAccounts([
-        // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
-        ...executeCallAccounts.slice(4),
-      ])
-      .signers([ctx.admin])
-      .rpc();
-      await txnHelpers.logParsedTx(txHash);
+      let txHash = await xcallProgram.methods
+        .executeRollback(
+          new anchor.BN(xcall_sequence_no),
+        )
+        .accounts({
+          signer: ctx.admin.publicKey,
+          systemProgram: SYSTEM_PROGRAM_ID,
+          config: XcallPDA.config().pda,
+          admin: xcallConfig.admin,
+          rollbackAccount: XcallPDA.rollback(xcall_sequence_no).pda,
+        })
+        .remainingAccounts([
+          // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
+          ...executeRollbackAccounts.slice(4),
+        ])
+        .signers([ctx.admin])
+        .rpc();
+        await sleep(3)
+        await txnHelpers.logParsedTx(txHash);
+    
   });
 
   it("test handle call message for native token complete flow with xcall", async () => {
@@ -652,92 +712,150 @@ describe("xx asset manager test", () => {
       await txnHelpers.logParsedTx(txHash);
   });
 
-  it("test handle call message for native token complete flow with xcall", async () => {
+  it("test handle call message for native token rollback complete flow with xcall", async () => {
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 11;
     const fromNetwork = "icon";
-    let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
-    //const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
-    let withdrawerKeyPair = Keypair.generate();
-
-    const data = [
-      "DepositRevert",
-      "11111111111111111111111111111111",
-      withdrawerKeyPair.publicKey.toString(),
-      1000000000,
-    ];
-    const rlpEncodedData = rlp.encode(data);
-    console.log("encoded for native");
-    let request = new CSMessageRequest(
-      iconAssetManager,
-      program.programId.toString(),
-      nextSequenceNo,
-      MessageType.CallMessageWithRollback,
-      Buffer.from(rlpEncodedData),
-      [connectionProgram.programId.toString()]
-    );
-
-    let cs_message = new CSMessage(
-      CSMessageType.CSMessageRequest,
-      request.encode()
-    ).encode();
-
-    let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
-      connSn,
-      nextSequenceNo,
-      cs_message,
-      CSMessageType.CSMessageRequest
-    );
-    console.log("receive message accounts: ", recvMessageAccounts);
-    await connectionProgram.methods
-      .recvMessage(
-        fromNetwork,
-        new anchor.BN(connSn),
-        Buffer.from(cs_message),
-        new anchor.BN(nextSequenceNo)
+    let bytes = Buffer.alloc(0);
+    let depositTokenIx = await program.methods
+      .depositNative(
+        bn(1000000000),
+        nativeDepositor.publicKey.toString(),
+        bytes
       )
       .accountsStrict({
-        config: ConnectionPDA.config().pda,
-        admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(connSn).pda,
+        from: null,
+        fromAuthority: nativeDepositor.publicKey,
+        vaultTokenAccount: null,
+        vaultNativeAccount: AssetManagerPDA.vault_native().pda,
+        state: AssetManagerPDA.state().pda,
+        xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
+        xcallConfig: XcallPDA.config().pda,
+        xcall: xcall_program.programId,
+        xcallManager: xcall_manager_program.programId,
+        tokenProgram: null,
         systemProgram: SYSTEM_PROGRAM_ID,
-        authority: ConnectionPDA.authority().pda
-      })
-      .remainingAccounts([...recvMessageAccounts.slice(4)])
-      .signers([ctx.admin])
-      .rpc();
-    console.log("receive message complete");
-    await sleep(2);
-    // call xcall execute_call
-    let executeCallAccounts = await xcallCtx.getExecuteCallAccounts(
-      nextReqId,
-      Buffer.from(rlpEncodedData),
-      AssetManagerPDA.state().pda,
-      program.programId
-    );
-    console.log("execute call accounts: ", executeCallAccounts);
-    let txHash = await xcallProgram.methods
-      .executeCall(
-        new anchor.BN(nextReqId),
-        Buffer.from(rlpEncodedData),
-      )
-      .accounts({
-        signer: ctx.admin.publicKey,
-        systemProgram: SYSTEM_PROGRAM_ID,
-        config: XcallPDA.config().pda,
-        admin: xcallConfig.admin,
-        proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
+        xcallAuthority: AssetManagerPDA.xcall_authority().pda,
       })
       .remainingAccounts([
-        // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
-        ...executeCallAccounts.slice(4),
+        {
+          pubkey: XcallPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: XcallPDA.rollback(nextSequenceNo).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
+          isSigner: false,
+          isWritable: false,
+        },
+        {
+          pubkey: xcallConfig.feeHandler,
+          isSigner: false,
+          isWritable: true,
+        },
+        //connection params
+        {
+          pubkey: connectionProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.network_fee("icon").pda,
+          isSigner: false,
+          isWritable: true,
+        },
       ])
-      .signers([ctx.admin])
-      .rpc();
-      await txnHelpers.logParsedTx(txHash);
+      .instruction();
+      const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+        units: 1000000,
+      });
+  
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 0,
+      });
+    let tx = await ctx.txnHelpers.buildV0Txn(
+      [modifyComputeUnits, addPriorityFee, depositTokenIx],
+      [nativeDepositor]
+    );
+    let txHash = await ctx.connection.sendTransaction(tx);
+    await txnHelpers.logParsedTx(txHash);
+
+    let result = new CSMessageResult(
+      nextSequenceNo,
+      CSResponseType.CSMessageFailure,
+      new Uint8Array([])
+    );
+    let csMessage = new CSMessage(
+      CSMessageType.CSMessageResult,
+      result.encode()
+    ).encode();
+      let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+        connSn,
+        nextSequenceNo,
+        csMessage,
+        CSMessageType.CSMessageResult
+      );
+      console.log("receive message accounts: ", recvMessageAccounts);
+      await connectionProgram.methods
+        .recvMessage(
+          fromNetwork,
+          new anchor.BN(connSn),
+          Buffer.from(csMessage),
+          new anchor.BN(nextSequenceNo)
+        )
+        .accountsStrict({
+          config: ConnectionPDA.config().pda,
+          admin: ctx.admin.publicKey,
+          receipt: ConnectionPDA.receipt(connSn).pda,
+          systemProgram: SYSTEM_PROGRAM_ID,
+          authority: ConnectionPDA.authority().pda
+        })
+        .remainingAccounts([...recvMessageAccounts.slice(4)])
+        .signers([ctx.admin])
+        .rpc();
+      console.log("receive message complete");
+      await sleep(2);
+      // call xcall execute_call
+      
+        let executeRollbackAccounts = await xcallCtx.getExecuteRollbackAccounts(
+          nextSequenceNo,
+          AssetManagerPDA.state().pda,
+          program.programId
+        );
+      
+      console.log("execute call accounts: ", executeRollbackAccounts);
+      let rollbackTxHash = await xcallProgram.methods
+        .executeRollback(
+          new anchor.BN(nextSequenceNo),
+        )
+        .accounts({
+          signer: ctx.admin.publicKey,
+          systemProgram: SYSTEM_PROGRAM_ID,
+          config: XcallPDA.config().pda,
+          admin: xcallConfig.admin,
+          rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
+        })
+        .remainingAccounts([
+          // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
+          ...executeRollbackAccounts.slice(4),
+        ])
+        .signers([ctx.admin])
+        .rpc();
+        await txnHelpers.logParsedTx(rollbackTxHash);
+      
   });
 
 });

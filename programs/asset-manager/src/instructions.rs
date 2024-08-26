@@ -368,7 +368,8 @@ fn handle_token_call_message<'info>(
             bump,
         )?;
     } else if method == DEPOSIT_REVERT {
-        if from != state.xcall.key().to_string() {
+        let from_network_address = NetworkAddress::from_str(&from)?;
+        if from_network_address.account() != state.xcall.to_string() {
             return Err(AssetManagerError::UnauthorizedCaller.into())
         }
 
@@ -439,7 +440,8 @@ fn handle_native_call_message<'info>(
             bump,
         )?;
     } else if method == DEPOSIT_REVERT {
-        if from != state.xcall.key().to_string() {
+        let from_network_address = NetworkAddress::from_str(&from)?;
+        if from_network_address.account() != state.xcall.to_string() {
            return Err(AssetManagerError::NotIconAssetManager.into())
         }
         let message = decode_deposit_revert_msg(&data)?;

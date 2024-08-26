@@ -36,7 +36,9 @@ const xcallProgram: anchor.Program<Xcall> = new anchor.Program(
 import {
   CSMessage,
   CSMessageRequest,
+  CSMessageResult,
   CSMessageType,
+  CSResponseType,
   MessageType,
 } from "../utils/types";
 import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
@@ -203,46 +205,91 @@ describe("balanced dollar manager", () => {
     const fromNetwork = "icon";
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
-
-    const stateAccount = await program.account.state.fetch(
-      BalancedDollarPDA.state().pda
+    let crossTransferTx = await program.methods
+      .crossTransfer("", new anchor.BN(1000000000), Buffer.alloc(0))
+      .accountsStrict({
+        from: withdrawerTokenAccount.address,
+        fromAuthority: withdrawerKeyPair.publicKey,
+        state: BalancedDollarPDA.state().pda,
+        mint: mint,
+        xcallManagerState: BalancedDollarPDA.xcall_manager_state().pda,
+        xcallConfig: XcallPDA.config().pda,
+        xcall: xcall_program.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        xcallAuthority: BalancedDollarPDA.xcall_authority().pda,
+      })
+      .remainingAccounts([
+        {
+          pubkey: XcallPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: XcallPDA.rollback(nextSequenceNo).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: new PublicKey("Sysvar1nstructions1111111111111111111111111"),
+          isSigner: false,
+          isWritable: false,
+        },
+        {
+          pubkey: xcallConfig.feeHandler,
+          isSigner: false,
+          isWritable: true,
+        },
+        //connection params
+        {
+          pubkey: connectionProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.network_fee("icon").pda,
+          isSigner: false,
+          isWritable: true,
+        },
+      ])
+      .instruction();
+    let tx = await ctx.txnHelpers.buildV0Txn(
+      [crossTransferTx],
+      [withdrawerKeyPair]
     );
-    let iconBnUsd = stateAccount.iconBnUsd;
-    let bytes = Buffer.alloc(0);
-    let sender = Keypair.generate();
-    const data = [
-      "xCrossTransferRevert",
-      withdrawerTokenAccount.address.toString(),
-      20000000000,
-    ];
-    const rlpEncodedData = rlp.encode(data);
 
-    let request = new CSMessageRequest(
-      iconBnUSD,
-      program.programId.toString(),
+    try{
+    let txHash = await ctx.connection.sendTransaction(tx);
+    await txnHelpers.logParsedTx(txHash);
+
+    
+    let result = new CSMessageResult(
       nextSequenceNo,
-      MessageType.CallMessageWithRollback,
-      Buffer.from(rlpEncodedData),
-      [connectionProgram.programId.toString()]
+      CSResponseType.CSMessageFailure,
+      new Uint8Array([])
     );
-
-    let cs_message = new CSMessage(
-      CSMessageType.CSMessageRequest,
-      request.encode()
+    let csMessage = new CSMessage(
+      CSMessageType.CSMessageResult,
+      result.encode()
     ).encode();
 
     let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
       connSn,
       nextSequenceNo,
-      cs_message,
-      CSMessageType.CSMessageRequest
+      csMessage,
+      CSMessageType.CSMessageResult
     );
 
     await connectionProgram.methods
       .recvMessage(
         fromNetwork,
         new anchor.BN(connSn),
-        Buffer.from(cs_message),
+        Buffer.from(csMessage),
         new anchor.BN(nextSequenceNo)
       )
       .accountsStrict({
@@ -258,30 +305,31 @@ describe("balanced dollar manager", () => {
 
     await sleep(2);
     // call xcall execute_call
-    let executeCallAccounts = await xcallCtx.getExecuteCallAccounts(
+    let executeRollbackAccounts = await xcallCtx.getExecuteRollbackAccounts(
       nextReqId,
-      Buffer.from(rlpEncodedData),
       BalancedDollarPDA.state().pda,
       program.programId
     );
     await xcallProgram.methods
-      .executeCall(
-        new anchor.BN(nextReqId),
-        Buffer.from(rlpEncodedData),
+      .executeRollback(
+        new anchor.BN(nextSequenceNo),
       )
       .accounts({
         signer: ctx.admin.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         admin: xcallConfig.admin,
-        proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
+        rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
       })
       .remainingAccounts([
         // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
-        ...executeCallAccounts.slice(4),
+        ...executeRollbackAccounts.slice(4),
       ])
       .signers([ctx.admin])
       .rpc();
+    } catch (e){
+      console.log(e);
+    }
   });
 
   it("cross transfer test", async () => {

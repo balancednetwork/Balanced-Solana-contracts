@@ -156,7 +156,8 @@ pub fn handle_call_message<'info>(
             message: "Success".to_owned(),
         });
     } else if method == CROSS_TRANSFER_REVERT {
-        if from != state.xcall.to_string() {
+        let from_network_address = NetworkAddress::from_str(&from)?;
+        if from_network_address.account() != state.xcall.to_string() {
             return Ok(HandleCallMessageResponse {
                 success: false,
                 message: BalancedDollarError::InvalidSender.to_string(),
