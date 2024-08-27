@@ -15,6 +15,14 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
+pub struct SetAdmin<'info> {
+    #[account(mut, seeds = [b"state"], bump)]
+    pub state: Account<'info, State>,
+    #[account(address=state.admin @AssetManagerError::UnauthorizedCaller)]
+    pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
 #[instruction(token: Pubkey)]
 pub struct ConfigureRateLimit<'info> {
     #[account(mut)]
@@ -133,6 +141,21 @@ pub struct HandleCallMessage<'info> {
 pub struct GetParams<'info> {
     #[account(seeds = [b"state"], bump)]
     pub state: Account<'info, State>,
+}
+
+#[derive(Accounts)]
+pub struct ForceRollback<'info> {
+    #[account(seeds = [b"state"], bump)]
+    pub state: Account<'info, State>,
+    #[account(mut, address=state.admin @AssetManagerError::UnauthorizedCaller)]
+    pub signer: Signer<'info>,
+    pub xcall: Program<'info, Xcall>,
+    #[account(
+      init_if_needed, payer=signer, space = Authority::MAX_SPACE, seeds = [Authority::SEED_PREFIX.as_bytes()], bump
+    )]
+    pub xcall_authority: Account<'info, Authority>,
+    pub system_program: Program<'info, System>,
+    
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]

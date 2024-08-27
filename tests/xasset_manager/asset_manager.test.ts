@@ -73,7 +73,7 @@ describe("xx asset manager test", () => {
   );
   let iconAssetManager = "icon/hxcnjsdkdfgjdjuf";
 
-  let xcallKeyPair = Keypair.generate();
+  let testAdmin = Keypair.generate();
   let mint: PublicKey;
   let vaultTokenAccount: Account;
   let depositorKeyPair = Keypair.generate();
@@ -120,6 +120,39 @@ describe("xx asset manager test", () => {
     expect(stateAccount.admin.toString()).toBe(
       wallet.payer.publicKey.toString()
     );
+  });
+
+  it("set admin test", async () => {
+    await txnHelpers.airdrop(testAdmin.publicKey, 5000000000);
+    let configureIx = await program.methods
+      .setAdmin(testAdmin.publicKey)
+      .accountsStrict({
+        state: AssetManagerPDA.state().pda,
+        admin: ctx.admin.publicKey
+      })
+      .instruction();
+    let tx = await ctx.txnHelpers.buildV0Txn([configureIx], [ctx.admin]);
+    await ctx.connection.sendTransaction(tx);
+    await sleep(3)
+    const stateAccount = await program.account.state.fetch(
+      AssetManagerPDA.state().pda
+    );
+    console.log(stateAccount.admin)
+
+    let setAdminTx = await program.methods
+      .setAdmin(ctx.admin.publicKey)
+      .accountsStrict({
+        state: AssetManagerPDA.state().pda,
+        admin: testAdmin.publicKey
+      })
+      .instruction();
+    let adminTx = await ctx.txnHelpers.buildV0Txn([setAdminTx], [testAdmin]);
+    await ctx.connection.sendTransaction(adminTx);
+    await sleep(5);
+    const updatedStateAccount = await program.account.state.fetch(
+      AssetManagerPDA.state().pda
+    );
+    console.log(updatedStateAccount.admin)
   });
 
   it("configure rate limit test", async () => {
@@ -253,6 +286,7 @@ describe("xx asset manager test", () => {
           isSigner: false,
           isWritable: true,
         },
+        
       ])
       .instruction();
     const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
@@ -433,7 +467,7 @@ describe("xx asset manager test", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
         authority: ConnectionPDA.authority().pda
       })
@@ -586,7 +620,7 @@ describe("xx asset manager test", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
         authority: ConnectionPDA.authority().pda
       })
@@ -674,7 +708,7 @@ describe("xx asset manager test", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
         authority: ConnectionPDA.authority().pda
       })
@@ -819,7 +853,7 @@ describe("xx asset manager test", () => {
         .accountsStrict({
           config: ConnectionPDA.config().pda,
           admin: ctx.admin.publicKey,
-          receipt: ConnectionPDA.receipt(connSn).pda,
+          receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
           systemProgram: SYSTEM_PROGRAM_ID,
           authority: ConnectionPDA.authority().pda
         })
@@ -856,6 +890,133 @@ describe("xx asset manager test", () => {
         .rpc();
         await txnHelpers.logParsedTx(rollbackTxHash);
       
+  });
+
+  it("test handle force rollback complete flow with xcall", async () => {
+    let xcallConfig = await xcallCtx.getConfig();
+
+    const connSn = 12;
+    const fromNetwork = "icon";
+    let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
+    let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
+
+    //const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
+    let withdrawerKeyPair = Keypair.generate();
+    let withdrawerTokenAccount = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      mint,
+      withdrawerKeyPair.publicKey,
+      true
+    );
+    const data = [
+      "WithdrawTo",
+      mint.toString(),
+      withdrawerTokenAccount.address.toString(),
+      1000000000,
+    ];
+    const rlpEncodedData = rlp.encode(data);
+    console.log("data encoded");
+
+    let request = new CSMessageRequest(
+      iconAssetManager,
+      program.programId.toString(),
+      nextSequenceNo,
+      MessageType.CallMessageWithRollback,
+      Buffer.from(rlpEncodedData),
+      [connectionProgram.programId.toString()]
+    );
+
+    let cs_message = new CSMessage(
+      CSMessageType.CSMessageRequest,
+      request.encode()
+    ).encode();
+
+    let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+      connSn,
+      nextSequenceNo,
+      cs_message,
+      CSMessageType.CSMessageRequest
+    );
+
+    await connectionProgram.methods
+      .recvMessage(
+        fromNetwork,
+        new anchor.BN(connSn),
+        Buffer.from(cs_message),
+        new anchor.BN(nextSequenceNo)
+      )
+      .accountsStrict({
+        config: ConnectionPDA.config().pda,
+        admin: ctx.admin.publicKey,
+        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        authority: ConnectionPDA.authority().pda
+      })
+      .remainingAccounts([...recvMessageAccounts.slice(4)])
+      .signers([ctx.admin])
+      .rpc();
+    console.log("receive message complete");
+    await sleep(2);
+    
+    let forceRollbackIx = await program.methods
+      .forceRollback(
+        new anchor.BN(nextReqId)
+      )
+      .accountsStrict({
+        state: AssetManagerPDA.state().pda,
+        xcall: xcall_program.programId,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        xcallAuthority: AssetManagerPDA.xcall_authority().pda,
+        signer: ctx.admin.publicKey,
+      })
+      .remainingAccounts([
+        {
+          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: XcallPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ctx.admin.publicKey,
+          isSigner: false,
+          isWritable: true,
+        },
+        //connection params
+        {
+          pubkey: connectionProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.network_fee("icon").pda,
+          isSigner: false,
+          isWritable: true,
+        },
+      ])
+      .instruction();
+      const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+        units: 1000000,
+      });
+  
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 0,
+      });
+    let tx = await ctx.txnHelpers.buildV0Txn(
+      [modifyComputeUnits, addPriorityFee, forceRollbackIx],
+      [ctx.admin]
+    );
+      let txHash = await ctx.connection.sendTransaction(tx);
+      await txnHelpers.logParsedTx(txHash);
   });
 
 });

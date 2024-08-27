@@ -152,12 +152,12 @@ export class TestContext {
     );
   }
 
-  async getReceipt(sequenceNo: number) {
-    return await this.program.account.receipt.fetch(
-      ConnectionPDA.receipt(sequenceNo).pda,
-      "confirmed"
-    );
-  }
+  // async getReceipt(sequenceNo: number) {
+  //   return await this.program.account.receipt.fetch(
+  //     ConnectionPDA.receipt(sequenceNo).pda,
+  //     "confirmed"
+  //   );
+  // }
 }
 
 export class ConnectionPDA {
@@ -181,12 +181,12 @@ export class ConnectionPDA {
     return { pda, bump };
   }
 
-  static receipt(sn: number) {
+  static receipt(networkId: string, sn: number) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("receipt"), uint128ToArray(sn)],
+      [Buffer.from("receipt"), Buffer.from(networkId), uint128ToArray(sn)],
       connectionProgram.programId
     );
-
+  
     return { pda, bump };
   }
 

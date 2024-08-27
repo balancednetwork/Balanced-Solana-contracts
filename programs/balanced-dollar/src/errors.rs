@@ -25,6 +25,8 @@ pub enum BalancedDollarError {
     InvalidNetworkAddress,
     #[msg["Only Xcall"]]
     OnlyXcall,
+    #[msg["Only Admin"]]
+    OnlyAdmin,
 }
 
 impl From<DecoderError> for BalancedDollarError {

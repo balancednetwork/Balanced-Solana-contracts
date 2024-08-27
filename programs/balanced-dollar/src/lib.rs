@@ -32,6 +32,16 @@ pub mod balanced_dollar {
         )
     }
 
+    pub fn set_admin(
+        ctx: Context<SetAdmin>,
+        admin: Pubkey,
+    ) -> Result<()> {
+        instructions::set_admin(
+            ctx,
+            admin
+        )
+    }
+
     pub fn cross_transfer<'info>(
         ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
         to: String,
@@ -48,6 +58,13 @@ pub mod balanced_dollar {
         protocols: Vec<String>,
     ) -> Result<HandleCallMessageResponse> {
         instructions::handle_call_message(ctx, from, data, protocols)
+    }
+
+    pub fn force_rollback<'info>(
+        ctx: Context<'_, '_, '_, 'info, ForceRollback<'info>>,
+        request_id: u128,
+    ) -> Result<()> {
+        instructions::force_rollback(ctx, request_id)
     }
 
     pub fn query_handle_call_message_accounts<'info>(

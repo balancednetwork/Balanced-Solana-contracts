@@ -388,7 +388,7 @@ describe("balanced xcall manager", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
         authority: ConnectionPDA.authority().pda
       })

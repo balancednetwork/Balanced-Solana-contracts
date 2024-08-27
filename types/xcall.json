@@ -1,8 +1,8 @@
 {
-  "address": "CnZLCetiXFr963LgQpPKhkQu7N9z64b4eKcBp28Wps4J",
+  "address": "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW",
   "metadata": {
     "name": "xcall",
-    "version": "0.2.0",
+    "version": "0.1.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
@@ -428,6 +428,22 @@
     },
     {
       "name": "handle_error",
+      "docs": [
+        "Instruction: Handle Error",
+        "",
+        "Handles an error for a specific sequence of messages, enabling a rollback to revert the state.",
+        "This function is called when a rollback message is received for a sequence originally sent from",
+        "the Solana chain. It triggers a rollback to revert the state to the point before the error occurred.",
+        "",
+        "# Arguments",
+        "",
+        "* `ctx` - The context providing access to accounts and program state.",
+        "* `sequence_no` - The unique identifier for the message sequence that encountered the error.",
+        "",
+        "# Returns",
+        "",
+        "Returns a `Result` indicating the success or failure of the rollback operation."
+      ],
       "discriminator": [
         4,
         46,
@@ -505,8 +521,94 @@
       ]
     },
     {
+      "name": "handle_forced_rollback",
+      "docs": [
+        "Initiates the handling of a forced rollback for a cross-chain message. This function acts",
+        "as a wrapper, calling the inner `handle_forced_rollback` instruction to handle the rollback",
+        "process.",
+        "",
+        "The rollback is triggered in response to a failure or error that occurred after a message",
+        "was received on the destination chain. It allows the dApp to revert the state by sending",
+        "a failure response back to the source chain, ensuring the original message is effectively",
+        "rolled back.",
+        "",
+        "# Arguments",
+        "* `ctx` - Context containing the accounts required for processing the forced rollback.",
+        "* `req_id` - The unique request ID associated with the message being rolled back.",
+        "",
+        "# Returns",
+        "* `Result<()>` - Returns `Ok(())` on successful execution, or an error if the rollback process",
+        "fails."
+      ],
+      "discriminator": [
+        233,
+        139,
+        22,
+        8,
+        52,
+        93,
+        188,
+        123
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "The account that signs and pays for the transaction. This account is mutable because",
+            "it will be debited for any fees or rent required during the transaction."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "dapp_authority",
+          "docs": [
+            "The account representing the dApp authority, which must sign the transaction to enforce",
+            "the rollback."
+          ],
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "The Solana system program account, used for creating and managing accounts."
+          ]
+        },
+        {
+          "name": "config",
+          "docs": [
+            "The configuration account, which stores important settings and counters for the program.",
+            "The `seeds` and `bump` ensure that this account is securely derived."
+          ]
+        },
+        {
+          "name": "admin",
+          "docs": [
+            "it matches the expected admin address."
+          ],
+          "writable": true
+        },
+        {
+          "name": "proxy_request",
+          "docs": [
+            "The proxy request account, identified by a request ID. This account is used for executing",
+            "calls and is closed after use, with any remaining funds sent to the `admin`."
+          ],
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "req_id",
+          "type": "u128"
+        }
+      ]
+    },
+    {
       "name": "handle_message",
       "docs": [
+        "Instruction: Handle Message",
+        "",
         "Entry point for handling cross-chain messages within the xcall program.",
         "",
         "This function delegates the processing of an incoming message to the inner `handle_message`",
@@ -609,6 +711,24 @@
     },
     {
       "name": "handle_request",
+      "docs": [
+        "Instruction: Handle Request",
+        "",
+        "Invokes the inner `handle_request` function to process an incoming cross-chain request.",
+        "",
+        "This instruction is specifically designed to be called by the xcall program. It delegates",
+        "the processing of the request message to the inner `handle_request` function, passing",
+        "along the necessary context and message payload.",
+        "",
+        "# Parameters",
+        "- `ctx`: Context containing all relevant accounts and program-specific information.",
+        "- `from_nid`: Network ID of the chain that sent the request.",
+        "- `msg_payload`: Encoded payload of the request message.",
+        "",
+        "# Returns",
+        "- `Result<()>`: Returns `Ok(())` if the request is processed successfully, or an error if",
+        "validation or processing fails."
+      ],
       "discriminator": [
         94,
         58,
@@ -633,6 +753,14 @@
           "name": "connection",
           "docs": [
             "The signer account representing the connection through which the message is being processed."
+          ],
+          "signer": true
+        },
+        {
+          "name": "xcall",
+          "docs": [
+            "The xcall signer account, used to verify that the provided signer is authorized",
+            "by the xcall program."
           ],
           "signer": true
         },
@@ -689,6 +817,25 @@
     },
     {
       "name": "handle_result",
+      "docs": [
+        "Instruction: Handle Result",
+        "",
+        "Invokes the inner `handle_result` function to process an incoming cross-chain result.",
+        "",
+        "This instruction is specifically designed to be called by the xcall program. It forwards",
+        "the result message along with its associated sequence number to the inner `handle_result`",
+        "function for further processing.",
+        "",
+        "# Parameters",
+        "- `ctx`: Context containing all relevant accounts and program-specific information.",
+        "- `from_nid`: Network ID of the chain that sent the result.",
+        "- `msg_payload`: Encoded payload of the result message.",
+        "- `sequence_no`: Unique sequence number of the result message.",
+        "",
+        "# Returns",
+        "- `Result<()>`: Returns `Ok(())` if the result is processed successfully, or an error if",
+        "validation or processing fails."
+      ],
       "discriminator": [
         89,
         67,
@@ -713,6 +860,14 @@
           "name": "connection",
           "docs": [
             "The signer account representing the connection through which the message is being processed."
+          ],
+          "signer": true
+        },
+        {
+          "name": "xcall",
+          "docs": [
+            "The xcall signer account, used to verify that the provided signer is authorized",
+            "by the xcall program."
           ],
           "signer": true
         },
@@ -1467,143 +1622,133 @@
     },
     {
       "code": 6008,
-      "name": "ProxyRequestAccountNotSpecified",
-      "msg": "Proxy request account is not specified"
-    },
-    {
-      "code": 6009,
-      "name": "ProxyRequestAccountMustNotBeSpecified",
-      "msg": "Proxy request account must not be specified"
-    },
-    {
-      "code": 6010,
-      "name": "RollbackAccountNotSpecified",
-      "msg": "Rollback account is not specified"
-    },
-    {
-      "code": 6011,
-      "name": "RollbackAccountMustNotBeSpecified",
-      "msg": "Rollback account must not be specified"
-    },
-    {
-      "code": 6012,
-      "name": "PendingRequestAccountNotSpecified",
-      "msg": "Pending request account is not specified"
-    },
-    {
-      "code": 6013,
-      "name": "PendingRequestAccountMustNotBeSpecified",
-      "msg": "Pending request account must not be specified"
-    },
-    {
-      "code": 6014,
-      "name": "PendingResponseAccountNotSpecified",
-      "msg": "Pending response account is not specified"
-    },
-    {
-      "code": 6015,
-      "name": "PendingResponseAccountMustNotBeSpecified",
-      "msg": "Pending response account must not be specified"
-    },
-    {
-      "code": 6016,
-      "name": "InvalidMessageSeed",
-      "msg": "Invalid message seed"
-    },
-    {
-      "code": 6017,
-      "name": "SuccessfulResponseAccountNotSpecified",
-      "msg": "Successful response account is not specified"
-    },
-    {
-      "code": 6018,
-      "name": "SuccessfulResponseAccountMustNotBeSpecified",
-      "msg": "Successful response account must not be specified"
-    },
-    {
-      "code": 6019,
       "name": "DappAuthorityNotProvided",
       "msg": "Dapp authority not provided"
     },
     {
-      "code": 6020,
+      "code": 6009,
       "name": "ProtocolMismatch",
       "msg": "Protocol mismatch"
     },
     {
-      "code": 6021,
+      "code": 6010,
       "name": "SourceProtocolsNotSpecified",
       "msg": "Source protocols not specified"
     },
     {
-      "code": 6022,
+      "code": 6011,
       "name": "DestinationProtocolsNotSpecified",
       "msg": "Destination protocols not specified"
     },
     {
-      "code": 6023,
+      "code": 6012,
       "name": "RollbackNotPossible",
       "msg": "Rollback not possible"
     },
     {
-      "code": 6024,
+      "code": 6013,
       "name": "CallRequestNotFound",
       "msg": "Call request not found"
     },
     {
-      "code": 6025,
+      "code": 6014,
       "name": "NoRollbackData",
       "msg": "No rollback data"
     },
     {
-      "code": 6026,
+      "code": 6015,
       "name": "RevertFromDapp",
       "msg": "Revert from dapp"
     },
     {
-      "code": 6027,
+      "code": 6016,
       "name": "InvalidReplyReceived",
       "msg": "Invalid reply received"
     },
     {
-      "code": 6028,
-      "name": "InvalidMessageSequence",
-      "msg": "Invalid message sequence received"
-    },
-    {
-      "code": 6029,
+      "code": 6017,
       "name": "DecodeFailed",
       "msg": "Decode failed"
     },
     {
-      "code": 6030,
+      "code": 6018,
       "name": "InvalidSource",
       "msg": "Invalid source"
     },
     {
-      "code": 6031,
+      "code": 6019,
       "name": "InvalidRequestId",
       "msg": "Invalid request id"
     },
     {
-      "code": 6032,
+      "code": 6020,
       "name": "DataMismatch",
       "msg": "Data mismatch"
     },
     {
-      "code": 6033,
+      "code": 6021,
       "name": "InvalidPubkey",
       "msg": "Invalid pubkey"
     },
     {
-      "code": 6034,
-      "name": "InvalidProxyCreator",
-      "msg": "Invalid proxy request creator address"
-    },
-    {
-      "code": 6035,
+      "code": 6022,
       "name": "InvalidResponse",
       "msg": "Invalid response from dapp"
+    },
+    {
+      "code": 6023,
+      "name": "RequestPending",
+      "msg": "Request is still pending"
+    },
+    {
+      "code": 6024,
+      "name": "ProxyRequestAccountNotSpecified",
+      "msg": "Proxy request account is not specified"
+    },
+    {
+      "code": 6025,
+      "name": "ProxyRequestAccountMustNotBeSpecified",
+      "msg": "Proxy request account must not be specified"
+    },
+    {
+      "code": 6026,
+      "name": "RollbackAccountNotSpecified",
+      "msg": "Rollback account is not specified"
+    },
+    {
+      "code": 6027,
+      "name": "RollbackAccountMustNotBeSpecified",
+      "msg": "Rollback account must not be specified"
+    },
+    {
+      "code": 6028,
+      "name": "PendingRequestAccountNotSpecified",
+      "msg": "Pending request account is not specified"
+    },
+    {
+      "code": 6029,
+      "name": "PendingRequestAccountMustNotBeSpecified",
+      "msg": "Pending request account must not be specified"
+    },
+    {
+      "code": 6030,
+      "name": "PendingResponseAccountNotSpecified",
+      "msg": "Pending response account is not specified"
+    },
+    {
+      "code": 6031,
+      "name": "PendingResponseAccountMustNotBeSpecified",
+      "msg": "Pending response account must not be specified"
+    },
+    {
+      "code": 6032,
+      "name": "SuccessfulResponseAccountNotSpecified",
+      "msg": "Successful response account is not specified"
+    },
+    {
+      "code": 6033,
+      "name": "SuccessfulResponseAccountMustNotBeSpecified",
+      "msg": "Successful response account must not be specified"
     }
   ],
   "types": [

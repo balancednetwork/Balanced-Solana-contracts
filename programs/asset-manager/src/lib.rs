@@ -32,6 +32,16 @@ pub mod asset_manager {
         )
     }
 
+    pub fn set_admin(
+        ctx: Context<SetAdmin>,
+        admin: Pubkey,
+    ) -> Result<()> {
+        instructions::set_admin(
+            ctx,
+            admin
+        )
+    }
+
     pub fn configure_rate_limit(
         ctx: Context<ConfigureRateLimit>,
         token: Pubkey,
@@ -72,6 +82,13 @@ pub mod asset_manager {
         protocols: Vec<String>,
     ) -> Result<HandleCallMessageResponse> {
         instructions::handle_call_message(ctx, from, data, protocols)
+    }
+
+    pub fn force_rollback<'info>(
+        ctx: Context<'_, '_, '_, 'info, ForceRollback<'info>>,
+        request_id: u128,
+    ) -> Result<()> {
+        instructions::force_rollback(ctx, request_id)
     }
 
     pub fn query_handle_call_message_accounts<'info>(

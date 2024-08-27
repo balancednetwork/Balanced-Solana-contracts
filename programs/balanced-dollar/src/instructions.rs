@@ -3,7 +3,7 @@ use anchor_spl::token::{self, Burn, MintTo};
 
 use crate::errors::BalancedDollarError;
 use std::str::FromStr;
-use xcall::cpi::accounts::SendCallCtx;
+use xcall::cpi::accounts::{HandleForcedRollbackCtx, SendCallCtx};
 use xcall_lib::message::{
     call_message_rollback::CallMessageWithRollback, envelope::Envelope, AnyMessage,
 };
@@ -35,7 +35,16 @@ pub fn initialize(
     state.xcall_manager = xcall_manager;
     state.xcall_manager_state = xcall_manager_state;
     state.bn_usd_token = bn_usd_token;
+    state.admin = ctx.accounts.admin.key();
     Ok(())
+}
+
+pub fn set_admin(
+    ctx: Context<SetAdmin>,
+    admin: Pubkey) -> Result<()>{
+    let state: &mut Account<State> = &mut ctx.accounts.state;
+    state.admin = admin;
+    return  Ok(());
 }
 
 pub fn cross_transfer<'info>(
@@ -241,6 +250,36 @@ pub fn get_handle_call_message_accounts<'info>(
         let accounts: Vec<ParamAccountProps> = vec![];
         Ok(ParamAccounts { accounts })
     }
+}
+
+pub fn force_rollback<'info>(
+    ctx: Context<'_, '_, '_, 'info, ForceRollback<'info>>,
+    request_id: u128,
+)->Result<()> {
+    let bump = ctx.bumps.xcall_authority;
+    let seeds = &[Authority::SEED_PREFIX.as_bytes().as_ref(), &[bump]];
+    let signer_seeds = &[&seeds[..]];
+
+    let proxy_request = &ctx.remaining_accounts[0];
+    let config = &ctx.remaining_accounts[1];
+    let admin = &ctx.remaining_accounts[2];
+
+    let remaining_accounts: &[AccountInfo<'info>] = ctx.remaining_accounts.split_at(3).1;
+    let cpi_accounts: HandleForcedRollbackCtx =  HandleForcedRollbackCtx{
+        proxy_request: proxy_request.to_account_info(),
+        signer: ctx.accounts.signer.to_account_info(),
+        dapp_authority: ctx.accounts.xcall_authority.to_account_info(),
+        config: config.to_account_info(),
+        system_program: ctx.accounts.system_program.to_account_info(),
+        admin: admin.to_account_info()
+    };
+
+    let xcall_program = ctx.accounts.xcall.to_account_info();
+    let cpi_ctx = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seeds)
+    .with_remaining_accounts(remaining_accounts.to_vec());
+        
+    let _result = xcall::cpi::handle_forced_rollback(cpi_ctx, request_id)?;
+    Ok(())
 }
 
 pub fn account_from_network_address(string_network_address: String) -> Result<String> {
