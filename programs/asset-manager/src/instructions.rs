@@ -115,6 +115,7 @@ pub fn deposit_token<'info>(
         .vault_token_account
         .as_ref()
         .ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
+
     let cpi_accounts = Transfer {
         from: from.to_account_info(),
         to: vault_token_account.to_account_info(),
@@ -519,7 +520,7 @@ fn withdraw_native_token<'info>(
     }
     let _ = verify_withdraw(token_state, amount, vault_native_account.get_lamports());
 
-    let seeds = &[b"vault_native".as_ref(), &[bump]];
+    let seeds: &[&[u8]; 2] = &[b"vault_native".as_ref(), &[bump]];
     let signer = &[&seeds[..]];
 
     let ix = anchor_lang::solana_program::system_instruction::transfer(

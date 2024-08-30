@@ -68,6 +68,7 @@ describe("balanced dollar manager", () => {
   let program_authority = BalancedDollarPDA.program_authority();
   let withdrawerKeyPair = Keypair.generate();
   let withdrawerTokenAccount: Account;
+  let testAdmin = Keypair.generate();
 
   beforeAll(async () => {
     mint = await createMint(
@@ -107,6 +108,39 @@ describe("balanced dollar manager", () => {
     );
     expect(stateAccount.bnUsdToken.toString()).toBe(mint.toString());
   });
+
+  // it("set admin test", async () => {
+  //   await txnHelpers.airdrop(testAdmin.publicKey, 5000000000);
+  //   let configureIx = await program.methods
+  //     .setAdmin(testAdmin.publicKey)
+  //     .accountsStrict({
+  //       state: BalancedDollarPDA.state().pda,
+  //       admin: ctx.admin.publicKey
+  //     })
+  //     .instruction();
+  //   let tx = await ctx.txnHelpers.buildV0Txn([configureIx], [ctx.admin]);
+  //   await ctx.connection.sendTransaction(tx);
+  //   await sleep(3)
+  //   const stateAccount = await program.account.state.fetch(
+  //     BalancedDollarPDA.state().pda
+  //   );
+  //   console.log(stateAccount.admin)
+
+  //   let setAdminTx = await program.methods
+  //     .setAdmin(ctx.admin.publicKey)
+  //     .accountsStrict({
+  //       state: BalancedDollarPDA.state().pda,
+  //       admin: testAdmin.publicKey
+  //     })
+  //     .instruction();
+  //   let adminTx = await ctx.txnHelpers.buildV0Txn([setAdminTx], [testAdmin]);
+  //   await ctx.connection.sendTransaction(adminTx);
+  //   await sleep(5);
+  //   const updatedStateAccount = await program.account.state.fetch(
+  //     BalancedDollarPDA.state().pda
+  //   );
+  //   console.log(updatedStateAccount.admin)
+  // });
 
   it("test handle call message complete flow with xcall", async () => {
     let xcallConfig = await xcallCtx.getConfig();

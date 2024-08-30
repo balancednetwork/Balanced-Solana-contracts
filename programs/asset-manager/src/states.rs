@@ -47,10 +47,7 @@ pub struct ResetLimit<'info> {
 
     #[account(mut, seeds=[b"token_state", token.as_ref()], bump)]
     pub token_state: Account<'info, TokenState>,
-
-    #[account(mut, has_one = mint)]
-    pub vault_token_account: Account<'info, TokenAccount>,
-    pub mint: Account<'info, Mint>,
+    
 }
 
 #[derive(Accounts)]
@@ -66,9 +63,12 @@ pub struct DepositToken<'info> {
     #[account(mut)]
     pub from_authority: Signer<'info>,
 
-    #[account(mut)]
+    #[account(mut, constraint=vault_token_account.owner==valult_authority.clone().unwrap().key())]
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
-    #[account(mut)]
+    #[account(seeds = [b"vault", from.clone().unwrap().mint.as_ref()], bump)]
+    pub valult_authority: Option<AccountInfo<'info>>,
+
+    #[account(mut, seeds = [b"vault_native"], bump)]
     pub vault_native_account: Option<AccountInfo<'info>>,
     #[account(mut, seeds = [b"state"], bump)]
     pub state: Account<'info, State>,

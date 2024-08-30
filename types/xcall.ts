@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/xcall.json`.
  */
 export type Xcall = {
-  "address": "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW",
+  "address": "CnZLCetiXFr963LgQpPKhkQu7N9z64b4eKcBp28Wps4J",
   "metadata": {
     "name": "xcall",
     "version": "0.1.0",

@@ -5,9 +5,9 @@ resolution = false
 skip-lint = false
 
 [programs.localnet]
-asset_manager = "Gk5un55A5ExrMvx7rp4HvygNik2trCrM325rTDBGGSbb"
-balanced_dollar = "9cmYrvKr6JxkQfkTM5Nuf1LTGSGPRH4x3VczCa6GqjkE"
-xcall_manager = "D8E4MdQH6p3vfiX23Kq5x4xM1v4aUfhp3sM2HYGinvzk"
+asset_manager = "BGzeVEn4LkKp8U7dhBP9SnUdYXsdkmFVjrG7awamyqWZ"
+balanced_dollar = "DnTw1FNEm3TAGXPMJSpNWau1TukRCtxMW9GUzM3eJxYN"
+xcall_manager = "AKgQ6MECUga4rUWRwiDkj3XZetp7eTrAhArdPBF7W3qJ"
 
 [registry]
 url = "https://api.apr.dev"

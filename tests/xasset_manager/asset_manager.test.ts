@@ -79,6 +79,7 @@ describe("xx asset manager test", () => {
   let depositorKeyPair = Keypair.generate();
   let depositorTokenAccount: Account;
   let nativeDepositor = Keypair.generate();
+  let vaultTokenAccountPda: PublicKey;
 
   beforeAll(async () => {
     mint = await createMint(
@@ -88,7 +89,7 @@ describe("xx asset manager test", () => {
       null,
       9
     );
-    let vaultTokenAccountPda = AssetManagerPDA.vault(mint).pda;
+    vaultTokenAccountPda = AssetManagerPDA.vault(mint).pda;
     vaultTokenAccount = await getOrCreateAssociatedTokenAccount(
       provider.connection,
       wallet.payer,
@@ -240,6 +241,7 @@ describe("xx asset manager test", () => {
         vaultNativeAccount: null,
         fromAuthority: depositorKeyPair.publicKey,
         vaultTokenAccount: vaultTokenAccount.address,
+        valultAuthority: vaultTokenAccountPda,
         state: AssetManagerPDA.state().pda,
         xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
         xcallConfig: XcallPDA.config().pda,
@@ -340,6 +342,7 @@ describe("xx asset manager test", () => {
         from: null,
         fromAuthority: nativeDepositor.publicKey,
         vaultTokenAccount: null,
+        valultAuthority: null,
         vaultNativeAccount: AssetManagerPDA.vault_native().pda,
         state: AssetManagerPDA.state().pda,
         xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
@@ -524,6 +527,7 @@ describe("xx asset manager test", () => {
         vaultNativeAccount: null,
         fromAuthority: depositorKeyPair.publicKey,
         vaultTokenAccount: vaultTokenAccount.address,
+        valultAuthority: vaultTokenAccountPda,
         state: AssetManagerPDA.state().pda,
         xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
         xcallConfig: XcallPDA.config().pda,
@@ -764,6 +768,7 @@ describe("xx asset manager test", () => {
         from: null,
         fromAuthority: nativeDepositor.publicKey,
         vaultTokenAccount: null,
+        valultAuthority: null,
         vaultNativeAccount: AssetManagerPDA.vault_native().pda,
         state: AssetManagerPDA.state().pda,
         xcallManagerState: AssetManagerPDA.xcall_manager_state().pda,
