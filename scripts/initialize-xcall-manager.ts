@@ -9,7 +9,7 @@ import { AssetManager } from "../target/types/asset_manager";
 import { XcallManager } from "../target/types/xcall_manager";
 import { BalancedDollar } from "../target/types/balanced_dollar";
 
-const args = process.argv.slice(3);
+const args = process.argv.slice(2);
 
 const xcall_address = args[0];
 const cetralized_connection_address = args[1];

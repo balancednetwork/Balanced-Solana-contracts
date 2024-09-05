@@ -8,7 +8,7 @@ import { TestContext as BalancedDollarContext } from "./balanced_dollar/setup";
 import { XcallManager } from "../target/types/xcall_manager";
 
 
-const args = process.argv.slice(3);
+const args = process.argv.slice(2);
 
 const xcall_address = args[0];
 const icon_balanced_dollar = args[1];

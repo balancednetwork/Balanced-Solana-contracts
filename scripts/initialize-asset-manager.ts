@@ -7,7 +7,8 @@ import { XcallManagerPDA } from "./axcall_manager/setup";
 import { XcallManager } from "../target/types/xcall_manager";
 
 
-const args = process.argv.slice(3);
+const args = process.argv.slice(2);
+
 
 const xcall_address = args[0];
 const icon_asset_manager = args[1]
