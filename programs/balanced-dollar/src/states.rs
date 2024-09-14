@@ -38,6 +38,8 @@ pub struct CrossTransfer<'info> {
 
     #[account(constraint=xcall_manager_state.key() ==state.xcall_manager_state @BalancedDollarError::InvalidXcallManagerState)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
+    //xcall validates this account
+    //not additionally used in balanced
     #[account(mut)]
     pub xcall_config: Account<'info, xcall::state::Config>,
     #[account(

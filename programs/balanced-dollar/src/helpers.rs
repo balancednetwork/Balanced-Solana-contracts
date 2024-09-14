@@ -53,7 +53,9 @@ pub fn decode_cross_transfer_revert(
     if !rlp.is_list() {
         return Err(DecoderError::RlpExpectedToBeList.into());
     }
-
+    if rlp.item_count()? != 3 {
+        return Err(DecoderError::RlpInvalidLength.into());
+    }
     let method: String = rlp.val_at(0)?;
     if method != CROSS_TRANSFER_REVERT {
         return Err(DecoderError::RlpInvalidLength.into());

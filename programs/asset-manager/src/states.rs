@@ -92,6 +92,8 @@ pub struct DepositToken<'info> {
       init_if_needed, payer=from_authority, space = Authority::MAX_SPACE, seeds = [Authority::SEED_PREFIX], bump
     )]
     pub xcall_authority: Account<'info, Authority>,
+    //xcall validates this account
+    //not additionally used in balanced
     #[account(mut)]
     pub xcall_config: Account<'info, xcall::state::Config>,
     pub xcall_manager: Program<'info, XcallManager>,
