@@ -4,10 +4,14 @@ use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
 
 use crate::errors::AssetManagerError;
+pub const STATE_SEED: &'static [u8; 5] = b"state";
+pub const TOKEN_STATE_SEED: &'static [u8; 11] = b"token_state";
+pub const VAULT_SEED: &'static [u8; 5] = b"vault";
+pub const VAULT_NATIVE_SEED: &'static [u8; 12] = b"vault_native";
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    #[account(init, payer = admin, space = 8 + State::INIT_SPACE, seeds=[b"state"], bump)]
+    #[account(init, payer = admin, space = 8 + State::INIT_SPACE, seeds=[STATE_SEED], bump)]
     pub state: Account<'info, State>,
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -16,7 +20,7 @@ pub struct Initialize<'info> {
 
 #[derive(Accounts)]
 pub struct SetAdmin<'info> {
-    #[account(mut, seeds = [b"state"], bump)]
+    #[account(mut, seeds = [STATE_SEED], bump)]
     pub state: Account<'info, State>,
     #[account(address=state.admin @AssetManagerError::UnauthorizedCaller)]
     pub admin: Signer<'info>,
@@ -28,10 +32,10 @@ pub struct ConfigureRateLimit<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
 
-    #[account(mut, has_one=admin, seeds=[b"state"], bump)]
+    #[account(mut, has_one=admin, seeds=[STATE_SEED], bump)]
     pub state: Account<'info, State>,
 
-    #[account(init_if_needed, payer=admin, space = 8 + TokenState::INIT_SPACE, seeds=[b"token_state", token.as_ref()], bump)]
+    #[account(init_if_needed, payer=admin, space = 8 + TokenState::INIT_SPACE, seeds=[TOKEN_STATE_SEED, token.as_ref()], bump)]
     pub token_state: Account<'info, TokenState>,
 
     pub system_program: Program<'info, System>,
@@ -45,13 +49,20 @@ pub struct ResetLimit<'info> {
     #[account(mut)]
     pub state: Account<'info, State>,
 
-    #[account(mut, seeds=[b"token_state", token.as_ref()], bump)]
+    #[account(mut, seeds=[TOKEN_STATE_SEED, token.as_ref()], bump)]
     pub token_state: Account<'info, TokenState>,
     
 }
 
 #[derive(Accounts)]
 pub struct GetWithdrawLimit<'info> {
+    #[account(
+        seeds = [
+            TOKEN_STATE_SEED,
+            vault_token_account.mint.as_ref()
+        ],
+        bump,
+    )]
     pub token_state: Account<'info, TokenState>,
     pub vault_token_account: Account<'info, TokenAccount>,
 }
@@ -63,21 +74,22 @@ pub struct DepositToken<'info> {
     #[account(mut)]
     pub from_authority: Signer<'info>,
 
-    #[account(mut, constraint=vault_token_account.owner==valult_authority.clone().unwrap().key())]
+    #[account(mut, constraint=vault_token_account.owner==valult_authority.clone().unwrap().key() )]
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
-    #[account(seeds = [b"vault", from.clone().unwrap().mint.as_ref()], bump)]
+    #[account(seeds = [VAULT_SEED, from.clone().unwrap().mint.as_ref()], bump)]
     pub valult_authority: Option<AccountInfo<'info>>,
 
-    #[account(mut, seeds = [b"vault_native"], bump)]
+    #[account(mut, seeds = [VAULT_NATIVE_SEED], bump)]
     pub vault_native_account: Option<AccountInfo<'info>>,
-    #[account(mut, seeds = [b"state"], bump)]
+    #[account(mut, seeds = [STATE_SEED], bump)]
     pub state: Account<'info, State>,
-    #[account(mut)]
+
+    #[account(constraint=xcall_manager_state.key()==state.xcall_manager_state @AssetManagerError::InvalidXcallManagerState)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
 
     pub xcall: Program<'info, Xcall>,
     #[account(
-      init_if_needed, payer=from_authority, space = Authority::MAX_SPACE, seeds = [Authority::SEED_PREFIX.as_bytes()], bump
+      init_if_needed, payer=from_authority, space = Authority::MAX_SPACE, seeds = [Authority::SEED_PREFIX], bump
     )]
     pub xcall_authority: Account<'info, Authority>,
     #[account(mut)]
@@ -117,41 +129,42 @@ pub struct HandleCallMessage<'info> {
     pub to: Option<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub to_native: Option<AccountInfo<'info>>,
-    #[account(seeds = [b"state"], bump)]
+    #[account(seeds = [STATE_SEED], bump)]
     pub state: Account<'info, State>,
-    #[account(mut)]
     pub token_state: Account<'info, TokenState>,
-    #[account(mut)]
+    #[account(mut, constraint=vault_token_account.owner==valult_authority.clone().unwrap().key() @AssetManagerError::InvalidValultTokenAccount)]
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
-    #[account(mut, seeds = [b"vault_native"], bump)]
+    #[account(mut, seeds = [VAULT_NATIVE_SEED], bump)]
     pub vault_native_account: Option<AccountInfo<'info>>,
-    #[account(mut)]
+    #[account(constraint = mint.mint_authority.is_none() || mint.key() == token_state.token)]
     pub mint: Option<Account<'info, Mint>>,
 
-    #[account(seeds = [b"vault", mint.clone().unwrap().key().as_ref()], bump)]
+    #[account(seeds = [VAULT_SEED, mint.clone().unwrap().key().as_ref()], bump)]
     pub valult_authority: Option<AccountInfo<'info>>,
 
     pub token_program: Option<Program<'info, Token>>,
     pub xcall_manager: Program<'info, XcallManager>,
+
+    #[account(constraint=xcall_manager_state.key()==state.xcall_manager_state @AssetManagerError::InvalidXcallManagerState)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct GetParams<'info> {
-    #[account(seeds = [b"state"], bump)]
+    #[account(seeds = [STATE_SEED], bump)]
     pub state: Account<'info, State>,
 }
 
 #[derive(Accounts)]
 pub struct ForceRollback<'info> {
-    #[account(seeds = [b"state"], bump)]
+    #[account(seeds = [STATE_SEED], bump)]
     pub state: Account<'info, State>,
     #[account(mut, address=state.admin @AssetManagerError::UnauthorizedCaller)]
     pub signer: Signer<'info>,
     pub xcall: Program<'info, Xcall>,
     #[account(
-      init_if_needed, payer=signer, space = Authority::MAX_SPACE, seeds = [Authority::SEED_PREFIX.as_bytes()], bump
+      init_if_needed, payer=signer, space = Authority::MAX_SPACE, seeds = [Authority::SEED_PREFIX], bump
     )]
     pub xcall_authority: Account<'info, Authority>,
     pub system_program: Program<'info, System>,
@@ -194,6 +207,6 @@ pub struct Authority {
 }
 
 impl Authority {
-    pub const SEED_PREFIX: &'static str = "dapp_authority";
+    pub const SEED_PREFIX: &'static [u8; 14] = b"dapp_authority";
     pub const MAX_SPACE: usize = 8 + 1;
 }

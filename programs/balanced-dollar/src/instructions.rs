@@ -112,7 +112,7 @@ fn send_message <'info>(
         system_program: ctx.accounts.system_program.to_account_info(),
     };
     let bump = ctx.bumps.xcall_authority;
-    let seeds = &[Authority::SEED_PREFIX.as_bytes().as_ref(), &[bump]];
+    let seeds = &[Authority::SEED_PREFIX.as_ref(), &[bump]];
     let signer_seeds = &[&seeds[..]];
     let xcall_program = ctx.accounts.xcall.to_account_info();
     let cpi_ctx = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seeds)
@@ -128,8 +128,7 @@ pub fn handle_call_message<'info>(
     data: Vec<u8>,
     protocols: Vec<String>,
 ) -> Result<HandleCallMessageResponse> {
-    let state = ctx.accounts.state.clone();
-
+    let state: Account<'info, State> = ctx.accounts.state.clone();
     if !verify_protocols(
         &ctx.accounts.xcall_manager,
         &ctx.accounts.xcall_manager_state,
@@ -140,6 +139,11 @@ pub fn handle_call_message<'info>(
             message: BalancedDollarError::InvalidProtocols.to_string(),
         });
     }
+    let to = ctx
+        .accounts
+        .to
+        .key();
+
     let bump = ctx.bumps.mint_authority;
     let seeds = &[b"bnusd_authority".as_ref(), &[bump]];
     let signer = &[&seeds[..]];
@@ -152,6 +156,11 @@ pub fn handle_call_message<'info>(
             });
         }
         let message = decode_cross_transfer(&data)?;
+        let recipient_pubkey = Pubkey::from_str(account_from_network_address(message.to)?.as_str())
+            .map_err(|_| BalancedDollarError::NotAnAddress)?;
+        if recipient_pubkey != to.key() {
+            return Err(BalancedDollarError::InvalidToAddress.into())
+        }
         mint(
             ctx.accounts.mint.to_account_info(),
             ctx.accounts.to.to_account_info(),
@@ -173,6 +182,11 @@ pub fn handle_call_message<'info>(
             });
         }
         let message = decode_cross_transfer_revert(&data)?;
+        let recipient_pubkey =
+            Pubkey::from_str(&message.account).map_err(|_| BalancedDollarError::NotAnAddress)?;
+        if recipient_pubkey != to.key() {
+            return Err(BalancedDollarError::InvalidToAddress.into())
+        }
         mint(
             ctx.accounts.mint.to_account_info(),
             ctx.accounts.to.to_account_info(),
@@ -222,8 +236,8 @@ pub fn verify_protocols<'info>(
     };
 
     let cpi_ctx = CpiContext::new(xcall_manager_program.to_account_info(), cpi_accounts);
-    let _ = xcall_manager::cpi::verify_protocols(cpi_ctx, protocols.to_vec())?;
-    Ok(true)
+    let verified = xcall_manager::cpi::verify_protocols(cpi_ctx, protocols.to_vec())?;
+    Ok(verified.get())
 }
 
 pub fn get_handle_call_message_accounts<'info>(
@@ -257,7 +271,7 @@ pub fn force_rollback<'info>(
     request_id: u128,
 )->Result<()> {
     let bump = ctx.bumps.xcall_authority;
-    let seeds = &[Authority::SEED_PREFIX.as_bytes().as_ref(), &[bump]];
+    let seeds = &[Authority::SEED_PREFIX.as_ref(), &[bump]];
     let signer_seeds = &[&seeds[..]];
 
     let proxy_request = &ctx.remaining_accounts[0];

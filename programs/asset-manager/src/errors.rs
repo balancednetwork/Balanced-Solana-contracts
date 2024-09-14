@@ -55,6 +55,10 @@ pub enum AssetManagerError {
     OnlyXcall,
     #[msg["Invalid Program"]]
     InvalidProgram,
+    #[msg["Invalid Xcall Manager State"]]
+    InvalidXcallManagerState,
+    #[msg["Invalid Vault Token Account"]]
+    InvalidValultTokenAccount
 }
 
 impl From<DecoderError> for AssetManagerError {

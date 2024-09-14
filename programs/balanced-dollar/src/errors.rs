@@ -27,6 +27,10 @@ pub enum BalancedDollarError {
     OnlyXcall,
     #[msg["Only Admin"]]
     OnlyAdmin,
+    #[msg["Invalid xcall manager state"]]
+    InvalidXcallManagerState,
+    #[msg["Invalid to address"]]
+    InvalidToAddress
 }
 
 impl From<DecoderError> for BalancedDollarError {

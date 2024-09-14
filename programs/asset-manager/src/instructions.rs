@@ -216,7 +216,7 @@ fn send_deposit_message<'info>(
     // the accounts for centralized connections is contained here.
     let remaining_accounts: &[AccountInfo<'info>] = ctx.remaining_accounts.split_at(4).1;
     let bump = ctx.bumps.xcall_authority;
-    let seeds = &[Authority::SEED_PREFIX.as_bytes().as_ref(), &[bump]];
+    let seeds = &[Authority::SEED_PREFIX.as_ref(), &[bump]];
     let signer_seeds = &[&seeds[..]];
 
     let cpi_accounts: SendCallCtx = SendCallCtx {
@@ -246,8 +246,8 @@ pub fn verify_protocols<'info>(
     };
 
     let cpi_ctx = CpiContext::new(xcall_manager_program.to_account_info(), cpi_accounts);
-    let _ = xcall_manager::cpi::verify_protocols(cpi_ctx, protocols.to_vec())?;
-    Ok(true)
+    let verified = xcall_manager::cpi::verify_protocols(cpi_ctx, protocols.to_vec())?;
+    Ok(verified.get())
 }
 
 pub fn get_handle_call_message_accounts<'info>(
@@ -325,7 +325,7 @@ fn handle_token_call_message<'info>(
     let state = ctx.accounts.state.clone();
     let bump = ctx.bumps.valult_authority.unwrap();
     let method = decode_method(&data)?;
-    let to = ctx
+    let to: &Account<'info, TokenAccount> = ctx
         .accounts
         .to
         .as_ref()
@@ -387,6 +387,11 @@ fn handle_token_call_message<'info>(
             Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
         if recipient_pubkey != to.key() {
            return Err(AssetManagerError::InvalidToAddress.into())
+        }
+        let token_pubkey = Pubkey::from_str(&message.token_address)
+            .map_err(|_| AssetManagerError::NotAnAddress)?;
+        if token_pubkey != mint.key() {
+            return Err(AssetManagerError::InvalidToAddress.into())
         }
         
         withdraw_token(
@@ -457,6 +462,9 @@ fn handle_native_call_message<'info>(
         let recipient_pubkey =
             Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
         if recipient_pubkey != to_native.key() {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
+        if message.token_address != _NATIVE_ADDRESS {
             return Err(AssetManagerError::InvalidToAddress.into())
         }
         withdraw_native_token(
@@ -555,7 +563,7 @@ pub fn force_rollback<'info>(
     request_id: u128,
 )->Result<()> {
     let bump = ctx.bumps.xcall_authority;
-    let seeds = &[Authority::SEED_PREFIX.as_bytes().as_ref(), &[bump]];
+    let seeds = &[Authority::SEED_PREFIX.as_ref(), &[bump]];
     let signer_seeds = &[&seeds[..]];
 
     let proxy_request = &ctx.remaining_accounts[0];
