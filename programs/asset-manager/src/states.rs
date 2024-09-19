@@ -138,7 +138,7 @@ pub struct HandleCallMessage<'info> {
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
     #[account(mut, seeds = [VAULT_NATIVE_SEED], bump)]
     pub vault_native_account: Option<AccountInfo<'info>>,
-    #[account(constraint = mint.mint_authority.is_none() || mint.key() == token_state.token)]
+    #[account(constraint = mint.key() == token_state.token)]
     pub mint: Option<Account<'info, Mint>>,
 
     #[account(seeds = [VAULT_SEED, mint.clone().unwrap().key().as_ref()], bump)]
