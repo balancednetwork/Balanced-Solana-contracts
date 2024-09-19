@@ -74,7 +74,7 @@ pub struct DepositToken<'info> {
     #[account(mut)]
     pub from_authority: Signer<'info>,
 
-    #[account(mut, constraint=vault_token_account.owner==valult_authority.clone().unwrap().key() )]
+    #[account(mut, constraint=vault_token_account.owner==valult_authority.clone().unwrap().key() @AssetManagerError::InvalidValultTokenAccount )]
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
     #[account(seeds = [VAULT_SEED, from.clone().unwrap().mint.as_ref()], bump)]
     pub valult_authority: Option<AccountInfo<'info>>,

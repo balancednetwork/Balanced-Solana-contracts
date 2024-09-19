@@ -63,6 +63,7 @@ pub struct HandleCallMessage<'info> {
     #[account(mut, constraint=mint.key()==state.bn_usd_token)]
     pub mint: Account<'info, Mint>,
     ///CHECK: program signs onbehalf of the authority pda
+    /// no additional validation is required as mint is already validated separately 
     #[account(seeds = [AUTHORITY_SEED], bump)]
     pub mint_authority: AccountInfo<'info>,
     pub token_program: Program<'info, Token>,

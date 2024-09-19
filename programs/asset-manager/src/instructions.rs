@@ -105,11 +105,14 @@ pub fn deposit_token<'info>(
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
     require!(amount > 0, AssetManagerError::InvalidAmount);
+    
     let from = ctx
         .accounts
         .from
         .as_ref()
         .ok_or(AssetManagerError::InvalidFromAddress)?;
+    let token_addr = from.mint;
+    require!(ctx.accounts.valult_authority.clone().unwrap().key()==get_vault_pda(&ctx.program_id, token_addr)?.0, AssetManagerError::InvalidValutAuthority);
     let vault_token_account = ctx
         .accounts
         .vault_token_account
@@ -130,9 +133,9 @@ pub fn deposit_token<'info>(
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     token::transfer(cpi_ctx, amount)?;
 
-    let token_addr = from.mint.to_string();
+    
     let from: Pubkey = from.key();
-    let res = send_deposit_message(ctx, token_addr, from.key(), amount, to, data)?;
+    let res = send_deposit_message(ctx, token_addr.to_string(), from.key(), amount, to, data)?;
     Ok(res)
 }
 
@@ -143,6 +146,7 @@ pub fn deposit_native<'info>(
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
     require!(amount > 0, AssetManagerError::InvalidAmount);
+    require!(ctx.accounts.vault_native_account.clone().unwrap().key()==get_native_vault_pda(&ctx.program_id)?.0, AssetManagerError::InvalidValutNativeAuthority);
     let vault_native_account = ctx
         .accounts
         .vault_native_account
@@ -325,6 +329,7 @@ fn handle_token_call_message<'info>(
     let state = ctx.accounts.state.clone();
     let bump = ctx.bumps.valult_authority.unwrap();
     let method = decode_method(&data)?;
+    
     let to: &Account<'info, TokenAccount> = ctx
         .accounts
         .to
@@ -335,6 +340,7 @@ fn handle_token_call_message<'info>(
         .mint
         .as_ref()
         .ok_or(AssetManagerError::MintIsRequired)?;
+    require!(ctx.accounts.valult_authority.clone().unwrap().key()==get_vault_pda(&ctx.program_id, mint.key())?.0, AssetManagerError::InvalidValutAuthority);
     let token_program = ctx
         .accounts
         .token_program
@@ -416,7 +422,7 @@ fn handle_native_call_message<'info>(
     from: String,
     data: Vec<u8>
 ) -> Result<bool> {
-    
+    require!(ctx.accounts.vault_native_account.clone().unwrap().key()==get_native_vault_pda(&ctx.program_id)?.0, AssetManagerError::InvalidValutNativeAuthority);
     let state = ctx.accounts.state.clone();
     let bump = ctx.bumps.vault_native_account.unwrap();
     let method = decode_method(&data)?;
@@ -498,7 +504,7 @@ fn withdraw_token<'info>(
     if vault_balance < amount {
         return Err(AssetManagerError::InsufficientBalance.into())
     }
-    let _ = verify_withdraw(token_state, amount, vault_balance);
+    verify_withdraw(token_state, amount, vault_balance)?;
 
     let cpi_accounts = Transfer {
         from: vault_token_account,
@@ -526,7 +532,7 @@ fn withdraw_native_token<'info>(
     if amount > **vault_native_account.try_borrow_lamports()? {
         return Err(AssetManagerError::InsufficientBalance.into())
     }
-    let _ = verify_withdraw(token_state, amount, vault_native_account.get_lamports());
+    verify_withdraw(token_state, amount, vault_native_account.get_lamports())?;
 
     let seeds: &[&[u8]; 2] = &[b"vault_native".as_ref(), &[bump]];
     let signer = &[&seeds[..]];
