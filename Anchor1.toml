@@ -4,25 +4,21 @@
 resolution = false
 skip-lint = false
 
-[programs."https://api.devnet.solana.com"]
-asset_manager = "afx4C1hQjFdw7q1esUEceZiKNGdSHaudUTRAbc3HQJw"
-balanced_dollar = "Bxh6sBWRvaXLqXfzh422NamVrfF63Ybrqkhi23Ho29hw"
-centralized_connection = "337ToYrue4zSSyS3Th3DDS6qHvFRG6JA7Zkx2zJxLXAS"
-xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
-xcall_manager = "AtrfzxadGeoLekrfsEETYCsEhbTVLxvvoFUxDdWFfbu4"
+[programs."https://api.testnet.solana.com"]
+asset_manager = "BGzeVEn4LkKp8U7dhBP9SnUdYXsdkmFVjrG7awamyqWZ"
+balanced_dollar = "DnTw1FNEm3TAGXPMJSpNWau1TukRCtxMW9GUzM3eJxYN"
+xcall_manager = "AKgQ6MECUga4rUWRwiDkj3XZetp7eTrAhArdPBF7W3qJ"
 
 [programs.localnet]
-asset_manager = "afx4C1hQjFdw7q1esUEceZiKNGdSHaudUTRAbc3HQJw"
-balanced_dollar = "FQnK1rxyPqHDpzVVrDzV4gEGHSBFQcsJ42w4926ktJCm"
-centralized_connection = "337ToYrue4zSSyS3Th3DDS6qHvFRG6JA7Zkx2zJxLXAS"
-xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
-xcall_manager = "AtrfzxadGeoLekrfsEETYCsEhbTVLxvvoFUxDdWFfbu4"
+asset_manager = "BGzeVEn4LkKp8U7dhBP9SnUdYXsdkmFVjrG7awamyqWZ"
+balanced_dollar = "DnTw1FNEm3TAGXPMJSpNWau1TukRCtxMW9GUzM3eJxYN"
+xcall_manager = "AKgQ6MECUga4rUWRwiDkj3XZetp7eTrAhArdPBF7W3qJ"
 
 [registry]
-url = "https://api.devnet.solana.com"
+url = "https://api.testnet.solana.com"
 
 [provider]
-cluster = "Devnet"
+cluster = "testnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

@@ -27,6 +27,8 @@ pub enum XCallManagerError {
     NotTheIconGovernance,
     #[msg["Only Xcall"]]
     OnlyXcall,
+    #[msg["Invalid Program"]]
+    InvalidProgram,
 }
 
 impl From<DecoderError> for XCallManagerError {

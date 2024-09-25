@@ -62,6 +62,9 @@ pub fn decode_deposit_revert_msg(
     if !rlp.is_list() {
         return Err(DecoderError::RlpExpectedToBeList.into());
     }
+    if rlp.item_count()? != 4 {
+        return Err(DecoderError::RlpInvalidLength.into());
+    }
 
     let method: String = rlp.val_at(0)?;
     if method != DEPOSIT_REVERT {

@@ -11,7 +11,7 @@ pub fn get_accounts<'info>(
         ParamAccountProps::new(ctx.accounts.state.key(), false),
         ParamAccountProps::new(to, false),
         ParamAccountProps::new(ctx.accounts.state.bn_usd_token, false),
-        ParamAccountProps::new(mint_authority(&ctx)?.0, false),
+        ParamAccountProps::new(mint_authority(&ctx.program_id)?.0, false),
         ParamAccountProps::new(TOKEN_PROGRAM_ID, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall, false),
@@ -21,9 +21,9 @@ pub fn get_accounts<'info>(
 }
 
 pub fn mint_authority<'info>(
-    ctx: &Context<'_, '_, '_, 'info, GetParams<'info>>,
+    program_id: &Pubkey
 ) -> Result<(Pubkey, u8)> {
     let seeds: &[&[u8]] = &[b"bnusd_authority"];
-    let (pda, bump) = Pubkey::find_program_address(seeds, ctx.program_id);
+    let (pda, bump) = Pubkey::find_program_address(seeds, program_id);
     Ok((pda, bump))
 }

@@ -1,10 +1,12 @@
 use anchor_lang::prelude::*;
 
-use crate::errors::XCallManagerError;
+use crate::{errors::XCallManagerError, program::XcallManager};
+
+pub const STATE_SEED: &'static [u8; 5] = b"state";
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    #[account(init, payer = admin, seeds=["state".as_bytes()], bump, space = 8 + XmState::INIT_SPACE)]
+    #[account(init, payer = admin, seeds=[STATE_SEED], bump, space = 8 + XmState::INIT_SPACE)]
     pub state: Account<'info, XmState>,
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -30,9 +32,18 @@ pub struct XmState {
 
 #[derive(Accounts)]
 pub struct AdminAction<'info> {
-    #[account(mut, seeds=["state".as_bytes()], bump, has_one=admin)]
+    #[account(mut, seeds=[STATE_SEED], bump, has_one=admin)]
     pub state: Account<'info, XmState>,
     pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct SetProtocols<'info> {
+    #[account(mut, seeds=[STATE_SEED], bump)]
+    pub state: Account<'info, XmState>,
+    #[account(address = crate::ID)]
+    pub program: Program<'info, XcallManager>,
+    pub signer: Signer<'info>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -43,6 +54,7 @@ pub struct Protocols {
 
 #[derive(Accounts)]
 pub struct VerifyProtocols<'info> {
+    #[account(seeds=[STATE_SEED], bump)]
     pub state: Account<'info, XmState>,
 }
 
@@ -52,12 +64,13 @@ pub struct HandleCallMessage<'info> {
     #[account(owner=state.xcall @XCallManagerError::OnlyXcall)]
     pub xcall_singer: Signer<'info>,
 
-    #[account(mut)]
+    #[account(mut, seeds=[STATE_SEED], bump)]
     pub state: Account<'info, XmState>,
 }
 
 #[derive(Accounts)]
 pub struct GetParams<'info> {
+    #[account(mut, seeds=[STATE_SEED], bump)]
     pub state: Account<'info, XmState>,
 }
 

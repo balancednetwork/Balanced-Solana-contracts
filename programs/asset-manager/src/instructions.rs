@@ -3,7 +3,7 @@ use anchor_lang::solana_program::program_pack::Pack;
 use anchor_spl::token::{self, spl_token, TokenAccount, Transfer};
 
 use std::str::FromStr;
-use xcall::cpi::accounts::SendCallCtx;
+use xcall::cpi::accounts::{SendCallCtx, HandleForcedRollbackCtx};
 use xcall_lib::message::{
     call_message_rollback::CallMessageWithRollback, envelope::Envelope, AnyMessage,
 };
@@ -22,7 +22,7 @@ use crate::{
 };
 
 const POINTS: u64 = 10000;
-const _NATIVE_ADDRESS: &str = "11111111111111111111111111111111";
+pub const _NATIVE_ADDRESS: &str = "11111111111111111111111111111111";
 
 pub fn initialize(
     ctx: Context<Initialize>,
@@ -40,6 +40,14 @@ pub fn initialize(
     Ok(())
 }
 
+pub fn set_admin(
+    ctx: Context<SetAdmin>,
+    admin: Pubkey) -> Result<()>{
+    let state: &mut Account<State> = &mut ctx.accounts.state;
+    state.admin = admin;
+    return  Ok(());
+}
+
 pub fn configure_rate_limit(
     ctx: Context<ConfigureRateLimit>,
     token: Pubkey,
@@ -48,7 +56,7 @@ pub fn configure_rate_limit(
 ) -> Result<()> {
     require!(percentage <= POINTS, AssetManagerError::PercentageTooHigh);
 
-    let token_state = &mut ctx.accounts.token_state;
+    let token_state: &mut Account<TokenState> = &mut ctx.accounts.token_state;
     let current_limit = 0;
     let last_update = Clock::get()?.unix_timestamp;
     token_state.set_inner(TokenState {
@@ -85,9 +93,9 @@ fn calculate_limit(token_state: &TokenState, balance: u64) -> Result<u64> {
 }
 
 pub fn get_withdraw_limit(ctx: Context<GetWithdrawLimit>) -> Result<u64> {
-    let state = &ctx.accounts.token_state;
+    let token_state = &ctx.accounts.token_state;
     let balance = balance_of(&ctx.accounts.vault_token_account)?;
-    calculate_limit(state, balance)
+    calculate_limit(token_state, balance)
 }
 
 pub fn deposit_token<'info>(
@@ -97,16 +105,20 @@ pub fn deposit_token<'info>(
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
     require!(amount > 0, AssetManagerError::InvalidAmount);
+    
     let from = ctx
         .accounts
         .from
         .as_ref()
         .ok_or(AssetManagerError::InvalidFromAddress)?;
+    let token_addr = from.mint;
+    require!(ctx.accounts.valult_authority.clone().unwrap().key()==get_vault_pda(&ctx.program_id, token_addr)?.0, AssetManagerError::InvalidValutAuthority);
     let vault_token_account = ctx
         .accounts
         .vault_token_account
         .as_ref()
         .ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
+
     let cpi_accounts = Transfer {
         from: from.to_account_info(),
         to: vault_token_account.to_account_info(),
@@ -121,9 +133,9 @@ pub fn deposit_token<'info>(
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     token::transfer(cpi_ctx, amount)?;
 
-    let token_addr = from.mint.to_string();
+    
     let from: Pubkey = from.key();
-    let res = send_deposit_message(ctx, token_addr, from.key(), amount, to, data)?;
+    let res = send_deposit_message(ctx, token_addr.to_string(), from.key(), amount, to, data)?;
     Ok(res)
 }
 
@@ -134,6 +146,7 @@ pub fn deposit_native<'info>(
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
     require!(amount > 0, AssetManagerError::InvalidAmount);
+    require!(ctx.accounts.vault_native_account.clone().unwrap().key()==get_native_vault_pda(&ctx.program_id)?.0, AssetManagerError::InvalidValutNativeAuthority);
     let vault_native_account = ctx
         .accounts
         .vault_native_account
@@ -207,7 +220,7 @@ fn send_deposit_message<'info>(
     // the accounts for centralized connections is contained here.
     let remaining_accounts: &[AccountInfo<'info>] = ctx.remaining_accounts.split_at(4).1;
     let bump = ctx.bumps.xcall_authority;
-    let seeds = &[Authority::SEED_PREFIX.as_bytes().as_ref(), &[bump]];
+    let seeds = &[Authority::SEED_PREFIX.as_ref(), &[bump]];
     let signer_seeds = &[&seeds[..]];
 
     let cpi_accounts: SendCallCtx = SendCallCtx {
@@ -237,8 +250,8 @@ pub fn verify_protocols<'info>(
     };
 
     let cpi_ctx = CpiContext::new(xcall_manager_program.to_account_info(), cpi_accounts);
-    let _ = xcall_manager::cpi::verify_protocols(cpi_ctx, protocols.to_vec())?;
-    Ok(true)
+    let verified = xcall_manager::cpi::verify_protocols(cpi_ctx, protocols.to_vec())?;
+    Ok(verified.get())
 }
 
 pub fn get_handle_call_message_accounts<'info>(
@@ -275,12 +288,21 @@ pub fn handle_call_message<'info>(
     data: Vec<u8>,
     protocols: Vec<String>,
 ) -> Result<HandleCallMessageResponse> {
+    require!(
+        verify_protocols(
+            ctx.accounts.xcall_manager.clone(),
+            ctx.accounts.xcall_manager_state.clone(),
+            &protocols
+        )?,
+        AssetManagerError::ProtocolMismatch
+    );
+
     let token_address = decode_token_address(&data)?;
     let result;
     if token_address != _NATIVE_ADDRESS.to_string() {
-        result = handle_token_call_message(ctx, from, data, protocols);
+        result = handle_token_call_message(ctx, from, data);
     } else {
-        result = handle_native_call_message(ctx, from, data, protocols);
+        result = handle_native_call_message(ctx, from, data);
     }
 
     match result {
@@ -303,20 +325,12 @@ fn handle_token_call_message<'info>(
     ctx: Context<'_, '_, '_, 'info, HandleCallMessage<'info>>,
     from: String,
     data: Vec<u8>,
-    protocols: Vec<String>,
 ) -> Result<bool> {
     let state = ctx.accounts.state.clone();
     let bump = ctx.bumps.valult_authority.unwrap();
-    require!(
-        verify_protocols(
-            ctx.accounts.xcall_manager.clone(),
-            ctx.accounts.xcall_manager_state.clone(),
-            &protocols
-        )?,
-        AssetManagerError::ProtocolMismatch
-    );
     let method = decode_method(&data)?;
-    let to = ctx
+    
+    let to: &Account<'info, TokenAccount> = ctx
         .accounts
         .to
         .as_ref()
@@ -326,6 +340,7 @@ fn handle_token_call_message<'info>(
         .mint
         .as_ref()
         .ok_or(AssetManagerError::MintIsRequired)?;
+    require!(ctx.accounts.valult_authority.clone().unwrap().key()==get_vault_pda(&ctx.program_id, mint.key())?.0, AssetManagerError::InvalidValutAuthority);
     let token_program = ctx
         .accounts
         .token_program
@@ -341,25 +356,24 @@ fn handle_token_call_message<'info>(
         .valult_authority
         .as_ref()
         .ok_or(AssetManagerError::ValultAuthorityIsRequired)?;
+    let mut token_state: &mut Account<'info, TokenState> = &mut ctx.accounts.token_state;
     if method == WITHDRAW_TO {
-        require!(
-            from == state.icon_asset_manager,
-            AssetManagerError::NotIconAssetManager
-        );
+        if from != state.icon_asset_manager{
+           return Err(AssetManagerError::NotIconAssetManager.into())
+        }
         let message = decode_withdraw_to_msg(&data)?;
         let token_pubkey = Pubkey::from_str(&message.token_address)
             .map_err(|_| AssetManagerError::NotAnAddress)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
-        require!(
-            recipient_pubkey == to.key(),
-            AssetManagerError::InvalidToAddress
-        );
-        require!(
-            token_pubkey == mint.key(),
-            AssetManagerError::InvalidToAddress
-        );
+        if recipient_pubkey != to.key() {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
+        if token_pubkey != mint.key() {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
         withdraw_token(
+            &mut token_state,
             vault_token_account.to_account_info(),
             to.to_account_info(),
             message.amount as u64,
@@ -369,20 +383,25 @@ fn handle_token_call_message<'info>(
             bump,
         )?;
     } else if method == DEPOSIT_REVERT {
-        require!(
-            from == state.xcall.key().to_string(),
-            AssetManagerError::UnauthorizedCaller
-        );
+        let from_network_address = NetworkAddress::from_str(&from)?;
+        if from_network_address.account() != state.xcall.to_string() {
+            return Err(AssetManagerError::UnauthorizedCaller.into())
+        }
 
         let message = decode_deposit_revert_msg(&data)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
-        require!(
-            recipient_pubkey == to.key(),
-            AssetManagerError::InvalidToAddress
-        );
-
+        if recipient_pubkey != to.key() {
+           return Err(AssetManagerError::InvalidToAddress.into())
+        }
+        let token_pubkey = Pubkey::from_str(&message.token_address)
+            .map_err(|_| AssetManagerError::NotAnAddress)?;
+        if token_pubkey != mint.key() {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
+        
         withdraw_token(
+            &mut token_state,
             vault_token_account.to_account_info(),
             to.to_account_info(),
             message.amount as u64,
@@ -401,19 +420,10 @@ fn handle_token_call_message<'info>(
 fn handle_native_call_message<'info>(
     ctx: Context<'_, '_, '_, 'info, HandleCallMessage<'info>>,
     from: String,
-    data: Vec<u8>,
-    protocols: Vec<String>,
+    data: Vec<u8>
 ) -> Result<bool> {
+    require!(ctx.accounts.vault_native_account.clone().unwrap().key()==get_native_vault_pda(&ctx.program_id)?.0, AssetManagerError::InvalidValutNativeAuthority);
     let state = ctx.accounts.state.clone();
-
-    require!(
-        verify_protocols(
-            ctx.accounts.xcall_manager.clone(),
-            ctx.accounts.xcall_manager_state.clone(),
-            &protocols
-        )?,
-        AssetManagerError::ProtocolMismatch
-    );
     let bump = ctx.bumps.vault_native_account.unwrap();
     let method = decode_method(&data)?;
     let to_native = ctx
@@ -427,23 +437,22 @@ fn handle_native_call_message<'info>(
         .as_ref()
         .ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
     let system_program_info = ctx.accounts.system_program.to_account_info();
+    let mut token_state = &mut ctx.accounts.token_state;
     if method == WITHDRAW_TO_NATIVE {
-        require!(
-            from == state.icon_asset_manager,
-            AssetManagerError::NotIconAssetManager
-        );
+        if from != state.icon_asset_manager {
+            return Err(AssetManagerError::NotIconAssetManager.into())
+        }
         let message = decode_withdraw_to_msg(&data)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
-        require!(
-            recipient_pubkey == to_native.key(),
-            AssetManagerError::InvalidToAddress
-        );
-        require!(
-            message.token_address == _NATIVE_ADDRESS,
-            AssetManagerError::InvalidToAddress
-        );
+        if recipient_pubkey != to_native.key() {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
+        if message.token_address != _NATIVE_ADDRESS {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
         withdraw_native_token(
+            &mut token_state,
             vault_native_account.clone(),
             to_native.clone(),
             system_program_info,
@@ -451,18 +460,21 @@ fn handle_native_call_message<'info>(
             bump,
         )?;
     } else if method == DEPOSIT_REVERT {
-        require!(
-            from == state.xcall.key().to_string(),
-            AssetManagerError::NotIconAssetManager
-        );
+        let from_network_address = NetworkAddress::from_str(&from)?;
+        if from_network_address.account() != state.xcall.to_string() {
+           return Err(AssetManagerError::NotIconAssetManager.into())
+        }
         let message = decode_deposit_revert_msg(&data)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
-        require!(
-            recipient_pubkey == to_native.key(),
-            AssetManagerError::InvalidToAddress
-        );
+        if recipient_pubkey != to_native.key() {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
+        if message.token_address != _NATIVE_ADDRESS {
+            return Err(AssetManagerError::InvalidToAddress.into())
+        }
         withdraw_native_token(
+            &mut token_state,
             vault_native_account.clone(),
             to_native.clone(),
             system_program_info,
@@ -477,6 +489,7 @@ fn handle_native_call_message<'info>(
 }
 
 fn withdraw_token<'info>(
+    token_state: &mut Account<TokenState>,
     vault_token_account: AccountInfo<'info>,
     recipient: AccountInfo<'info>,
     amount: u64,
@@ -488,10 +501,10 @@ fn withdraw_token<'info>(
     let account_data = spl_token::state::Account::unpack(&vault_token_account.data.borrow_mut())?;
     let vault_balance = account_data.amount;
 
-    require!(
-        vault_balance >= amount,
-        AssetManagerError::InsufficientBalance
-    );
+    if vault_balance < amount {
+        return Err(AssetManagerError::InsufficientBalance.into())
+    }
+    verify_withdraw(token_state, amount, vault_balance)?;
 
     let cpi_accounts = Transfer {
         from: vault_token_account,
@@ -509,18 +522,19 @@ fn withdraw_token<'info>(
 }
 
 fn withdraw_native_token<'info>(
+    token_state: &mut Account<TokenState>,
     vault_native_account: AccountInfo<'info>,
     recipient: AccountInfo<'info>,
     system_program: AccountInfo<'info>,
     amount: u64,
     bump: u8,
 ) -> Result<()> {
-    require!(
-        amount <= **vault_native_account.try_borrow_lamports()?,
-        AssetManagerError::InsufficientBalance
-    );
+    if amount > **vault_native_account.try_borrow_lamports()? {
+        return Err(AssetManagerError::InsufficientBalance.into())
+    }
+    verify_withdraw(token_state, amount, vault_native_account.get_lamports())?;
 
-    let seeds = &[b"vault_native".as_ref(), &[bump]];
+    let seeds: &[&[u8]; 2] = &[b"vault_native".as_ref(), &[bump]];
     let signer = &[&seeds[..]];
 
     let ix = anchor_lang::solana_program::system_instruction::transfer(
@@ -540,10 +554,9 @@ fn withdraw_native_token<'info>(
 
 pub fn verify_withdraw(token_state: &mut TokenState, amount: u64, balance: u64) -> Result<()> {
     let limit = calculate_limit(&token_state, balance)?;
-    require!(
-        balance.saturating_sub(amount) >= limit,
-        AssetManagerError::ExceedsWithdrawLimit
-    );
+    if balance.saturating_sub(amount) < limit {
+       return Err(AssetManagerError::ExceedsWithdrawLimit.into())
+    }
 
     token_state.current_limit = limit;
     token_state.last_update = Clock::get()?.unix_timestamp;
@@ -551,6 +564,37 @@ pub fn verify_withdraw(token_state: &mut TokenState, amount: u64, balance: u64) 
     Ok(())
 }
 
+pub fn force_rollback<'info>(
+    ctx: Context<'_, '_, '_, 'info, ForceRollback<'info>>,
+    request_id: u128,
+)->Result<()> {
+    let bump = ctx.bumps.xcall_authority;
+    let seeds = &[Authority::SEED_PREFIX.as_ref(), &[bump]];
+    let signer_seeds = &[&seeds[..]];
+
+    let proxy_request = &ctx.remaining_accounts[0];
+    let config = &ctx.remaining_accounts[1];
+    let admin = &ctx.remaining_accounts[2];
+
+    let remaining_accounts: &[AccountInfo<'info>] = ctx.remaining_accounts.split_at(3).1;
+    let cpi_accounts: HandleForcedRollbackCtx =  HandleForcedRollbackCtx{
+        proxy_request: proxy_request.to_account_info(),
+        signer: ctx.accounts.signer.to_account_info(),
+        dapp_authority: ctx.accounts.xcall_authority.to_account_info(),
+        config: config.to_account_info(),
+        system_program: ctx.accounts.system_program.to_account_info(),
+        admin: admin.to_account_info()
+    };
+
+    let xcall_program = ctx.accounts.xcall.to_account_info();
+    let cpi_ctx = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seeds)
+    .with_remaining_accounts(remaining_accounts.to_vec());
+        
+    let _result = xcall::cpi::handle_forced_rollback(cpi_ctx, request_id)?;
+    Ok(())
+}
+
 fn balance_of(account: &Account<TokenAccount>) -> Result<u64> {
     Ok(account.amount)
 }
+

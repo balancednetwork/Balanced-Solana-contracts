@@ -10,6 +10,9 @@ balanced_dollar = "FMFjGpYNPfnDZAaJ2NjyADbtBxZuG4fRNmQgixq5mczE"
 centralized_connection = "337ToYrue4zSSyS3Th3DDS6qHvFRG6JA7Zkx2zJxLXAS"
 xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
 xcall_manager = "FQ3G93FSqpg9nE1t8hfj7Sb5enCopR2FQXEeZ82C9R5L"
+asset_manager = "BGzeVEn4LkKp8U7dhBP9SnUdYXsdkmFVjrG7awamyqWZ"
+balanced_dollar = "DnTw1FNEm3TAGXPMJSpNWau1TukRCtxMW9GUzM3eJxYN"
+xcall_manager = "AKgQ6MECUga4rUWRwiDkj3XZetp7eTrAhArdPBF7W3qJ"
 
 [registry]
 url = "https://api.apr.dev"

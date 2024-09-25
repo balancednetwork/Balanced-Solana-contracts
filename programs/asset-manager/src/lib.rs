@@ -10,6 +10,7 @@ use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 use states::*;
 
 declare_id!("BAcme7CyJFs93in8YULLDNYCnxa1sD5Wq54QqLRZ5MZU");
+declare_id!("BGzeVEn4LkKp8U7dhBP9SnUdYXsdkmFVjrG7awamyqWZ");
 
 #[program]
 pub mod asset_manager {
@@ -29,6 +30,16 @@ pub mod asset_manager {
             icon_asset_manager,
             xcall_manager,
             xcall_manager_state,
+        )
+    }
+
+    pub fn set_admin(
+        ctx: Context<SetAdmin>,
+        admin: Pubkey,
+    ) -> Result<()> {
+        instructions::set_admin(
+            ctx,
+            admin
         )
     }
 
@@ -72,6 +83,13 @@ pub mod asset_manager {
         protocols: Vec<String>,
     ) -> Result<HandleCallMessageResponse> {
         instructions::handle_call_message(ctx, from, data, protocols)
+    }
+
+    pub fn force_rollback<'info>(
+        ctx: Context<'_, '_, '_, 'info, ForceRollback<'info>>,
+        request_id: u128,
+    ) -> Result<()> {
+        instructions::force_rollback(ctx, request_id)
     }
 
     pub fn query_handle_call_message_accounts<'info>(
