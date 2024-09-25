@@ -12,15 +12,12 @@ import { BalancedDollar } from "../target/types/balanced_dollar";
 const args = process.argv.slice(2);
 
 const xcall_address = args[0];
-const cetralized_connection_address = args[1];
-const icon_connection_contract = args[2];
+const sources = args[1].split(",");
+const destinations = args[2].split(",");
 const icon_governance = args[3];
 const environment_rpc = args[4];
 
 let xcall_program = new anchor.web3.PublicKey(xcall_address);
-let connection_program = new anchor.web3.PublicKey(
-  cetralized_connection_address
-);
 
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
@@ -51,9 +48,6 @@ let xcallManagerCtx = new xCallManagerContext(
   wallet.payer
 );
 
-let sources = [connection_program.toString()];
-let destinations = [icon_connection_contract];
-
 async function init() {
   sleep(3);
   console.log("initializing xcall manager contract");
@@ -66,22 +60,6 @@ async function init() {
   console.log("xcall manager contract initialized successfully");
 }
 
-//NEEDED TO MOVE TO XCALL AND CENTRALIZED SCRIPT
-
-// async function setNetworkFee(networkId: string, msgFee: number, resFee) {
-//     console.log("setting network fee");
-//     await connectionProgram.methods
-//       .setFee(networkId, new anchor.BN(msgFee), new anchor.BN(resFee))
-//       .accountsStrict({
-//         config: ConnectionPDA.config().pda,
-//         networkFee: ConnectionPDA.fee(networkId).pda,
-//         admin: wallet.payer.publicKey,
-//         systemProgram: SYSTEM_PROGRAM_ID,
-//       })
-//       .signers([wallet.payer])
-//       .rpc();
-//     console.log("network fee successfully set");
-// }
 
 async function main() {
   await init().catch((err) => console.error(err));

@@ -41,23 +41,6 @@ async function init(){
     console.log("balanced dollar contract initialized");
 }
 
-//NEEDED TO MOVE TO XCALL AND CENTRALIZED SCRIPT
-
-// async function setNetworkFee(networkId: string, msgFee: number, resFee) {
-//     console.log("setting network fee");
-//     await connectionProgram.methods
-//       .setFee(networkId, new anchor.BN(msgFee), new anchor.BN(resFee))
-//       .accountsStrict({
-//         config: ConnectionPDA.config().pda,
-//         networkFee: ConnectionPDA.fee(networkId).pda,
-//         admin: wallet.payer.publicKey,
-//         systemProgram: SYSTEM_PROGRAM_ID,
-//       })
-//       .signers([wallet.payer])
-//       .rpc();
-//     console.log("network fee successfully set");
-// }
-
 async function main() {
     await init().catch(err => console.error(err));
 }
