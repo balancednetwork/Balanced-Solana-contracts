@@ -12,7 +12,8 @@ const args = process.argv.slice(2);
 
 const xcall_address = args[0];
 const icon_balanced_dollar = args[1];
-const environment_rpc = args[2]
+const balanced_token = args[2];
+const environment_rpc = args[3];
 
 let xcall_program = new anchor.web3.PublicKey(xcall_address)
 
@@ -37,7 +38,7 @@ async function init(){
     sleep(3);
    
     console.log("initializing balanced dollar contract");
-    await balancedDollarContext.initialize(xcall_program, icon_balanced_dollar, xcall_manager_program.programId, new PublicKey("APkyyEDmuhy3ctZiEXUJM2evUZopfnsmvv1uz1j5B9hF"), XcallManagerPDA.state().pda );
+    await balancedDollarContext.initialize(xcall_program, icon_balanced_dollar, xcall_manager_program.programId, new PublicKey(balanced_token), XcallManagerPDA.state().pda );
     console.log("balanced dollar contract initialized");
 }
 
