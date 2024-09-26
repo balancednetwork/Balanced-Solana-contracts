@@ -64,6 +64,8 @@ export class BalancedDollarPDA {
       balancedDollarProgram.programId
     );
 
+    console.log("Mint Authority: ", pda.toBase58());
+
     return { bump, pda };
   }
 
