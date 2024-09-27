@@ -35,7 +35,7 @@ pub fn decode_cross_transfer(data: &[u8]) -> Result<CrossTransferMsg, BalancedDo
     }
     let from: String = rlp.val_at(1)?;
     let to: String = rlp.val_at(2)?;
-    let value: u64 = rlp.val_at(3)?;
+    let value: u128 = rlp.val_at(3)?;
     let data: Vec<u8> = rlp.at(4)?.data()?.to_vec();
     let cross_transfer = CrossTransferMsg {
         from,
@@ -61,7 +61,7 @@ pub fn decode_cross_transfer_revert(
         return Err(DecoderError::RlpInvalidLength.into());
     }
     let account: String = rlp.val_at(1)?;
-    let amount: u64 = rlp.val_at(2)?;
+    let amount: u128 = rlp.val_at(2)?;
 
     let cross_transfer_revert: CrossTransferRevert = CrossTransferRevert { account, amount };
     Ok(cross_transfer_revert)

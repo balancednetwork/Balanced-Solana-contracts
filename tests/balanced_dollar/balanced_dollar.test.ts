@@ -160,7 +160,7 @@ describe("balanced dollar manager", () => {
       "xCrossTransfer",
       sender.publicKey.toString(),
       "solana/" + withdrawerTokenAccount.address.toString(),
-      20000000000,
+      20000000000000000000n,
       bytes,
     ];
     const rlpEncodedData = rlp.encode(data);

@@ -4,7 +4,7 @@ use rlp::{Encodable, RlpStream};
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct CrossTransferRevert {
     pub account: String,
-    pub amount: u64,
+    pub amount: u128,
 }
 
 pub const CROSS_TRANSFER_REVERT: &str = "xCrossTransferRevert";
@@ -20,7 +20,7 @@ impl Encodable for CrossTransferRevert {
 }
 
 impl CrossTransferRevert {
-    pub fn create(account: String, amount: u64) -> Self {
+    pub fn create(account: String, amount: u128) -> Self {
         Self { account, amount }
     }
 

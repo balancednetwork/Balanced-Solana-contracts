@@ -5,7 +5,7 @@ use rlp::{Encodable, RlpStream};
 pub struct CrossTransferMsg {
     pub from: String,
     pub to: String,
-    pub value: u64,
+    pub value: u128,
     pub data: Vec<u8>,
 }
 
@@ -24,7 +24,7 @@ impl Encodable for CrossTransferMsg {
 }
 
 impl CrossTransferMsg {
-    pub fn create(from: String, to: String, value: u64, data: Vec<u8>) -> Self {
+    pub fn create(from: String, to: String, value: u128, data: Vec<u8>) -> Self {
         Self {
             from,
             to,
