@@ -80,11 +80,12 @@ fn send_message <'info>(
     value: u64,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
+    let value_u128 = translate_outgoing_amount(value);
     let message: Vec<u8> =
-        CrossTransferMsg::create(ctx.accounts.from.key().to_string(), to, value, data.unwrap_or(vec![]))
+        CrossTransferMsg::create(ctx.accounts.from.key().to_string(), to, value_u128, data.unwrap_or(vec![]))
             .encode();
     let rollback_message =
-        CrossTransferRevert::create(ctx.accounts.from.key().to_string(), value).encode();
+        CrossTransferRevert::create(ctx.accounts.from.key().to_string(), value_u128).encode();
     let sources = &ctx.accounts.xcall_manager_state.sources;
     let destinations = &ctx.accounts.xcall_manager_state.destinations;
     let message = AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
@@ -166,7 +167,7 @@ pub fn handle_call_message<'info>(
             ctx.accounts.to.to_account_info(),
             ctx.accounts.mint_authority.to_account_info(),
             ctx.accounts.token_program.to_account_info(),
-            message.value,
+            translate_incoming_amount(message.value),
             signer,
         )?;
         return Ok(HandleCallMessageResponse {
@@ -192,7 +193,7 @@ pub fn handle_call_message<'info>(
             ctx.accounts.to.to_account_info(),
             ctx.accounts.mint_authority.to_account_info(),
             ctx.accounts.token_program.to_account_info(),
-            message.amount,
+            translate_incoming_amount(message.amount),
             signer,
         )?;
         return Ok(HandleCallMessageResponse {
@@ -300,4 +301,12 @@ pub fn account_from_network_address(string_network_address: String) -> Result<St
     let parts = string_network_address.split('/').collect::<Vec<&str>>();
     require!(parts.len() == 2, BalancedDollarError::InvalidNetworkAddress);
     Ok(parts[1].to_string())
+}
+
+pub fn translate_outgoing_amount(amount: u64) -> u128 {
+    (amount as u128) * 10_u64.pow(9) as u128
+}
+
+pub fn translate_incoming_amount(amount: u128) -> u64 {
+    (amount / 10_u64.pow(9) as u128) as u64
 }
