@@ -268,7 +268,7 @@ pub fn get_handle_call_message_accounts<'info>(
         Ok(ParamAccounts {
             accounts: get_spl_token_deposit_revert_accounts(ctx, data)?,
         })
-    } else if token_address == _NATIVE_ADDRESS && method == WITHDRAW_TO_NATIVE {
+    } else if token_address == _NATIVE_ADDRESS && (method == WITHDRAW_TO_NATIVE || method == WITHDRAW_TO) {
         Ok(ParamAccounts {
             accounts: get_native_token_withdraw_to_accounts(ctx, data)?,
         })
@@ -438,7 +438,7 @@ fn handle_native_call_message<'info>(
         .ok_or(AssetManagerError::ValultTokenAccountIsRequired)?;
     let system_program_info = ctx.accounts.system_program.to_account_info();
     let mut token_state = &mut ctx.accounts.token_state;
-    if method == WITHDRAW_TO_NATIVE {
+    if method == WITHDRAW_TO_NATIVE || method == WITHDRAW_TO {
         if from != state.icon_asset_manager {
             return Err(AssetManagerError::NotIconAssetManager.into())
         }
