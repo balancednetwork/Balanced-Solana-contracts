@@ -20,7 +20,7 @@ pub struct Initialize<'info> {
 pub struct SetAdmin<'info> {
     #[account(mut, seeds=[STATE_SEED], bump)]
     pub state: Account<'info, State>,
-    #[account(owner=state.admin @BalancedDollarError::OnlyAdmin)]
+    #[account(address=state.admin @BalancedDollarError::OnlyAdmin)]
     pub admin: Signer<'info>,
 }
 
