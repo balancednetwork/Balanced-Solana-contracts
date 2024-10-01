@@ -1,0 +1,25 @@
+[toolchain]
+
+[features]
+resolution = false
+skip-lint = false
+
+[programs."https://api.testnet.solana.com"]
+asset_manager = "BGzeVEn4LkKp8U7dhBP9SnUdYXsdkmFVjrG7awamyqWZ"
+balanced_dollar = "DnTw1FNEm3TAGXPMJSpNWau1TukRCtxMW9GUzM3eJxYN"
+xcall_manager = "AKgQ6MECUga4rUWRwiDkj3XZetp7eTrAhArdPBF7W3qJ"
+
+[programs.localnet]
+asset_manager = "BGzeVEn4LkKp8U7dhBP9SnUdYXsdkmFVjrG7awamyqWZ"
+balanced_dollar = "DnTw1FNEm3TAGXPMJSpNWau1TukRCtxMW9GUzM3eJxYN"
+xcall_manager = "AKgQ6MECUga4rUWRwiDkj3XZetp7eTrAhArdPBF7W3qJ"
+
+[registry]
+url = "https://api.testnet.solana.com"
+
+[provider]
+cluster = "testnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run jest --runTestsByPath --detectOpenHandles --forceExit --watchAll"
