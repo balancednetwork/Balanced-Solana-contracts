@@ -5,11 +5,11 @@ resolution = false
 skip-lint = false
 
 [programs.localnet]
-asset_manager = "D4QDPDykp1bEyfEnG5VbwEbQfJNjU1E2A4b3dvQkrdhZ"
-balanced_dollar = "A1xSqxhcpn1KUcVJj6rJwUdWk2gWgCaUB4zuLePnKabk"
+asset_manager = "5G7Q2xM5qU4UWd3z4CW9YSEiVnfZmTUS1mbhSSZwTEJQ"
+balanced_dollar = "Ahs9cC6PMGhasB5zUboUVNBJxAStmX1aeENDiWLz2AXH"
 centralized_connection = "337ToYrue4zSSyS3Th3DDS6qHvFRG6JA7Zkx2zJxLXAS"
 xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
-xcall_manager = "8exXWgtzB5iyywhciSYK8uQEkmLNMaFkp4eUFHLVyvtU"
+xcall_manager = "4eAQxDi6UJokDysb9YMrXNJNcRChotpYory5M5ReD16i"
 
 [registry]
 url = "https://api.apr.dev"
