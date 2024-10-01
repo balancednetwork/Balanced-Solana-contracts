@@ -15,7 +15,7 @@ xcall_manager = "8exXWgtzB5iyywhciSYK8uQEkmLNMaFkp4eUFHLVyvtU"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "https://api.devnet.solana.com/"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
