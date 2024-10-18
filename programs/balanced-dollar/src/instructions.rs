@@ -50,27 +50,16 @@ pub fn set_admin(
 pub fn cross_transfer<'info>(
     ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
     to: String,
-    value: u64,
-    icon_bnusd_value: Option<u128>,
+    icon_bnusd_value: u128,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
-    require!(value > 0, BalancedDollarError::InvalidAmount);
-    let (adjusted_value, cross_chain_value) = if let Some(icon_value) = icon_bnusd_value {
-        if icon_value > 0 {
-            let mut adjusted_value = icon_value / 10_u64.pow(9);
-            if icon_value % 10_u64.pow(9) > 0 {
-                adjusted_value += 1;
-            }
-            (adjusted_value, icon_value as u128)  
-        } else {
-            (value, translate_outgoing_amount(value))  
-        }
-    } else {
-        (value, translate_outgoing_amount(value)) 
-    };
-
+    require!(icon_bnusd_value > 0, BalancedDollarError::InvalidAmount);
+    let mut value = (icon_bnusd_value / 10_u128.pow(9)) as u64;
+    if icon_bnusd_value % 10_u128.pow(9) > 0 {
+        value += 1;
+    }
     require!(
-        ctx.accounts.from.amount >= adjusted_value,
+        ctx.accounts.from.amount >= value,
         BalancedDollarError::InsufficientBalance
     );
     require!(
@@ -85,8 +74,8 @@ pub fn cross_transfer<'info>(
             authority: ctx.accounts.from_authority.to_account_info(),
         },
     );
-    token::burn(burn_ctx, adjusted_value)?;
-    send_message(ctx, to, cross_chain_value, data)
+    token::burn(burn_ctx, value)?;
+    send_message(ctx, to, icon_bnusd_value, data)
 }
 
 fn send_message <'info>(

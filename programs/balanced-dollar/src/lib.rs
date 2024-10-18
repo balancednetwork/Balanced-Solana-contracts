@@ -45,11 +45,10 @@ pub mod balanced_dollar {
     pub fn cross_transfer<'info>(
         ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
         to: String,
-        value: u64,
-        icon_bnusd_value: Option<u128>,
+        icon_bnusd_value: u128,
         data: Option<Vec<u8>>,
     ) -> Result<u128> {
-        instructions::cross_transfer(ctx, to, value,icon_bnusd_value, data)
+        instructions::cross_transfer(ctx, to,icon_bnusd_value, data)
     }
 
     pub fn handle_call_message<'info>(
