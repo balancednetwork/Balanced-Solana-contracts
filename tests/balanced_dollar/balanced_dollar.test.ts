@@ -240,7 +240,7 @@ describe("balanced dollar manager", () => {
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
     let crossTransferTx = await program.methods
-      .crossTransfer("", new anchor.BN(1000000000), Buffer.alloc(0))
+      .crossTransfer("", new anchor.BN(1000000000), new anchor.BN(1000000000000000000), Buffer.alloc(0))
       .accountsStrict({
         from: withdrawerTokenAccount.address,
         fromAuthority: withdrawerKeyPair.publicKey,
@@ -379,7 +379,7 @@ describe("balanced dollar manager", () => {
     await sleep(3);
     let bytes = Buffer.alloc(0);
     let crossTransferTx = await program.methods
-      .crossTransfer("", new anchor.BN(1000000000), bytes)
+      .crossTransfer("", new anchor.BN(1000000001), new anchor.BN(1000000000000000897), bytes)
       .accountsStrict({
         from: withdrawerTokenAccount.address,
         fromAuthority: withdrawerKeyPair.publicKey,

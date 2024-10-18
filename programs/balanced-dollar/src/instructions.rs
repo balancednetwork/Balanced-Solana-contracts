@@ -51,11 +51,26 @@ pub fn cross_transfer<'info>(
     ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
     to: String,
     value: u64,
+    icon_bnusd_value: Option<u64>,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
     require!(value > 0, BalancedDollarError::InvalidAmount);
+    let (adjusted_value, cross_chain_value) = if let Some(icon_value) = icon_bnusd_value {
+        if icon_value > 0 {
+            let mut adjusted_value = icon_value / 10_u64.pow(9);
+            if icon_value % 10_u64.pow(9) > 0 {
+                adjusted_value += 1;
+            }
+            (adjusted_value, icon_value as u128)  
+        } else {
+            (value, translate_outgoing_amount(value))  
+        }
+    } else {
+        (value, translate_outgoing_amount(value)) 
+    };
+
     require!(
-        ctx.accounts.from.amount >= value,
+        ctx.accounts.from.amount >= adjusted_value,
         BalancedDollarError::InsufficientBalance
     );
     require!(
@@ -70,22 +85,21 @@ pub fn cross_transfer<'info>(
             authority: ctx.accounts.from_authority.to_account_info(),
         },
     );
-    token::burn(burn_ctx, value)?;
-    send_message(ctx, to, value, data)
+    token::burn(burn_ctx, adjusted_value)?;
+    send_message(ctx, to, cross_chain_value, data)
 }
 
 fn send_message <'info>(
     ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
     to: String,
-    value: u64,
+    value: u128,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
-    let value_u128 = translate_outgoing_amount(value);
     let message: Vec<u8> =
-        CrossTransferMsg::create(ctx.accounts.from.key().to_string(), to, value_u128, data.unwrap_or(vec![]))
+        CrossTransferMsg::create(ctx.accounts.from.key().to_string(), to, value, data.unwrap_or(vec![]))
             .encode();
     let rollback_message =
-        CrossTransferRevert::create(ctx.accounts.from.key().to_string(), value_u128).encode();
+        CrossTransferRevert::create(ctx.accounts.from.key().to_string(), value).encode();
     let sources = &ctx.accounts.xcall_manager_state.sources;
     let destinations = &ctx.accounts.xcall_manager_state.destinations;
     let message = AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
