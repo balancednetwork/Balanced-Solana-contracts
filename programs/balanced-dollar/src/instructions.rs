@@ -51,7 +51,7 @@ pub fn cross_transfer<'info>(
     ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
     to: String,
     value: u64,
-    icon_bnusd_value: Option<u64>,
+    icon_bnusd_value: Option<u28>,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
     require!(value > 0, BalancedDollarError::InvalidAmount);
