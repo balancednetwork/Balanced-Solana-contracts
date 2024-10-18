@@ -50,10 +50,14 @@ pub fn set_admin(
 pub fn cross_transfer<'info>(
     ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
     to: String,
-    value: u64,
+    icon_bnusd_value: u128,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
-    require!(value > 0, BalancedDollarError::InvalidAmount);
+    require!(icon_bnusd_value > 0, BalancedDollarError::InvalidAmount);
+    let mut value = (icon_bnusd_value / 10_u128.pow(9)) as u64;
+    if icon_bnusd_value % 10_u128.pow(9) > 0 {
+        value += 1;
+    }
     require!(
         ctx.accounts.from.amount >= value,
         BalancedDollarError::InsufficientBalance
@@ -71,21 +75,20 @@ pub fn cross_transfer<'info>(
         },
     );
     token::burn(burn_ctx, value)?;
-    send_message(ctx, to, value, data)
+    send_message(ctx, to, icon_bnusd_value, data)
 }
 
 fn send_message <'info>(
     ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
     to: String,
-    value: u64,
+    value: u128,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
-    let value_u128 = translate_outgoing_amount(value);
     let message: Vec<u8> =
-        CrossTransferMsg::create(ctx.accounts.from.key().to_string(), to, value_u128, data.unwrap_or(vec![]))
+        CrossTransferMsg::create(ctx.accounts.from.key().to_string(), to, value, data.unwrap_or(vec![]))
             .encode();
     let rollback_message =
-        CrossTransferRevert::create(ctx.accounts.from.key().to_string(), value_u128).encode();
+        CrossTransferRevert::create(ctx.accounts.from.key().to_string(), value).encode();
     let sources = &ctx.accounts.xcall_manager_state.sources;
     let destinations = &ctx.accounts.xcall_manager_state.destinations;
     let message = AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
