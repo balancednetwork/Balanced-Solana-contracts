@@ -567,6 +567,9 @@ pub fn verify_withdraw(token_state: &mut TokenState, amount: u64, balance: u64) 
 pub fn force_rollback<'info>(
     ctx: Context<'_, '_, '_, 'info, ForceRollback<'info>>,
     request_id: u128,
+    source_nid: String,
+    connection_sn: u128,
+    dst_program_id: Pubkey,
 )->Result<()> {
     let bump = ctx.bumps.xcall_authority;
     let seeds = &[Authority::SEED_PREFIX.as_ref(), &[bump]];
@@ -590,7 +593,7 @@ pub fn force_rollback<'info>(
     let cpi_ctx = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seeds)
     .with_remaining_accounts(remaining_accounts.to_vec());
         
-    let _result = xcall::cpi::handle_forced_rollback(cpi_ctx, request_id)?;
+    let _result = xcall::cpi::handle_forced_rollback(cpi_ctx, request_id, source_nid, connection_sn, dst_program_id)?;
     Ok(())
 }
 
