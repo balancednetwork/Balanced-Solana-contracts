@@ -5,11 +5,11 @@ resolution = false
 skip-lint = false
 
 [programs.localnet]
-asset_manager = "D4QDPDykp1bEyfEnG5VbwEbQfJNjU1E2A4b3dvQkrdhZ"
-balanced_dollar = "A1xSqxhcpn1KUcVJj6rJwUdWk2gWgCaUB4zuLePnKabk"
+asset_manager = "64Ma38GVE1cZ4CkruVYT75D2Ghy93Sk7usH5kiTTtZNp"
+balanced_dollar = "6LiSpv3cQzYDrzAW6wgbphSTquyvBngeBhyT76oQwBBi"
 centralized_connection = "337ToYrue4zSSyS3Th3DDS6qHvFRG6JA7Zkx2zJxLXAS"
 xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
-xcall_manager = "8exXWgtzB5iyywhciSYK8uQEkmLNMaFkp4eUFHLVyvtU"
+xcall_manager = "7A2mHXBQCBd53UqUuZpk6HSwoYDyaKGWSPWeniwNKpUJ"
 
 [registry]
 url = "https://api.apr.dev"
@@ -19,7 +19,5 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-initialize-asset-manager = "yarn ts-node --project ./tsconfig.json ./scripts/initialize-asset-manager.ts"
-initialize-balanced-dollar = "yarn ts-node --project ./tsconfig.json ./scripts/initialize-balanced-dollar.ts"
-initialize-xcall-manager = "yarn ts-node --project ./tsconfig.json ./scripts/initialize-xcall-manager.ts"
-test = "yarn run jest --runTestsByPath --detectOpenHandles --forceExit --watchAll"
+xcall_manager_test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/axcall_manager/xcall_manager.test.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"

@@ -21,7 +21,7 @@ import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 
-import { Xcall } from "../../types/xcall";
+import { Xcall } from "../../types/xcall.js";
 import { CentralizedConnection } from "../../types/centralized_connection";
 import connectionIdlJson from "../../target/idl/centralized_connection.json";
 const connectionProgram: anchor.Program<CentralizedConnection> =
@@ -36,17 +36,21 @@ const xcallProgram: anchor.Program<Xcall> = new anchor.Program(
 ) as unknown as anchor.Program<Xcall>;
 import {
   CSMessage,
-  CSMessageRequest,
-  CSMessageResult,
   CSMessageType,
   CSResponseType,
   MessageType,
-} from "../utils/types";
+} from "../utils/types/message";
+
+import {
+  CSMessageRequest,
+} from "../utils/types/request";
+import {CSMessageResult} from "../utils/types/result"
 import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
 import {
   TestContext as ConnectionContext,
   ConnectionPDA,
 } from "../xcall/centralized_connection/setup";
+import { expect } from "chai";
 
 describe("xx asset manager test", () => {
   const provider = anchor.AnchorProvider.env();
@@ -72,6 +76,7 @@ describe("xx asset manager test", () => {
     wallet.payer
   );
   let iconAssetManager = "icon/hxcnjsdkdfgjdjuf";
+  let fromNid = "icon";
 
   let testAdmin = Keypair.generate();
   let mint: PublicKey;
@@ -81,7 +86,7 @@ describe("xx asset manager test", () => {
   let nativeDepositor = Keypair.generate();
   let vaultTokenAccountPda: PublicKey;
 
-  beforeAll(async () => {
+  before(async () => {
     mint = await createMint(
       provider.connection,
       wallet.payer,
@@ -111,14 +116,14 @@ describe("xx asset manager test", () => {
     const stateAccount = await program.account.state.fetch(
       AssetManagerPDA.state().pda
     );
-    expect(stateAccount.xcall.toString()).toBe(
+    expect(stateAccount.xcall.toString()).equals(
       xcall_program.programId.toString()
     );
-    expect(stateAccount.iconAssetManager).toBe(iconAssetManager);
-    expect(stateAccount.xcallManager.toString()).toBe(
+    expect(stateAccount.iconAssetManager).equals(iconAssetManager);
+    expect(stateAccount.xcallManager.toString()).equals(
       xcall_manager_program.programId.toString()
     );
-    expect(stateAccount.admin.toString()).toBe(
+    expect(stateAccount.admin.toString()).equals(
       wallet.payer.publicKey.toString()
     );
   });
@@ -179,7 +184,7 @@ describe("xx asset manager test", () => {
         vaultTokenAccount: vaultTokenAccount.address
       }).view();
     console.log("initial withdraw limit: ", withdraw_limit )
-    expect(withdraw_limit.toNumber()).toBe(0);
+    expect(withdraw_limit.toNumber()).equals(0);
   });
 
   it("configure rate limit for native token test", async () => {
@@ -284,7 +289,7 @@ describe("xx asset manager test", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.network_fee("icon").pda,
+          pubkey: ConnectionPDA.network_fee(fromNid).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -315,7 +320,7 @@ describe("xx asset manager test", () => {
         vaultTokenAccount: vaultTokenAccount.address
       }).view();
     console.log("initial withdraw limit: ", withdraw_limit )
-    expect(withdraw_limit.toNumber()).toBeGreaterThan(0);
+    expect(withdraw_limit.toNumber()).greaterThan(0);
   });
 
 
@@ -328,7 +333,7 @@ describe("xx asset manager test", () => {
     const initialBalance = await provider.connection.getBalance(
       nativeDepositor.publicKey
     );
-    expect(initialBalance > 0).toBe(true);
+    expect(initialBalance > 0).equals(true);
 
     await sleep(3);
     let bytes = Buffer.alloc(0);
@@ -386,7 +391,7 @@ describe("xx asset manager test", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.network_fee("icon").pda,
+          pubkey: ConnectionPDA.network_fee(fromNid).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -416,7 +421,6 @@ describe("xx asset manager test", () => {
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 8;
-    const fromNetwork = "icon";
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
@@ -454,6 +458,7 @@ describe("xx asset manager test", () => {
     ).encode();
 
     let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+      fromNid,
       connSn,
       nextSequenceNo,
       cs_message,
@@ -462,7 +467,7 @@ describe("xx asset manager test", () => {
 
     await connectionProgram.methods
       .recvMessage(
-        fromNetwork,
+        fromNid,
         new anchor.BN(connSn),
         Buffer.from(cs_message),
         new anchor.BN(nextSequenceNo)
@@ -470,7 +475,7 @@ describe("xx asset manager test", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
         authority: ConnectionPDA.authority().pda
       })
@@ -484,12 +489,18 @@ describe("xx asset manager test", () => {
       nextReqId,
       Buffer.from(rlpEncodedData),
       AssetManagerPDA.state().pda,
-      program.programId
+      program.programId,
+      connSn,
+      fromNid,
+      connectionProgram.programId
     );
 
     let txHash = await xcallProgram.methods
       .executeCall(
         new anchor.BN(nextReqId),
+        fromNid,
+        new anchor.BN(connSn),
+        connectionProgram.programId,
         Buffer.from(rlpEncodedData),
       )
       .accounts({
@@ -497,7 +508,7 @@ describe("xx asset manager test", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         admin: xcallConfig.admin,
-        proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
+        proxyRequest: XcallPDA.proxyRequest(fromNid, connSn, connectionProgram.programId).pda,
       })
       .remainingAccounts([
         // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
@@ -570,7 +581,7 @@ describe("xx asset manager test", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.network_fee("icon").pda,
+          pubkey: ConnectionPDA.network_fee(fromNid).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -594,7 +605,6 @@ describe("xx asset manager test", () => {
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 9;
-    const fromNetwork = "icon";
     console.log("spl token rollback")
 
     let result = new CSMessageResult(
@@ -608,6 +618,7 @@ describe("xx asset manager test", () => {
     ).encode();
 
     let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+      fromNid,
       connSn,
       xcall_sequence_no,
       csMessage,
@@ -616,7 +627,7 @@ describe("xx asset manager test", () => {
 
     await connectionProgram.methods
       .recvMessage(
-        fromNetwork,
+        fromNid,
         new anchor.BN(connSn),
         Buffer.from(csMessage),
         new anchor.BN(xcall_sequence_no)
@@ -624,7 +635,7 @@ describe("xx asset manager test", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
         authority: ConnectionPDA.authority().pda
       })
@@ -666,7 +677,6 @@ describe("xx asset manager test", () => {
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 10;
-    const fromNetwork = "icon";
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
@@ -696,6 +706,7 @@ describe("xx asset manager test", () => {
     ).encode();
 
     let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+      fromNid,
       connSn,
       nextSequenceNo,
       cs_message,
@@ -704,7 +715,7 @@ describe("xx asset manager test", () => {
     console.log("receive message accounts: ", recvMessageAccounts);
     await connectionProgram.methods
       .recvMessage(
-        fromNetwork,
+        fromNid,
         new anchor.BN(connSn),
         Buffer.from(cs_message),
         new anchor.BN(nextSequenceNo)
@@ -712,7 +723,7 @@ describe("xx asset manager test", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
         authority: ConnectionPDA.authority().pda
       })
@@ -726,12 +737,18 @@ describe("xx asset manager test", () => {
       nextReqId,
       Buffer.from(rlpEncodedData),
       AssetManagerPDA.state().pda,
-      program.programId
+      program.programId,
+      connSn,
+      fromNid,
+      connectionProgram.programId
     );
-    console.log("execute call accounts: ", executeCallAccounts);
+    console.log("execute call accounts: {}", executeCallAccounts);
     let txHash = await xcallProgram.methods
       .executeCall(
         new anchor.BN(nextReqId),
+        fromNid,
+        new anchor.BN(connSn),
+        connectionProgram.programId,
         Buffer.from(rlpEncodedData),
       )
       .accounts({
@@ -739,7 +756,7 @@ describe("xx asset manager test", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         admin: xcallConfig.admin,
-        proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
+        proxyRequest: XcallPDA.proxyRequest(fromNid,  connSn, connectionProgram.programId).pda,
       })
       .remainingAccounts([
         // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
@@ -754,7 +771,6 @@ describe("xx asset manager test", () => {
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 11;
-    const fromNetwork = "icon";
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
     let bytes = Buffer.alloc(0);
@@ -812,7 +828,7 @@ describe("xx asset manager test", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.network_fee("icon").pda,
+          pubkey: ConnectionPDA.network_fee(fromNid).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -842,6 +858,7 @@ describe("xx asset manager test", () => {
       result.encode()
     ).encode();
       let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+        fromNid,
         connSn,
         nextSequenceNo,
         csMessage,
@@ -850,7 +867,7 @@ describe("xx asset manager test", () => {
       console.log("receive message accounts: ", recvMessageAccounts);
       await connectionProgram.methods
         .recvMessage(
-          fromNetwork,
+          fromNid,
           new anchor.BN(connSn),
           Buffer.from(csMessage),
           new anchor.BN(nextSequenceNo)
@@ -858,7 +875,7 @@ describe("xx asset manager test", () => {
         .accountsStrict({
           config: ConnectionPDA.config().pda,
           admin: ctx.admin.publicKey,
-          receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
+          receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
           systemProgram: SYSTEM_PROGRAM_ID,
           authority: ConnectionPDA.authority().pda
         })
@@ -901,7 +918,6 @@ describe("xx asset manager test", () => {
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 12;
-    const fromNetwork = "icon";
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
@@ -938,6 +954,7 @@ describe("xx asset manager test", () => {
     ).encode();
 
     let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+      fromNid,
       connSn,
       nextSequenceNo,
       cs_message,
@@ -946,7 +963,7 @@ describe("xx asset manager test", () => {
 
     await connectionProgram.methods
       .recvMessage(
-        fromNetwork,
+        fromNid,
         new anchor.BN(connSn),
         Buffer.from(cs_message),
         new anchor.BN(nextSequenceNo)
@@ -954,7 +971,7 @@ describe("xx asset manager test", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
         authority: ConnectionPDA.authority().pda
       })
@@ -966,7 +983,10 @@ describe("xx asset manager test", () => {
     
     let forceRollbackIx = await program.methods
       .forceRollback(
-        new anchor.BN(nextReqId)
+        new anchor.BN(nextReqId),
+        fromNid,
+        new anchor.BN(connSn),
+        connectionProgram.programId,
       )
       .accountsStrict({
         state: AssetManagerPDA.state().pda,
@@ -977,7 +997,7 @@ describe("xx asset manager test", () => {
       })
       .remainingAccounts([
         {
-          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
+          pubkey: XcallPDA.proxyRequest(fromNid, connSn, connectionProgram.programId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -1003,7 +1023,7 @@ describe("xx asset manager test", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.network_fee("icon").pda,
+          pubkey: ConnectionPDA.network_fee(fromNid).pda,
           isSigner: false,
           isWritable: true,
         },

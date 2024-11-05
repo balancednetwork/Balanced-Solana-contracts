@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/centralized_connection.json`.
  */
 export type CentralizedConnection = {
-  "address": "337ToYrue4zSSyS3Th3DDS6qHvFRG6JA7Zkx2zJxLXAS",
+  "address": "2kNiey1pQrr8Go4ywrKwqPvm1cKZ1yBNhcpqhjxNCi4s",
   "metadata": {
     "name": "centralizedConnection",
     "version": "0.1.0",

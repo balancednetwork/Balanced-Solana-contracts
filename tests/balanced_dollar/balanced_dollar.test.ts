@@ -5,7 +5,7 @@ import * as rlp from "rlp";
 import { BalancedDollar } from "../../target/types/balanced_dollar";
 import { XcallManager } from "../../target/types/xcall_manager";
 
-import { TransactionHelper, sleep } from "../utils";
+import { TransactionHelper, sleep } from "../utils/index";
 import { TestContext, BalancedDollarPDA } from "./setup";
 const program: anchor.Program<BalancedDollar> = anchor.workspace.BalancedDollar;
 const xcall_manager_program: anchor.Program<XcallManager> =
@@ -35,17 +35,21 @@ const xcallProgram: anchor.Program<Xcall> = new anchor.Program(
 ) as unknown as anchor.Program<Xcall>;
 import {
   CSMessage,
-  CSMessageRequest,
-  CSMessageResult,
   CSMessageType,
   CSResponseType,
   MessageType,
-} from "../utils/types";
+} from "../utils/types/message";
+
+import {
+  CSMessageRequest,
+} from "../utils/types/request";
+import {CSMessageResult} from "../utils/types/result"
 import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
 import {
   TestContext as ConnectionContext,
   ConnectionPDA,
 } from "../xcall/centralized_connection/setup";
+import { expect } from "chai";
 
 describe("balanced dollar manager", () => {
   const provider = anchor.AnchorProvider.env();
@@ -63,6 +67,7 @@ describe("balanced dollar manager", () => {
   );
   const xcall_program: anchor.Program<Xcall> = anchor.workspace.Xcall;
   let iconBnUSD = "icon/hxcnjsdkdfgj";
+  let fromNid = "icon";
 
   let mint: PublicKey;
   let program_authority = BalancedDollarPDA.program_authority();
@@ -70,7 +75,7 @@ describe("balanced dollar manager", () => {
   let withdrawerTokenAccount: Account;
   let testAdmin = Keypair.generate();
 
-  beforeAll(async () => {
+  before(async () => {
     mint = await createMint(
       provider.connection,
       wallet.payer,
@@ -99,14 +104,14 @@ describe("balanced dollar manager", () => {
     const stateAccount = await program.account.state.fetch(
       BalancedDollarPDA.state().pda
     );
-    expect(stateAccount.xcall.toString()).toBe(
+    expect(stateAccount.xcall.toString()).equals(
       xcallProgram.programId.toString()
     );
-    expect(stateAccount.iconBnUsd).toBe(iconBnUSD);
-    expect(stateAccount.xcallManager.toString()).toBe(
+    expect(stateAccount.iconBnUsd).equals(iconBnUSD);
+    expect(stateAccount.xcallManager.toString()).equals(
       xcall_manager_program.programId.toString()
     );
-    expect(stateAccount.bnUsdToken.toString()).toBe(mint.toString());
+    expect(stateAccount.bnUsdToken.toString()).equals(mint.toString());
   });
 
   // it("set admin test", async () => {
@@ -146,7 +151,6 @@ describe("balanced dollar manager", () => {
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 6;
-    const fromNetwork = "icon";
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
@@ -180,6 +184,7 @@ describe("balanced dollar manager", () => {
     ).encode();
 
     let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+      fromNid,
       connSn,
       nextSequenceNo,
       cs_message,
@@ -188,7 +193,7 @@ describe("balanced dollar manager", () => {
 
     await connectionProgram.methods
       .recvMessage(
-        fromNetwork,
+        fromNid,
         new anchor.BN(connSn),
         Buffer.from(cs_message),
         new anchor.BN(nextSequenceNo)
@@ -196,7 +201,7 @@ describe("balanced dollar manager", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
         authority: ConnectionPDA.authority().pda
       })
@@ -210,11 +215,17 @@ describe("balanced dollar manager", () => {
       nextReqId,
       Buffer.from(rlpEncodedData),
       BalancedDollarPDA.state().pda,
-      program.programId
+      program.programId,
+      connSn,
+      fromNid,
+      connectionProgram.programId
     );
     await xcallProgram.methods
       .executeCall(
         new anchor.BN(nextReqId),
+        fromNid,
+        new anchor.BN(connSn),
+        connectionProgram.programId,
         Buffer.from(rlpEncodedData),
       )
       .accounts({
@@ -222,7 +233,7 @@ describe("balanced dollar manager", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         admin: xcallConfig.admin,
-        proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
+        proxyRequest: XcallPDA.proxyRequest(fromNid, connSn, connectionProgram.programId).pda,
       })
       .remainingAccounts([
         // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
@@ -236,11 +247,10 @@ describe("balanced dollar manager", () => {
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 7;
-    const fromNetwork = "icon";
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
     let crossTransferTx = await program.methods
-      .crossTransfer("", new anchor.BN(1000000000000000000), Buffer.alloc(0))
+      .crossTransfer("", new anchor.BN(1000000000000000), Buffer.alloc(0))
       .accountsStrict({
         from: withdrawerTokenAccount.address,
         fromAuthority: withdrawerKeyPair.publicKey,
@@ -286,7 +296,7 @@ describe("balanced dollar manager", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.network_fee("icon").pda,
+          pubkey: ConnectionPDA.network_fee(fromNid).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -313,6 +323,7 @@ describe("balanced dollar manager", () => {
     ).encode();
 
     let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+      fromNid,
       connSn,
       nextSequenceNo,
       csMessage,
@@ -321,7 +332,7 @@ describe("balanced dollar manager", () => {
 
     await connectionProgram.methods
       .recvMessage(
-        fromNetwork,
+        fromNid,
         new anchor.BN(connSn),
         Buffer.from(csMessage),
         new anchor.BN(nextSequenceNo)
@@ -329,7 +340,7 @@ describe("balanced dollar manager", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
         authority: ConnectionPDA.authority().pda
       })
@@ -374,12 +385,13 @@ describe("balanced dollar manager", () => {
     let xcall_config = await xcall_program.account.config.fetch(pda);
     let balance = tokenAccountInfo.value.amount;
     console.log("balanced of withdrawer: {}", balance);
-    expect(balance).toBe("20000000000");
+    expect(balance).equals("20000000000");
     await txnHelpers.airdrop(withdrawerKeyPair.publicKey, 5000000000);
     await sleep(3);
     let bytes = Buffer.alloc(0);
+    let amount = new anchor.BN(1000000000000000);
     let crossTransferTx = await program.methods
-      .crossTransfer("",new anchor.BN(1000000000000000897), bytes)
+      .crossTransfer("", amount, bytes)
       .accountsStrict({
         from: withdrawerTokenAccount.address,
         fromAuthority: withdrawerKeyPair.publicKey,
@@ -425,7 +437,7 @@ describe("balanced dollar manager", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.network_fee("icon").pda,
+          pubkey: ConnectionPDA.network_fee(fromNid).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -443,14 +455,13 @@ describe("balanced dollar manager", () => {
     );
     let updatedBalance = updatedTokenAccountInfo.value.amount;
     console.log("balanced of withdrawer: {}", updatedBalance);
-    expect(updatedBalance).toBe(20000000000 - 1000000000 + "");
+    expect(updatedBalance).equals(20000000000 - 1000000 + "");
   });
 
   it("test handle force rollback complete flow with xcall", async () => {
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 13;
-    const fromNetwork = "icon";
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
@@ -487,6 +498,7 @@ describe("balanced dollar manager", () => {
     ).encode();
 
     let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+      fromNid,
       connSn,
       nextSequenceNo,
       cs_message,
@@ -495,7 +507,7 @@ describe("balanced dollar manager", () => {
 
     await connectionProgram.methods
       .recvMessage(
-        fromNetwork,
+        fromNid,
         new anchor.BN(connSn),
         Buffer.from(cs_message),
         new anchor.BN(nextSequenceNo)
@@ -503,7 +515,7 @@ describe("balanced dollar manager", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
         authority: ConnectionPDA.authority().pda
       })
@@ -515,7 +527,10 @@ describe("balanced dollar manager", () => {
     
     let forceRollbackIx = await program.methods
       .forceRollback(
-        new anchor.BN(nextReqId)
+        new anchor.BN(nextReqId),
+        fromNid,
+        new anchor.BN(connSn),
+        connectionProgram.programId,
       )
       .accountsStrict({
         state: BalancedDollarPDA.state().pda,
@@ -526,7 +541,7 @@ describe("balanced dollar manager", () => {
       })
       .remainingAccounts([
         {
-          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
+          pubkey: XcallPDA.proxyRequest(fromNid, connSn, connectionProgram.programId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -552,7 +567,7 @@ describe("balanced dollar manager", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.network_fee("icon").pda,
+          pubkey: ConnectionPDA.network_fee(fromNid).pda,
           isSigner: false,
           isWritable: true,
         },
