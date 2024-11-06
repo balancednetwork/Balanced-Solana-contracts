@@ -1,60 +1,60 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Keypair, PublicKey, Connection } from "@solana/web3.js";
 import * as rlp from "rlp";
-
-import { BalancedDollar } from "../../target/types/balanced_dollar";
-import { XcallManager } from "../../target/types/xcall_manager";
-
-import { TransactionHelper, sleep } from "../utils/index";
-import { TestContext, BalancedDollarPDA } from "./setup";
-const program: anchor.Program<BalancedDollar> = anchor.workspace.BalancedDollar;
-const xcall_manager_program: anchor.Program<XcallManager> =
-  anchor.workspace.XcallManager;
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
+import { expect } from "chai";
 import {
   createMint,
   getOrCreateAssociatedTokenAccount,
   Account,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-const provider = anchor.AnchorProvider.env();
-anchor.setProvider(provider);
 
+import { BalancedDollar } from "../../target/types/balanced_dollar";
+import { XcallManager } from "../../target/types/xcall_manager";
+import { TransactionHelper, sleep } from "../utils/index";
+import { TestContext, BalancedDollarPDA } from "./setup";
 import { Xcall } from "../../types/xcall";
 import { CentralizedConnection } from "../../types/centralized_connection";
 import connectionIdlJson from "../../target/idl/centralized_connection.json";
-const connectionProgram: anchor.Program<CentralizedConnection> =
-  new anchor.Program(
-    connectionIdlJson as anchor.Idl,
-    provider
-  ) as unknown as anchor.Program<CentralizedConnection>;
 import xcallIdlJson from "../../target/idl/xcall.json";
-const xcallProgram: anchor.Program<Xcall> = new anchor.Program(
-  xcallIdlJson as anchor.Idl,
-  provider
-) as unknown as anchor.Program<Xcall>;
 import {
   CSMessage,
   CSMessageType,
   CSResponseType,
   MessageType,
 } from "../utils/types/message";
-
-import {
-  CSMessageRequest,
-} from "../utils/types/request";
-import {CSMessageResult} from "../utils/types/result"
+import { CSMessageRequest } from "../utils/types/request";
+import { CSMessageResult } from "../utils/types/result";
 import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
 import {
   TestContext as ConnectionContext,
   ConnectionPDA,
 } from "../xcall/centralized_connection/setup";
-import { expect } from "chai";
+
+const provider = anchor.AnchorProvider.env();
+anchor.setProvider(provider);
+
+const program: anchor.Program<BalancedDollar> = anchor.workspace.BalancedDollar;
+
+const xcall_manager_program: anchor.Program<XcallManager> =
+  anchor.workspace.XcallManager;
+
+const connectionProgram: anchor.Program<CentralizedConnection> =
+  new anchor.Program(
+    connectionIdlJson as anchor.Idl,
+    provider
+  ) as unknown as anchor.Program<CentralizedConnection>;
+
+const xcallProgram: anchor.Program<Xcall> = new anchor.Program(
+  xcallIdlJson as anchor.Idl,
+  provider
+) as unknown as anchor.Program<Xcall>;
 
 describe("balanced dollar manager", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const connection = provider.connection; //new Connection("http://127.0.0.1:8899", "confirmed");
+  const connection = provider.connection;
   const wallet = provider.wallet as anchor.Wallet;
 
   let txnHelpers = new TransactionHelper(connection, wallet.payer);
@@ -83,7 +83,6 @@ describe("balanced dollar manager", () => {
       null,
       9
     );
-    console.log("mint");
     withdrawerTokenAccount = await getOrCreateAssociatedTokenAccount(
       provider.connection,
       wallet.payer,
@@ -114,39 +113,6 @@ describe("balanced dollar manager", () => {
     expect(stateAccount.bnUsdToken.toString()).equals(mint.toString());
   });
 
-  // it("set admin test", async () => {
-  //   await txnHelpers.airdrop(testAdmin.publicKey, 5000000000);
-  //   let configureIx = await program.methods
-  //     .setAdmin(testAdmin.publicKey)
-  //     .accountsStrict({
-  //       state: BalancedDollarPDA.state().pda,
-  //       admin: ctx.admin.publicKey
-  //     })
-  //     .instruction();
-  //   let tx = await ctx.txnHelpers.buildV0Txn([configureIx], [ctx.admin]);
-  //   await ctx.connection.sendTransaction(tx);
-  //   await sleep(3)
-  //   const stateAccount = await program.account.state.fetch(
-  //     BalancedDollarPDA.state().pda
-  //   );
-  //   console.log(stateAccount.admin)
-
-  //   let setAdminTx = await program.methods
-  //     .setAdmin(ctx.admin.publicKey)
-  //     .accountsStrict({
-  //       state: BalancedDollarPDA.state().pda,
-  //       admin: testAdmin.publicKey
-  //     })
-  //     .instruction();
-  //   let adminTx = await ctx.txnHelpers.buildV0Txn([setAdminTx], [testAdmin]);
-  //   await ctx.connection.sendTransaction(adminTx);
-  //   await sleep(5);
-  //   const updatedStateAccount = await program.account.state.fetch(
-  //     BalancedDollarPDA.state().pda
-  //   );
-  //   console.log(updatedStateAccount.admin)
-  // });
-
   it("test handle call message complete flow with xcall", async () => {
     let xcallConfig = await xcallCtx.getConfig();
 
@@ -157,7 +123,6 @@ describe("balanced dollar manager", () => {
     const stateAccount = await program.account.state.fetch(
       BalancedDollarPDA.state().pda
     );
-    let iconBnUsd = stateAccount.iconBnUsd;
     let bytes = Buffer.alloc(0);
     let sender = Keypair.generate();
     const data = [
@@ -203,13 +168,13 @@ describe("balanced dollar manager", () => {
         admin: ctx.admin.publicKey,
         receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
-        authority: ConnectionPDA.authority().pda
+        authority: ConnectionPDA.authority().pda,
       })
       .remainingAccounts([...recvMessageAccounts.slice(4)])
       .signers([ctx.admin])
       .rpc();
-
     await sleep(2);
+
     // call xcall execute_call
     let executeCallAccounts = await xcallCtx.getExecuteCallAccounts(
       nextReqId,
@@ -226,19 +191,20 @@ describe("balanced dollar manager", () => {
         fromNid,
         new anchor.BN(connSn),
         connectionProgram.programId,
-        Buffer.from(rlpEncodedData),
+        Buffer.from(rlpEncodedData)
       )
       .accounts({
         signer: ctx.admin.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         admin: xcallConfig.admin,
-        proxyRequest: XcallPDA.proxyRequest(fromNid, connSn, connectionProgram.programId).pda,
+        proxyRequest: XcallPDA.proxyRequest(
+          fromNid,
+          connSn,
+          connectionProgram.programId
+        ).pda,
       })
-      .remainingAccounts([
-        // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
-        ...executeCallAccounts.slice(4),
-      ])
+      .remainingAccounts([...executeCallAccounts.slice(4)])
       .signers([ctx.admin])
       .rpc();
   });
@@ -307,73 +273,68 @@ describe("balanced dollar manager", () => {
       [withdrawerKeyPair]
     );
 
-    try{
-    let txHash = await ctx.connection.sendTransaction(tx);
-    await txnHelpers.logParsedTx(txHash);
+    try {
+      await ctx.connection.sendTransaction(tx);
 
-    
-    let result = new CSMessageResult(
-      nextSequenceNo,
-      CSResponseType.CSMessageFailure,
-      new Uint8Array([])
-    );
-    let csMessage = new CSMessage(
-      CSMessageType.CSMessageResult,
-      result.encode()
-    ).encode();
+      let result = new CSMessageResult(
+        nextSequenceNo,
+        CSResponseType.CSMessageFailure,
+        new Uint8Array([])
+      );
+      let csMessage = new CSMessage(
+        CSMessageType.CSMessageResult,
+        result.encode()
+      ).encode();
 
-    let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
-      fromNid,
-      connSn,
-      nextSequenceNo,
-      csMessage,
-      CSMessageType.CSMessageResult
-    );
-
-    await connectionProgram.methods
-      .recvMessage(
+      let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
         fromNid,
-        new anchor.BN(connSn),
-        Buffer.from(csMessage),
-        new anchor.BN(nextSequenceNo)
-      )
-      .accountsStrict({
-        config: ConnectionPDA.config().pda,
-        admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
-        systemProgram: SYSTEM_PROGRAM_ID,
-        authority: ConnectionPDA.authority().pda
-      })
-      .remainingAccounts([...recvMessageAccounts.slice(4)])
-      .signers([ctx.admin])
-      .rpc();
+        connSn,
+        nextSequenceNo,
+        csMessage,
+        CSMessageType.CSMessageResult
+      );
 
-    await sleep(2);
-    // call xcall execute_call
-    let executeRollbackAccounts = await xcallCtx.getExecuteRollbackAccounts(
-      nextReqId,
-      BalancedDollarPDA.state().pda,
-      program.programId
-    );
-    await xcallProgram.methods
-      .executeRollback(
-        new anchor.BN(nextSequenceNo),
-      )
-      .accounts({
-        signer: ctx.admin.publicKey,
-        systemProgram: SYSTEM_PROGRAM_ID,
-        config: XcallPDA.config().pda,
-        admin: xcallConfig.admin,
-        rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
-      })
-      .remainingAccounts([
-        // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
-        ...executeRollbackAccounts.slice(4),
-      ])
-      .signers([ctx.admin])
-      .rpc();
-    } catch (e){
-      console.log(e);
+      await connectionProgram.methods
+        .recvMessage(
+          fromNid,
+          new anchor.BN(connSn),
+          Buffer.from(csMessage),
+          new anchor.BN(nextSequenceNo)
+        )
+        .accountsStrict({
+          config: ConnectionPDA.config().pda,
+          admin: ctx.admin.publicKey,
+          receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
+          systemProgram: SYSTEM_PROGRAM_ID,
+          authority: ConnectionPDA.authority().pda,
+        })
+        .remainingAccounts([...recvMessageAccounts.slice(4)])
+        .signers([ctx.admin])
+        .rpc();
+      await sleep(2);
+
+      // call xcall execute_call
+      let executeRollbackAccounts = await xcallCtx.getExecuteRollbackAccounts(
+        nextReqId,
+        BalancedDollarPDA.state().pda,
+        program.programId
+      );
+      await xcallProgram.methods
+        .executeRollback(new anchor.BN(nextSequenceNo))
+        .accounts({
+          signer: ctx.admin.publicKey,
+          systemProgram: SYSTEM_PROGRAM_ID,
+          config: XcallPDA.config().pda,
+          admin: xcallConfig.admin,
+          rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
+        })
+        .remainingAccounts([...executeRollbackAccounts.slice(4)])
+        .signers([ctx.admin])
+        .rpc();
+    } catch (e) {
+      expect(e.message.toString()).includes(
+        "Attempt to debit an account but found no record of a prior credit"
+      );
     }
   });
 
@@ -384,10 +345,10 @@ describe("balanced dollar manager", () => {
     let { pda } = XcallPDA.config();
     let xcall_config = await xcall_program.account.config.fetch(pda);
     let balance = tokenAccountInfo.value.amount;
-    console.log("balanced of withdrawer: {}", balance);
     expect(balance).equals("20000000000");
     await txnHelpers.airdrop(withdrawerKeyPair.publicKey, 5000000000);
     await sleep(3);
+
     let bytes = Buffer.alloc(0);
     let amount = new anchor.BN(1000000000000000);
     let crossTransferTx = await program.methods
@@ -447,14 +408,13 @@ describe("balanced dollar manager", () => {
       [crossTransferTx],
       [withdrawerKeyPair]
     );
-    let txHash = await ctx.connection.sendTransaction(tx);
-    await txnHelpers.logParsedTx(txHash);
+    await ctx.connection.sendTransaction(tx);
+    await sleep(2);
 
     const updatedTokenAccountInfo = await connection.getTokenAccountBalance(
       withdrawerTokenAccount.address
     );
     let updatedBalance = updatedTokenAccountInfo.value.amount;
-    console.log("balanced of withdrawer: {}", updatedBalance);
     expect(updatedBalance).equals(20000000000 - 1000000 + "");
   });
 
@@ -465,7 +425,6 @@ describe("balanced dollar manager", () => {
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
-    //const stateAccount = await program.account.state.fetch(AssetManagerPDA.state().pda);
     let withdrawerKeyPair = Keypair.generate();
     let withdrawerTokenAccount = await getOrCreateAssociatedTokenAccount(
       provider.connection,
@@ -481,7 +440,6 @@ describe("balanced dollar manager", () => {
       1000000000,
     ];
     const rlpEncodedData = rlp.encode(data);
-    console.log("data encoded");
 
     let request = new CSMessageRequest(
       iconBnUSD,
@@ -517,20 +475,19 @@ describe("balanced dollar manager", () => {
         admin: ctx.admin.publicKey,
         receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
-        authority: ConnectionPDA.authority().pda
+        authority: ConnectionPDA.authority().pda,
       })
       .remainingAccounts([...recvMessageAccounts.slice(4)])
       .signers([ctx.admin])
       .rpc();
-    console.log("receive message complete");
     await sleep(2);
-    
+
     let forceRollbackIx = await program.methods
       .forceRollback(
         new anchor.BN(nextReqId),
         fromNid,
         new anchor.BN(connSn),
-        connectionProgram.programId,
+        connectionProgram.programId
       )
       .accountsStrict({
         state: BalancedDollarPDA.state().pda,
@@ -541,7 +498,11 @@ describe("balanced dollar manager", () => {
       })
       .remainingAccounts([
         {
-          pubkey: XcallPDA.proxyRequest(fromNid, connSn, connectionProgram.programId).pda,
+          pubkey: XcallPDA.proxyRequest(
+            fromNid,
+            connSn,
+            connectionProgram.programId
+          ).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -573,12 +534,8 @@ describe("balanced dollar manager", () => {
         },
       ])
       .instruction();
-      
-    let tx = await ctx.txnHelpers.buildV0Txn(
-      [forceRollbackIx],
-      [ctx.admin]
-    );
-      let txHash = await ctx.connection.sendTransaction(tx);
-      await txnHelpers.logParsedTx(txHash);
+
+    let tx = await ctx.txnHelpers.buildV0Txn([forceRollbackIx], [ctx.admin]);
+    await ctx.connection.sendTransaction(tx);
   });
 });
