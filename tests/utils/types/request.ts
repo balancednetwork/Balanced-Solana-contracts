@@ -1,6 +1,6 @@
 import * as rlp from "rlp";
 
-import { MessageType } from ".";
+import { MessageType } from "./message.js";
 
 export class CSMessageRequest {
   from: string;

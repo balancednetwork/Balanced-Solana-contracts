@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/xcall.json`.
  */
 export type Xcall = {
-  "address": "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW",
+  "address": "9HLp2R9afpPTSW6ypgkogrbkNkGMQxVidwTGmz45QucP",
   "metadata": {
     "name": "xcall",
     "version": "0.1.0",
@@ -78,6 +78,11 @@ export type Xcall = {
         "# Parameters",
         "- `ctx`: The context of the solana program instruction",
         "- `req_id`: The unique identifier for the request being processed.",
+        "- `from_nid`: Network ID of the chain that sent the request.",
+        "- `conn_sn`: The sequence number of connection associated with the message, used to derive",
+        "unique proxy request account with the combination of other parameters",
+        "- `connection`: The connection key used to derive proxy request account with the combination",
+        "of other parameters",
         "- `data`: The data associated with the call request, which will be verified and processed.",
         "",
         "# Returns",
@@ -135,6 +140,18 @@ export type Xcall = {
         {
           "name": "reqId",
           "type": "u128"
+        },
+        {
+          "name": "fromNid",
+          "type": "string"
+        },
+        {
+          "name": "connSn",
+          "type": "u128"
+        },
+        {
+          "name": "connection",
+          "type": "pubkey"
         },
         {
           "name": "data",
@@ -541,6 +558,11 @@ export type Xcall = {
         "# Arguments",
         "* `ctx` - Context containing the accounts required for processing the forced rollback.",
         "* `req_id` - The unique request ID associated with the message being rolled back.",
+        "- `from_nid`: Network ID of the chain that sent the request.",
+        "- `conn_sn`: The sequence number of connection associated with the message, used to derive",
+        "unique proxy request account with the combination of other parameters",
+        "- `connection`: The connection key used to derive proxy request account with the combination",
+        "of other parameters",
         "",
         "# Returns",
         "* `Result<()>` - Returns `Ok(())` on successful execution, or an error if the rollback process",
@@ -607,6 +629,18 @@ export type Xcall = {
         {
           "name": "reqId",
           "type": "u128"
+        },
+        {
+          "name": "fromNid",
+          "type": "string"
+        },
+        {
+          "name": "connSn",
+          "type": "u128"
+        },
+        {
+          "name": "connection",
+          "type": "pubkey"
         }
       ]
     },
@@ -628,6 +662,8 @@ export type Xcall = {
         "- `msg`: The encoded message payload received from the chain.",
         "- `sequence_no`: The sequence number associated with the message, used to track message",
         "ordering and responses.",
+        "- `conn_sn`: The sequence number of connection associated with the message, used to derive",
+        "unique proxy request account with the combination of other parameters",
         "",
         "# Returns",
         "- `Result<()>`: Returns `Ok(())` if the message is successfully handled, or an error if any",
@@ -712,6 +748,10 @@ export type Xcall = {
         {
           "name": "sequenceNo",
           "type": "u128"
+        },
+        {
+          "name": "connSn",
+          "type": "u128"
         }
       ]
     },
@@ -730,6 +770,8 @@ export type Xcall = {
         "- `ctx`: Context containing all relevant accounts and program-specific information.",
         "- `from_nid`: Network ID of the chain that sent the request.",
         "- `msg_payload`: Encoded payload of the request message.",
+        "- `conn_sn`: The sequence number of connection associated with the message, used to derive",
+        "unique proxy request account with the combination of other parameters",
         "",
         "# Returns",
         "- `Result<()>`: Returns `Ok(())` if the request is processed successfully, or an error if",
@@ -818,6 +860,10 @@ export type Xcall = {
         {
           "name": "msgPayload",
           "type": "bytes"
+        },
+        {
+          "name": "connSn",
+          "type": "u128"
         }
       ]
     },
@@ -837,6 +883,8 @@ export type Xcall = {
         "- `from_nid`: Network ID of the chain that sent the result.",
         "- `msg_payload`: Encoded payload of the result message.",
         "- `sequence_no`: Unique sequence number of the result message.",
+        "- `conn_sn`: The sequence number of connection associated with the message, used to derive",
+        "unique proxy request account with the combination of other parameters",
         "",
         "# Returns",
         "- `Result<()>`: Returns `Ok(())` if the result is processed successfully, or an error if",
@@ -941,6 +989,10 @@ export type Xcall = {
         {
           "name": "sequenceNo",
           "type": "u128"
+        },
+        {
+          "name": "connSn",
+          "type": "u128"
         }
       ]
     },
@@ -1029,6 +1081,18 @@ export type Xcall = {
         {
           "name": "reqId",
           "type": "u128"
+        },
+        {
+          "name": "fromNid",
+          "type": "string"
+        },
+        {
+          "name": "connSn",
+          "type": "u128"
+        },
+        {
+          "name": "connection",
+          "type": "pubkey"
         },
         {
           "name": "data",
@@ -1135,6 +1199,10 @@ export type Xcall = {
       ],
       "accounts": [
         {
+          "name": "connection",
+          "signer": true
+        },
+        {
           "name": "config"
         },
         {
@@ -1153,6 +1221,10 @@ export type Xcall = {
         },
         {
           "name": "sequenceNo",
+          "type": "u128"
+        },
+        {
+          "name": "connSn",
           "type": "u128"
         }
       ],
@@ -1952,6 +2024,14 @@ export type Xcall = {
           {
             "name": "data",
             "type": "bytes"
+          },
+          {
+            "name": "connection",
+            "type": "pubkey"
+          },
+          {
+            "name": "connSn",
+            "type": "u128"
           }
         ]
       }
