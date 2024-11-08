@@ -5,7 +5,7 @@ use crate::{
     instructions::_NATIVE_ADDRESS
 };
 use anchor_lang::{prelude::*, solana_program};
-use anchor_spl::{associated_token::get_associated_token_address, token::ID as TOKEN_PROGRAM_ID};
+use anchor_spl::{associated_token::{get_associated_token_address, self}, token::ID as TOKEN_PROGRAM_ID};
 use solana_program::system_program::ID as SYSTEM_PROGRAM_ID;
 use std::str::FromStr;
 
@@ -18,11 +18,12 @@ pub fn get_spl_token_withdraw_to_accounts<'info>(
         Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
     let mint =
         Pubkey::from_str(&message.token_address).map_err(|_| AssetManagerError::NotAnAddress)?;
+    let user_token_address = get_associated_token_address(&user_address, &mint);
     let vault_account = get_associated_token_address(&get_vault_pda(&ctx.program_id, mint)?.0, &mint);
 
     let accounts: Vec<ParamAccountProps> = vec![
+        ParamAccountProps::new(user_token_address, false),
         ParamAccountProps::new(user_address, false),
-        ParamAccountProps::new_readonly(*ctx.program_id, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.key(), false),
         ParamAccountProps::new(get_token_state_pda(&ctx.program_id, mint)?.0, false),
         ParamAccountProps::new(vault_account, false),
@@ -30,6 +31,7 @@ pub fn get_spl_token_withdraw_to_accounts<'info>(
         ParamAccountProps::new(mint, false),
         ParamAccountProps::new(get_vault_pda(&ctx.program_id, mint)?.0, false),
         ParamAccountProps::new(TOKEN_PROGRAM_ID, false),
+        ParamAccountProps::new_readonly(associated_token::ID, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager_state, false),
         ParamAccountProps::new(SYSTEM_PROGRAM_ID, false),
@@ -47,10 +49,11 @@ pub fn get_spl_token_deposit_revert_accounts<'info>(
         Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
     let mint =
         Pubkey::from_str(&message.token_address).map_err(|_| AssetManagerError::NotAnAddress)?;
+    let user_token_address = get_associated_token_address(&user_address, &mint);
     let vault_account = get_associated_token_address(&get_vault_pda(&ctx.program_id, mint)?.0, &mint);
     let accounts: Vec<ParamAccountProps> = vec![
+        ParamAccountProps::new(user_token_address, false),
         ParamAccountProps::new(user_address, false),
-        ParamAccountProps::new_readonly(*ctx.program_id, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.key(), false),
         ParamAccountProps::new(get_token_state_pda(&ctx.program_id, mint)?.0, false),
         ParamAccountProps::new(vault_account, false),
@@ -58,6 +61,7 @@ pub fn get_spl_token_deposit_revert_accounts<'info>(
         ParamAccountProps::new(mint, false),
         ParamAccountProps::new(get_vault_pda(&ctx.program_id, mint)?.0, false),
         ParamAccountProps::new(TOKEN_PROGRAM_ID, false),
+        ParamAccountProps::new_readonly(associated_token::ID, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager_state, false),
         ParamAccountProps::new(SYSTEM_PROGRAM_ID, false),
@@ -84,6 +88,7 @@ pub fn get_native_token_withdraw_to_accounts<'info>(
         ParamAccountProps::new_readonly(*ctx.program_id, false),
         ParamAccountProps::new_readonly(*ctx.program_id, false),
         ParamAccountProps::new_readonly(*ctx.program_id, false),
+        ParamAccountProps::new_readonly(*ctx.program_id, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager_state, false),
         ParamAccountProps::new(SYSTEM_PROGRAM_ID, false),
@@ -107,6 +112,7 @@ pub fn get_native_token_deposit_revert_accounts<'info>(
         ParamAccountProps::new(get_token_state_pda(&ctx.program_id, native_mint)?.0, false),
         ParamAccountProps::new_readonly(*ctx.program_id, false),
         ParamAccountProps::new(get_native_vault_pda(&ctx.program_id)?.0, false),
+        ParamAccountProps::new_readonly(*ctx.program_id, false),
         ParamAccountProps::new_readonly(*ctx.program_id, false),
         ParamAccountProps::new_readonly(*ctx.program_id, false),
         ParamAccountProps::new_readonly(*ctx.program_id, false),

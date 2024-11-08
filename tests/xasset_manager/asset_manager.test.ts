@@ -10,6 +10,7 @@ import {
   mintTo,
   getOrCreateAssociatedTokenAccount,
   Account,
+  getAssociatedTokenAddress,
 } from "@solana/spl-token";
 
 import { TransactionHelper, sleep } from "../utils";
@@ -405,20 +406,16 @@ describe("xx asset manager test", () => {
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
+    let transferAmount = 800000000;
     let withdrawerKeyPair = Keypair.generate();
-    let withdrawerTokenAccount = await getOrCreateAssociatedTokenAccount(
-      provider.connection,
-      wallet.payer,
-      mint,
-      withdrawerKeyPair.publicKey,
-      true
-    );
-    let sender = Keypair.generate();
+    let withdrawerTokenAddress = await getAssociatedTokenAddress(mint, withdrawerKeyPair.publicKey);
+    let vaultTokenBalanceBefore = await connection.getTokenAccountBalance(vaultTokenAccount.address);
+
     const data = [
       "WithdrawTo",
       mint.toString(),
-      withdrawerTokenAccount.address.toString(),
-      1000000000,
+      withdrawerKeyPair.publicKey.toString(),
+      transferAmount,
     ];
     const rlpEncodedData = rlp.encode(data);
 
@@ -496,6 +493,14 @@ describe("xx asset manager test", () => {
       .remainingAccounts([...executeCallAccounts.slice(4)])
       .signers([ctx.admin])
       .rpc();
+      await sleep(3)
+
+      const withdrawerBalance = await connection.getTokenAccountBalance(withdrawerTokenAddress)
+      expect(withdrawerBalance.value.amount).equals(transferAmount.toString())
+
+      let vaultTokenBalanceAfter = await connection.getTokenAccountBalance(vaultTokenAccount.address);
+      let expectedVaultBalance = Number(vaultTokenBalanceBefore.value.amount) - transferAmount
+      expect(vaultTokenBalanceAfter.value.amount).equals(expectedVaultBalance.toString())
   });
 
   it("test handle call message rollback complete flow with xcall", async () => {

@@ -366,7 +366,7 @@ fn handle_token_call_message<'info>(
             .map_err(|_| AssetManagerError::NotAnAddress)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
-        if recipient_pubkey != to.key() {
+        if recipient_pubkey != ctx.accounts.to_native.key() {
             return Err(AssetManagerError::InvalidToAddress.into())
         }
         if token_pubkey != mint.key() {
@@ -391,7 +391,7 @@ fn handle_token_call_message<'info>(
         let message = decode_deposit_revert_msg(&data)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
-        if recipient_pubkey != to.key() {
+        if recipient_pubkey != ctx.accounts.to_native.key() {
            return Err(AssetManagerError::InvalidToAddress.into())
         }
         let token_pubkey = Pubkey::from_str(&message.token_address)
@@ -426,11 +426,7 @@ fn handle_native_call_message<'info>(
     let state = ctx.accounts.state.clone();
     let bump = ctx.bumps.vault_native_account.unwrap();
     let method = decode_method(&data)?;
-    let to_native = ctx
-        .accounts
-        .to_native
-        .as_ref()
-        .ok_or(AssetManagerError::InvalidToAddress)?;
+    let to_native = ctx.accounts.to_native.as_ref();
     let vault_native_account = ctx
         .accounts
         .vault_native_account
