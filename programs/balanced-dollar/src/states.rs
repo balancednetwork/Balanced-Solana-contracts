@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::{
+    associated_token,
+    token::{Mint, Token, TokenAccount},
+};
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
 
@@ -53,13 +56,23 @@ pub struct CrossTransfer<'info> {
 
 #[derive(Accounts)]
 pub struct HandleCallMessage<'info> {
+    #[account(mut)]
     pub signer: Signer<'info>,
     #[account(owner=state.xcall @BalancedDollarError::OnlyXcall)]
     pub xcall_singer: Signer<'info>,
     #[account(mut, seeds=[STATE_SEED], bump)]
     pub state: Account<'info, State>,
-    #[account(mut)]
+    #[account(
+        init_if_needed,
+        payer = signer,
+        associated_token::mint = mint,
+        associated_token::authority = to_authority
+    )]
     pub to: Account<'info, TokenAccount>,
+
+    /// CHECK: this account is validated inside instruction logic
+    pub to_authority: AccountInfo<'info>,
+
     #[account(mut, constraint=mint.key()==state.bn_usd_token)]
     pub mint: Account<'info, Mint>,
     ///CHECK: program signs onbehalf of the authority pda
@@ -67,11 +80,13 @@ pub struct HandleCallMessage<'info> {
     #[account(seeds = [AUTHORITY_SEED], bump)]
     pub mint_authority: AccountInfo<'info>,
     pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, associated_token::AssociatedToken>,
     pub xcall_manager: Program<'info, XcallManager>,
     pub xcall: Program<'info, Xcall>,
 
     #[account(constraint=xcall_manager_state.key()==state.xcall_manager_state @BalancedDollarError::InvalidXcallManagerState)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
+    pub system_program: Program<'info, System>,
 }
 
 #[account]

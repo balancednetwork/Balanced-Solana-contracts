@@ -8,6 +8,7 @@ import {
   getOrCreateAssociatedTokenAccount,
   Account,
   TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddress,
 } from "@solana/spl-token";
 
 import { BalancedDollar } from "../../target/types/balanced_dollar";
@@ -113,6 +114,102 @@ describe("balanced dollar manager", () => {
     expect(stateAccount.bnUsdToken.toString()).equals(mint.toString());
   });
 
+  it("test handle call message with uninitialized token account", async () => {
+    let xcallConfig = await xcallCtx.getConfig();
+
+    const connSn = 100;
+    let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
+    let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
+
+    let userKeypair = Keypair.generate();
+    const data = [
+      "xCrossTransfer",
+      Keypair.generate().publicKey.toString(),
+      "solana/" + userKeypair.publicKey.toString(),
+      20000000000000000000n,
+      Buffer.alloc(0),
+    ];
+    const rlpEncodedData = rlp.encode(data);
+
+    let request = new CSMessageRequest(
+      iconBnUSD,
+      program.programId.toString(),
+      nextSequenceNo,
+      MessageType.CallMessageWithRollback,
+      Buffer.from(rlpEncodedData),
+      [connectionProgram.programId.toString()]
+    );
+    let cs_message = new CSMessage(
+      CSMessageType.CSMessageRequest,
+      request.encode()
+    ).encode();
+
+    let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+      fromNid,
+      connSn,
+      nextSequenceNo,
+      cs_message,
+      CSMessageType.CSMessageRequest
+    );
+
+    await connectionProgram.methods
+      .recvMessage(
+        fromNid,
+        new anchor.BN(connSn),
+        Buffer.from(cs_message),
+        new anchor.BN(nextSequenceNo)
+      )
+      .accountsStrict({
+        config: ConnectionPDA.config().pda,
+        admin: ctx.admin.publicKey,
+        receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        authority: ConnectionPDA.authority().pda,
+      })
+      .remainingAccounts([...recvMessageAccounts.slice(4)])
+      .signers([ctx.admin])
+      .rpc();
+    await sleep(2);
+
+    // call xcall execute_call
+    let executeCallAccounts = await xcallCtx.getExecuteCallAccounts(
+      nextReqId,
+      Buffer.from(rlpEncodedData),
+      BalancedDollarPDA.state().pda,
+      program.programId,
+      connSn,
+      fromNid,
+      connectionProgram.programId
+    );
+    await xcallProgram.methods
+      .executeCall(
+        new anchor.BN(nextReqId),
+        fromNid,
+        new anchor.BN(connSn),
+        connectionProgram.programId,
+        Buffer.from(rlpEncodedData)
+      )
+      .accounts({
+        signer: ctx.admin.publicKey,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        config: XcallPDA.config().pda,
+        admin: xcallConfig.admin,
+        proxyRequest: XcallPDA.proxyRequest(
+          fromNid,
+          connSn,
+          connectionProgram.programId
+        ).pda,
+      })
+      .remainingAccounts([...executeCallAccounts.slice(4)])
+      .signers([ctx.admin])
+      .rpc();
+      await sleep(2)
+
+      let userTokenAccountAddress = await getAssociatedTokenAddress(mint, userKeypair.publicKey)
+      let userBalance = await connection.getTokenAccountBalance(userTokenAccountAddress);
+      expect(userBalance.value.amount.toString()).equals("20000000000")
+  });
+
   it("test handle call message complete flow with xcall", async () => {
     let xcallConfig = await xcallCtx.getConfig();
 
@@ -128,7 +225,7 @@ describe("balanced dollar manager", () => {
     const data = [
       "xCrossTransfer",
       sender.publicKey.toString(),
-      "solana/" + withdrawerTokenAccount.address.toString(),
+      "solana/" + withdrawerKeyPair.publicKey.toString(),
       20000000000000000000n,
       bytes,
     ];
