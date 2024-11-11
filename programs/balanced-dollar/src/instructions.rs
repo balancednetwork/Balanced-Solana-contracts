@@ -85,10 +85,10 @@ fn send_message <'info>(
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
     let message: Vec<u8> =
-        CrossTransferMsg::create(ctx.accounts.from.key().to_string(), to, value, data.unwrap_or(vec![]))
+        CrossTransferMsg::create(ctx.accounts.from_authority.key().to_string(), to, value, data.unwrap_or(vec![]))
             .encode();
     let rollback_message =
-        CrossTransferRevert::create(ctx.accounts.from.key().to_string(), value).encode();
+        CrossTransferRevert::create(ctx.accounts.from_authority.key().to_string(), value).encode();
     let sources = &ctx.accounts.xcall_manager_state.sources;
     let destinations = &ctx.accounts.xcall_manager_state.destinations;
     let message = AnyMessage::CallMessageWithRollback(CallMessageWithRollback {

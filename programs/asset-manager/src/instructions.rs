@@ -134,8 +134,8 @@ pub fn deposit_token<'info>(
     token::transfer(cpi_ctx, amount)?;
 
     
-    let from: Pubkey = from.key();
-    let res = send_deposit_message(ctx, token_addr.to_string(), from.key(), amount, to, data)?;
+    let from_authority: Pubkey = ctx.accounts.from_authority.key();
+    let res = send_deposit_message(ctx, token_addr.to_string(), from_authority.key(), amount, to, data)?;
     Ok(res)
 }
 
