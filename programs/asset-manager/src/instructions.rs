@@ -134,8 +134,8 @@ pub fn deposit_token<'info>(
     token::transfer(cpi_ctx, amount)?;
 
     
-    let from: Pubkey = from.key();
-    let res = send_deposit_message(ctx, token_addr.to_string(), from.key(), amount, to, data)?;
+    let from_authority: Pubkey = ctx.accounts.from_authority.key();
+    let res = send_deposit_message(ctx, token_addr.to_string(), from_authority.key(), amount, to, data)?;
     Ok(res)
 }
 
@@ -366,7 +366,7 @@ fn handle_token_call_message<'info>(
             .map_err(|_| AssetManagerError::NotAnAddress)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
-        if recipient_pubkey != to.key() {
+        if recipient_pubkey != ctx.accounts.to_native.key() {
             return Err(AssetManagerError::InvalidToAddress.into())
         }
         if token_pubkey != mint.key() {
@@ -391,7 +391,7 @@ fn handle_token_call_message<'info>(
         let message = decode_deposit_revert_msg(&data)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
-        if recipient_pubkey != to.key() {
+        if recipient_pubkey != ctx.accounts.to_native.key() {
            return Err(AssetManagerError::InvalidToAddress.into())
         }
         let token_pubkey = Pubkey::from_str(&message.token_address)
@@ -426,11 +426,7 @@ fn handle_native_call_message<'info>(
     let state = ctx.accounts.state.clone();
     let bump = ctx.bumps.vault_native_account.unwrap();
     let method = decode_method(&data)?;
-    let to_native = ctx
-        .accounts
-        .to_native
-        .as_ref()
-        .ok_or(AssetManagerError::InvalidToAddress)?;
+    let to_native = ctx.accounts.to_native.as_ref();
     let vault_native_account = ctx
         .accounts
         .vault_native_account
@@ -567,6 +563,9 @@ pub fn verify_withdraw(token_state: &mut TokenState, amount: u64, balance: u64) 
 pub fn force_rollback<'info>(
     ctx: Context<'_, '_, '_, 'info, ForceRollback<'info>>,
     request_id: u128,
+    source_nid: String,
+    connection_sn: u128,
+    dst_program_id: Pubkey,
 )->Result<()> {
     let bump = ctx.bumps.xcall_authority;
     let seeds = &[Authority::SEED_PREFIX.as_ref(), &[bump]];
@@ -590,7 +589,7 @@ pub fn force_rollback<'info>(
     let cpi_ctx = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seeds)
     .with_remaining_accounts(remaining_accounts.to_vec());
         
-    let _result = xcall::cpi::handle_forced_rollback(cpi_ctx, request_id)?;
+    let _result = xcall::cpi::handle_forced_rollback(cpi_ctx, request_id, source_nid, connection_sn, dst_program_id)?;
     Ok(())
 }
 

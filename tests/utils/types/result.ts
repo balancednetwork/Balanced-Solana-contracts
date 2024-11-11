@@ -1,6 +1,6 @@
 import * as rlp from "rlp";
 
-import { CSMessageType, CSResponseType } from "./message";
+import { CSMessageType, CSResponseType } from "./message.js";
 
 export class CSMessageResult {
   sequence_no: number;
