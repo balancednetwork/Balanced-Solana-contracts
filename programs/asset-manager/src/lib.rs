@@ -87,8 +87,11 @@ pub mod asset_manager {
     pub fn force_rollback<'info>(
         ctx: Context<'_, '_, '_, 'info, ForceRollback<'info>>,
         request_id: u128,
+        source_nid: String,
+        connection_sn: u128,
+        dst_program_id: Pubkey,
     ) -> Result<()> {
-        instructions::force_rollback(ctx, request_id)
+        instructions::force_rollback(ctx, request_id, source_nid, connection_sn, dst_program_id)
     }
 
     pub fn query_handle_call_message_accounts<'info>(

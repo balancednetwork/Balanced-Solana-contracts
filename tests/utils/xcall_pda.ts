@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { Xcall } from "../../types/xcall";
 import { CentralizedConnection } from "../../types/centralized_connection";
-import { uint128ToArray } from "../utils";
+import { uint128ToArray } from "./index";
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.xcall;
 const connectionProgram: anchor.Program<CentralizedConnection> =
   anchor.workspace.centralized_connection;
@@ -19,9 +19,14 @@ export class XcallPDA {
     return { bump, pda };
   }
 
-  static proxyRequest(requestId: number) {
+  static proxyRequest(fromNetwork: String, connSn: number, connection: PublicKey) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("proxy"), uint128ToArray(requestId)],
+      [
+        Buffer.from("proxy"),
+        Buffer.from(fromNetwork),
+        uint128ToArray(connSn),
+        connection.toBuffer(),
+      ],
       xcallProgram.programId
     );
 

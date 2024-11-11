@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::{
+    associated_token,
+    token::{Mint, Token, TokenAccount},
+};
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
 
@@ -124,13 +127,20 @@ pub struct TokenState {
 
 #[derive(Accounts)]
 pub struct HandleCallMessage<'info> {
+    #[account(mut)]
     pub signer: Signer<'info>,
     #[account(owner=state.xcall @AssetManagerError::OnlyXcall)]
     pub xcall_singer: Signer<'info>,
-    #[account(mut)]
+    #[account(
+        init_if_needed,
+        payer = signer,
+        associated_token::mint = mint,
+        associated_token::authority = to_native
+    )]
     pub to: Option<Account<'info, TokenAccount>>,
+    /// CHECK: this account is validated inside instruction logic
     #[account(mut)]
-    pub to_native: Option<AccountInfo<'info>>,
+    pub to_native: AccountInfo<'info>,
     #[account(seeds = [STATE_SEED], bump)]
     pub state: Account<'info, State>,
     pub token_state: Account<'info, TokenState>,
@@ -145,6 +155,7 @@ pub struct HandleCallMessage<'info> {
     pub valult_authority: Option<AccountInfo<'info>>,
 
     pub token_program: Option<Program<'info, Token>>,
+    pub associated_token_program: Option<Program<'info, associated_token::AssociatedToken>>,
     pub xcall_manager: Program<'info, XcallManager>,
 
     #[account(constraint=xcall_manager_state.key()==state.xcall_manager_state @AssetManagerError::InvalidXcallManagerState)]

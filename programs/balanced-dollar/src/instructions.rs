@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Burn, MintTo};
+use anchor_spl::{token::{self, Burn, MintTo}, associated_token::get_associated_token_address};
 
 use crate::errors::BalancedDollarError;
 use std::str::FromStr;
@@ -50,10 +50,14 @@ pub fn set_admin(
 pub fn cross_transfer<'info>(
     ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
     to: String,
-    value: u64,
+    icon_bnusd_value: u128,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
-    require!(value > 0, BalancedDollarError::InvalidAmount);
+    require!(icon_bnusd_value > 0, BalancedDollarError::InvalidAmount);
+    let mut value = (icon_bnusd_value / 10_u128.pow(9)) as u64;
+    if icon_bnusd_value % 10_u128.pow(9) > 0 {
+        value += 1;
+    }
     require!(
         ctx.accounts.from.amount >= value,
         BalancedDollarError::InsufficientBalance
@@ -71,21 +75,20 @@ pub fn cross_transfer<'info>(
         },
     );
     token::burn(burn_ctx, value)?;
-    send_message(ctx, to, value, data)
+    send_message(ctx, to, icon_bnusd_value, data)
 }
 
 fn send_message <'info>(
     ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
     to: String,
-    value: u64,
+    value: u128,
     data: Option<Vec<u8>>,
 ) -> Result<u128> {
-    let value_u128 = translate_outgoing_amount(value);
     let message: Vec<u8> =
-        CrossTransferMsg::create(ctx.accounts.from.key().to_string(), to, value_u128, data.unwrap_or(vec![]))
+        CrossTransferMsg::create(ctx.accounts.from.key().to_string(), to, value, data.unwrap_or(vec![]))
             .encode();
     let rollback_message =
-        CrossTransferRevert::create(ctx.accounts.from.key().to_string(), value_u128).encode();
+        CrossTransferRevert::create(ctx.accounts.from.key().to_string(), value).encode();
     let sources = &ctx.accounts.xcall_manager_state.sources;
     let destinations = &ctx.accounts.xcall_manager_state.destinations;
     let message = AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
@@ -140,10 +143,7 @@ pub fn handle_call_message<'info>(
             message: BalancedDollarError::InvalidProtocols.to_string(),
         });
     }
-    let to = ctx
-        .accounts
-        .to
-        .key();
+    let to_authority = ctx.accounts.to_authority.key();
 
     let bump = ctx.bumps.mint_authority;
     let seeds = &[b"bnusd_authority".as_ref(), &[bump]];
@@ -159,8 +159,8 @@ pub fn handle_call_message<'info>(
         let message = decode_cross_transfer(&data)?;
         let recipient_pubkey = Pubkey::from_str(account_from_network_address(message.to)?.as_str())
             .map_err(|_| BalancedDollarError::NotAnAddress)?;
-        if recipient_pubkey != to.key() {
-            return Err(BalancedDollarError::InvalidToAddress.into())
+        if recipient_pubkey != to_authority {
+            return Err(BalancedDollarError::InvalidToAddress.into());
         }
         mint(
             ctx.accounts.mint.to_account_info(),
@@ -185,8 +185,8 @@ pub fn handle_call_message<'info>(
         let message = decode_cross_transfer_revert(&data)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.account).map_err(|_| BalancedDollarError::NotAnAddress)?;
-        if recipient_pubkey != to.key() {
-            return Err(BalancedDollarError::InvalidToAddress.into())
+        if recipient_pubkey != to_authority {
+            return Err(BalancedDollarError::InvalidToAddress.into());
         }
         mint(
             ctx.accounts.mint.to_account_info(),
@@ -251,15 +251,20 @@ pub fn get_handle_call_message_accounts<'info>(
 
         let user_address = Pubkey::from_str(account_from_network_address(message.to)?.as_str())
             .map_err(|_| BalancedDollarError::NotAnAddress)?;
+        let user_token_address =
+            get_associated_token_address(&user_address, &ctx.accounts.state.bn_usd_token);
+
         Ok(ParamAccounts {
-            accounts: get_accounts(ctx, user_address)?,
+            accounts: get_accounts(ctx, user_address, user_token_address)?,
         })
     } else if method == CROSS_TRANSFER_REVERT {
         let message = decode_cross_transfer_revert(&data)?;
         let user_address =
             Pubkey::from_str(&message.account).map_err(|_| BalancedDollarError::NotAnAddress)?;
+        let user_token_address =
+            get_associated_token_address(&user_address, &ctx.accounts.state.bn_usd_token);
         Ok(ParamAccounts {
-            accounts: get_accounts(ctx, user_address)?,
+            accounts: get_accounts(ctx, user_address, user_token_address)?,
         })
     } else {
         let accounts: Vec<ParamAccountProps> = vec![];
@@ -270,6 +275,10 @@ pub fn get_handle_call_message_accounts<'info>(
 pub fn force_rollback<'info>(
     ctx: Context<'_, '_, '_, 'info, ForceRollback<'info>>,
     request_id: u128,
+    source_nid: String,
+    connection_sn: u128,
+    dst_program_id: Pubkey,
+
 )->Result<()> {
     let bump = ctx.bumps.xcall_authority;
     let seeds = &[Authority::SEED_PREFIX.as_ref(), &[bump]];
@@ -293,7 +302,7 @@ pub fn force_rollback<'info>(
     let cpi_ctx = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seeds)
     .with_remaining_accounts(remaining_accounts.to_vec());
         
-    let _result = xcall::cpi::handle_forced_rollback(cpi_ctx, request_id)?;
+    let _result = xcall::cpi::handle_forced_rollback(cpi_ctx, request_id, source_nid, connection_sn, dst_program_id)?;
     Ok(())
 }
 

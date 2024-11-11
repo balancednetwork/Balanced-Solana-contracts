@@ -1,5 +1,5 @@
 {
-  "address": "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW",
+  "address": "9HLp2R9afpPTSW6ypgkogrbkNkGMQxVidwTGmz45QucP",
   "metadata": {
     "name": "xcall",
     "version": "0.1.0",
@@ -72,6 +72,11 @@
         "# Parameters",
         "- `ctx`: The context of the solana program instruction",
         "- `req_id`: The unique identifier for the request being processed.",
+        "- `from_nid`: Network ID of the chain that sent the request.",
+        "- `conn_sn`: The sequence number of connection associated with the message, used to derive",
+        "unique proxy request account with the combination of other parameters",
+        "- `connection`: The connection key used to derive proxy request account with the combination",
+        "of other parameters",
         "- `data`: The data associated with the call request, which will be verified and processed.",
         "",
         "# Returns",
@@ -129,6 +134,18 @@
         {
           "name": "req_id",
           "type": "u128"
+        },
+        {
+          "name": "from_nid",
+          "type": "string"
+        },
+        {
+          "name": "conn_sn",
+          "type": "u128"
+        },
+        {
+          "name": "connection",
+          "type": "pubkey"
         },
         {
           "name": "data",
@@ -535,6 +552,11 @@
         "# Arguments",
         "* `ctx` - Context containing the accounts required for processing the forced rollback.",
         "* `req_id` - The unique request ID associated with the message being rolled back.",
+        "- `from_nid`: Network ID of the chain that sent the request.",
+        "- `conn_sn`: The sequence number of connection associated with the message, used to derive",
+        "unique proxy request account with the combination of other parameters",
+        "- `connection`: The connection key used to derive proxy request account with the combination",
+        "of other parameters",
         "",
         "# Returns",
         "* `Result<()>` - Returns `Ok(())` on successful execution, or an error if the rollback process",
@@ -601,6 +623,18 @@
         {
           "name": "req_id",
           "type": "u128"
+        },
+        {
+          "name": "from_nid",
+          "type": "string"
+        },
+        {
+          "name": "conn_sn",
+          "type": "u128"
+        },
+        {
+          "name": "connection",
+          "type": "pubkey"
         }
       ]
     },
@@ -622,6 +656,8 @@
         "- `msg`: The encoded message payload received from the chain.",
         "- `sequence_no`: The sequence number associated with the message, used to track message",
         "ordering and responses.",
+        "- `conn_sn`: The sequence number of connection associated with the message, used to derive",
+        "unique proxy request account with the combination of other parameters",
         "",
         "# Returns",
         "- `Result<()>`: Returns `Ok(())` if the message is successfully handled, or an error if any",
@@ -706,6 +742,10 @@
         {
           "name": "sequence_no",
           "type": "u128"
+        },
+        {
+          "name": "conn_sn",
+          "type": "u128"
         }
       ]
     },
@@ -724,6 +764,8 @@
         "- `ctx`: Context containing all relevant accounts and program-specific information.",
         "- `from_nid`: Network ID of the chain that sent the request.",
         "- `msg_payload`: Encoded payload of the request message.",
+        "- `conn_sn`: The sequence number of connection associated with the message, used to derive",
+        "unique proxy request account with the combination of other parameters",
         "",
         "# Returns",
         "- `Result<()>`: Returns `Ok(())` if the request is processed successfully, or an error if",
@@ -812,6 +854,10 @@
         {
           "name": "msg_payload",
           "type": "bytes"
+        },
+        {
+          "name": "conn_sn",
+          "type": "u128"
         }
       ]
     },
@@ -831,6 +877,8 @@
         "- `from_nid`: Network ID of the chain that sent the result.",
         "- `msg_payload`: Encoded payload of the result message.",
         "- `sequence_no`: Unique sequence number of the result message.",
+        "- `conn_sn`: The sequence number of connection associated with the message, used to derive",
+        "unique proxy request account with the combination of other parameters",
         "",
         "# Returns",
         "- `Result<()>`: Returns `Ok(())` if the result is processed successfully, or an error if",
@@ -935,6 +983,10 @@
         {
           "name": "sequence_no",
           "type": "u128"
+        },
+        {
+          "name": "conn_sn",
+          "type": "u128"
         }
       ]
     },
@@ -1023,6 +1075,18 @@
         {
           "name": "req_id",
           "type": "u128"
+        },
+        {
+          "name": "from_nid",
+          "type": "string"
+        },
+        {
+          "name": "conn_sn",
+          "type": "u128"
+        },
+        {
+          "name": "connection",
+          "type": "pubkey"
         },
         {
           "name": "data",
@@ -1129,6 +1193,10 @@
       ],
       "accounts": [
         {
+          "name": "connection",
+          "signer": true
+        },
+        {
           "name": "config"
         },
         {
@@ -1147,6 +1215,10 @@
         },
         {
           "name": "sequence_no",
+          "type": "u128"
+        },
+        {
+          "name": "conn_sn",
           "type": "u128"
         }
       ],
@@ -1946,6 +2018,14 @@
           {
             "name": "data",
             "type": "bytes"
+          },
+          {
+            "name": "connection",
+            "type": "pubkey"
+          },
+          {
+            "name": "connSn",
+            "type": "u128"
           }
         ]
       }

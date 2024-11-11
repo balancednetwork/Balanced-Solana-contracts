@@ -8,7 +8,7 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 
-import { sleep } from ".";
+import { sleep } from "./index";
 
 export class TransactionHelper {
   connection: Connection;
