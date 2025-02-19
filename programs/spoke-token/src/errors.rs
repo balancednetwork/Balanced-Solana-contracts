@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use rlp::DecoderError;
 
 #[error_code]
-pub enum BalancedDollarError {
+pub enum ContractError {
     #[msg("Invalid amount")]
     InvalidAmount,
     #[msg("Invalid protocols")]
@@ -13,8 +13,8 @@ pub enum BalancedDollarError {
     UnknownMessageType,
     #[msg("Method Decode Error")]
     DecoderError,
-    #[msg("Not Balanced Dollar")]
-    NotBalancedDollar,
+    #[msg("Not Spoke Token")]
+    NotSpokeToken,
     #[msg("Not the xcall program")]
     NotXcall,
     #[msg("Insufficient Balance")]
@@ -37,8 +37,8 @@ pub enum BalancedDollarError {
     MintAmountLessThanTokenCreationFee,
 }
 
-impl From<DecoderError> for BalancedDollarError {
+impl From<DecoderError> for ContractError {
     fn from(_err: DecoderError) -> Self {
-        BalancedDollarError::DecoderError
+        ContractError::DecoderError
     }
 }

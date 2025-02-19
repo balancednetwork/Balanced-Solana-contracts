@@ -7,14 +7,13 @@ pub fn get_accounts<'info>(
     to_authority: Pubkey,
     to: Pubkey,
 ) -> Result<Vec<ParamAccountProps>> {
-
     let (token_account_creation_pda,_) = Pubkey::find_program_address(&[TOKEN_CREATION_ACCOUNT_SEED], &id());
 
     let accounts: Vec<ParamAccountProps> = vec![
         ParamAccountProps::new(ctx.accounts.state.key(), false),
         ParamAccountProps::new(to, false),
         ParamAccountProps::new_readonly(to_authority, false),
-        ParamAccountProps::new(ctx.accounts.state.bn_usd_token, false),
+        ParamAccountProps::new(ctx.accounts.state.spoke_token_addr, false),
         ParamAccountProps::new(mint_authority(&ctx.program_id)?.0, false),
         ParamAccountProps::new(TOKEN_PROGRAM_ID, false),
         ParamAccountProps::new_readonly(associated_token::ID, false),

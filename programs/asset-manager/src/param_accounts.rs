@@ -2,7 +2,8 @@ use crate::{
     errors::*,
     helpers::{decode_deposit_revert_msg, decode_withdraw_to_msg},
     states::*,
-    instructions::_NATIVE_ADDRESS
+    instructions::_NATIVE_ADDRESS,
+    id
 };
 use anchor_lang::{prelude::*, solana_program};
 use anchor_spl::{associated_token::{get_associated_token_address, self}, token::ID as TOKEN_PROGRAM_ID};
@@ -21,6 +22,8 @@ pub fn get_spl_token_withdraw_to_accounts<'info>(
     let user_token_address = get_associated_token_address(&user_address, &mint);
     let vault_account = get_associated_token_address(&get_vault_pda(&ctx.program_id, mint)?.0, &mint);
 
+    let (token_account_creation_pda,_) = Pubkey::find_program_address(&[TOKEN_CREATION_ACCOUNT_SEED, mint.as_ref()], &id());
+
     let accounts: Vec<ParamAccountProps> = vec![
         ParamAccountProps::new(user_token_address, false),
         ParamAccountProps::new(user_address, false),
@@ -35,6 +38,8 @@ pub fn get_spl_token_withdraw_to_accounts<'info>(
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager_state, false),
         ParamAccountProps::new(SYSTEM_PROGRAM_ID, false),
+        ParamAccountProps::new(ctx.accounts.state.admin, false),
+        ParamAccountProps::new(token_account_creation_pda, false),
     ];
 
     Ok(accounts)

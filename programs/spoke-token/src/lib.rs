@@ -5,29 +5,29 @@ pub mod instructions;
 pub mod param_accounts;
 pub mod states;
 pub mod structs;
+use states::*;
 use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 
-use states::*;
-
-declare_id!("5G7Q2xM5qU4UWd3z4CW9YSEiVnfZmTUS1mbhSSZwTEJQ");
+declare_id!("6LiSpv3cQzYDrzAW6wgbphSTquyvBngeBhyT76oQwBBi");
 
 #[program]
-pub mod asset_manager {
-
+pub mod spoke_token {
     use super::*;
 
     pub fn initialize(
         ctx: Context<Initialize>,
         xcall: Pubkey,
-        icon_asset_manager: String,
+        icon_hub_addr: String,
         xcall_manager: Pubkey,
+        spoke_token_addr: Pubkey,
         xcall_manager_state: Pubkey,
     ) -> Result<()> {
         instructions::initialize(
             ctx,
             xcall,
-            icon_asset_manager,
+            icon_hub_addr,
             xcall_manager,
+            spoke_token_addr,
             xcall_manager_state,
         )
     }
@@ -42,45 +42,23 @@ pub mod asset_manager {
         )
     }
 
-    pub fn configure_rate_limit(
-        ctx: Context<ConfigureRateLimit>,
-        token: Pubkey,
-        period: u64,
-        percentage: u64,
+    pub fn set_token_creation_fee(
+        ctx: Context<SetTokenCreationFee>,
+        token_creation_fee: u64,
     ) -> Result<()> {
-        instructions::configure_rate_limit(ctx, token, period, percentage)
+        instructions::set_token_creation_fee(
+            ctx,
+            token_creation_fee
+        )
     }
 
-    pub fn set_token_account_creation_fee(
-        ctx: Context<SetTokenAccountCreationFee>,
-        token: Pubkey,
-        token_account_creation_fee: u64
-    ) -> Result<()> {
-        instructions::set_token_account_creation_fee(ctx, token, token_account_creation_fee)
-    }
-
-    pub fn get_withdraw_limit(ctx: Context<GetWithdrawLimit>) -> Result<u64> {
-        instructions::get_withdraw_limit(ctx)
-    }
-
-    pub fn deposit_native<'info>(
-        ctx: Context<'_, '_, '_, 'info, DepositToken<'info>>,
-        amount: u64,
-        to: Option<String>,
+    pub fn cross_transfer<'info>(
+        ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
+        to: String,
+        icon_bnusd_value: u128,
         data: Option<Vec<u8>>,
     ) -> Result<u128> {
-        // Transfer SOL
-        instructions::deposit_native(ctx, amount, to, data)
-    }
-
-    pub fn deposit_token<'info>(
-        ctx: Context<'_, '_, '_, 'info, DepositToken<'info>>,
-        amount: u64,
-        to: Option<String>,
-        data: Option<Vec<u8>>,
-    ) -> Result<u128> {
-        // Transfer SPL Token
-        instructions::deposit_token(ctx, amount, to, data)
+        instructions::cross_transfer(ctx, to,icon_bnusd_value, data)
     }
 
     pub fn handle_call_message<'info>(
@@ -97,7 +75,7 @@ pub mod asset_manager {
         request_id: u128,
         source_nid: String,
         connection_sn: u128,
-        dst_program_id: Pubkey,
+        dst_program_id: Pubkey
     ) -> Result<()> {
         instructions::force_rollback(ctx, request_id, source_nid, connection_sn, dst_program_id)
     }

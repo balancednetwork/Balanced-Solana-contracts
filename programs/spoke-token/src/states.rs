@@ -6,7 +6,7 @@ use anchor_spl::{
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
 
-use crate::errors::BalancedDollarError;
+use crate::errors::ContractError;
 pub const STATE_SEED: &'static [u8; 5] = b"state";
 pub const AUTHORITY_SEED: &'static [u8; 15] = b"bnusd_authority";
 pub const TOKEN_CREATION_ACCOUNT_SEED: &'static [u8; 14] = b"token_creation";
@@ -24,7 +24,7 @@ pub struct Initialize<'info> {
 pub struct SetAdmin<'info> {
     #[account(mut, seeds=[STATE_SEED], bump)]
     pub state: Account<'info, State>,
-    #[account(address=state.admin @BalancedDollarError::OnlyAdmin)]
+    #[account(address=state.admin @ContractError::OnlyAdmin)]
     pub admin: Signer<'info>,
 }
 
@@ -34,7 +34,7 @@ pub struct SetTokenCreationFee<'info> {
     pub token_account_creation_pda: Account<'info, TokenAccountCreationFee>,
     #[account(mut, seeds=[STATE_SEED], bump)]
     pub state: Account<'info, State>,
-    #[account(mut, address=state.admin @BalancedDollarError::OnlyAdmin)]
+    #[account(mut, address=state.admin @ContractError::OnlyAdmin)]
     pub admin: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -48,10 +48,10 @@ pub struct CrossTransfer<'info> {
 
     #[account(mut, seeds=[STATE_SEED], bump)]
     pub state: Account<'info, State>,
-    #[account(mut, constraint=mint.key()==state.bn_usd_token)]
+    #[account(mut, constraint=mint.key()==state.spoke_token_addr)]
     pub mint: Account<'info, Mint>,
 
-    #[account(constraint=xcall_manager_state.key() ==state.xcall_manager_state @BalancedDollarError::InvalidXcallManagerState)]
+    #[account(constraint=xcall_manager_state.key() ==state.xcall_manager_state @ContractError::InvalidXcallManagerState)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
     //xcall validates this account
     //not additionally used in balanced
@@ -70,7 +70,7 @@ pub struct CrossTransfer<'info> {
 pub struct HandleCallMessage<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(owner=state.xcall @BalancedDollarError::OnlyXcall)]
+    #[account(owner=state.xcall @ContractError::OnlyXcall)]
     pub xcall_singer: Signer<'info>,
     #[account(mut, seeds=[STATE_SEED], bump)]
     pub state: Account<'info, State>,
@@ -81,11 +81,10 @@ pub struct HandleCallMessage<'info> {
         associated_token::authority = to_authority
     )]
     pub to: Account<'info, TokenAccount>,
-
     /// CHECK: this account is validated inside instruction logic
     pub to_authority: AccountInfo<'info>,
 
-    #[account(mut, constraint=mint.key()==state.bn_usd_token)]
+    #[account(mut, constraint=mint.key()==state.spoke_token_addr)]
     pub mint: Account<'info, Mint>,
     ///CHECK: program signs onbehalf of the authority pda
     /// no additional validation is required as mint is already validated separately 
@@ -96,9 +95,10 @@ pub struct HandleCallMessage<'info> {
     pub xcall_manager: Program<'info, XcallManager>,
     pub xcall: Program<'info, Xcall>,
 
-    #[account(constraint=xcall_manager_state.key()==state.xcall_manager_state @BalancedDollarError::InvalidXcallManagerState)]
+    #[account(constraint=xcall_manager_state.key()==state.xcall_manager_state @ContractError::InvalidXcallManagerState)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
     pub system_program: Program<'info, System>,
+
     ///CHECK: validated in logic
     pub admin: Option<AccountInfo<'info>>,
     #[account(mut, seeds=[TOKEN_CREATION_ACCOUNT_SEED], bump)]
@@ -112,22 +112,23 @@ pub struct State {
     pub xcall: Pubkey,
     pub admin: Pubkey,
     #[max_len(100)]
-    pub icon_bn_usd: String,
+    pub icon_hub_addr: String,
     pub xcall_manager: Pubkey,
-    pub bn_usd_token: Pubkey,
+    pub spoke_token_addr: Pubkey,
     pub xcall_manager_state: Pubkey,
-}
-
-#[derive(Accounts)]
-pub struct GetParams<'info> {
-    #[account(seeds=[STATE_SEED], bump)]
-    pub state: Account<'info, State>,
 }
 
 #[account]
 #[derive(InitSpace)]
 pub struct TokenAccountCreationFee {
     pub token_account_creation_fee: u64
+}
+
+
+#[derive(Accounts)]
+pub struct GetParams<'info> {
+    #[account(seeds=[STATE_SEED], bump)]
+    pub state: Account<'info, State>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
@@ -146,7 +147,7 @@ pub struct ParamAccounts {
 pub struct ForceRollback<'info> {
     #[account(seeds = [STATE_SEED], bump)]
     pub state: Account<'info, State>,
-    #[account(mut, address=state.admin @BalancedDollarError::OnlyAdmin)]
+    #[account(mut, address=state.admin @ContractError::OnlyAdmin)]
     pub signer: Signer<'info>,
     pub xcall: Program<'info, Xcall>,
     #[account(
