@@ -11,6 +11,7 @@ pub const STATE_SEED: &'static [u8; 5] = b"state";
 pub const TOKEN_STATE_SEED: &'static [u8; 11] = b"token_state";
 pub const VAULT_SEED: &'static [u8; 5] = b"vault";
 pub const VAULT_NATIVE_SEED: &'static [u8; 12] = b"vault_native";
+pub const TOKEN_CREATION_ACCOUNT_SEED: &'static [u8; 14] = b"token_creation";
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -43,6 +44,18 @@ pub struct ConfigureRateLimit<'info> {
 
     pub system_program: Program<'info, System>,
 }
+
+#[derive(Accounts)]
+#[instruction(token: Pubkey)]
+pub struct SetTokenAccountCreationFee<'info> {
+    #[account(init, payer = admin, seeds=[TOKEN_CREATION_ACCOUNT_SEED, token.as_ref()], bump, space = 8 + TokenAccountCreationFee::INIT_SPACE)]
+    pub token_account_creation_pda: Account<'info, TokenAccountCreationFee>,
+    #[account(mut, seeds=[STATE_SEED], bump)]
+    pub state: Account<'info, State>,
+    #[account(mut, address=state.admin @AssetManagerError::UnauthorizedCaller)]
+    pub admin: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}   
 
 #[derive(Accounts)]
 #[instruction(token: Pubkey)]
@@ -117,6 +130,13 @@ pub struct State {
 
 #[account]
 #[derive(InitSpace)]
+pub struct TokenAccountCreationFee {
+    pub token: Pubkey,
+    pub token_account_creation_fee: u64
+}
+
+#[account]
+#[derive(InitSpace)]
 pub struct TokenState {
     pub token: Pubkey,
     pub period: u64,
@@ -161,6 +181,11 @@ pub struct HandleCallMessage<'info> {
     #[account(constraint=xcall_manager_state.key()==state.xcall_manager_state @AssetManagerError::InvalidXcallManagerState)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
     pub system_program: Program<'info, System>,
+
+    ///CHECK: validated in logic
+    pub admin: Option<AccountInfo<'info>>,
+    #[account(seeds=[TOKEN_STATE_SEED, token_state.token.as_ref()], bump)]
+    pub token_account_creation_pda: Option<Account<'info, TokenAccountCreationFee>>,
 }
 
 #[derive(Accounts)]

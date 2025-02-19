@@ -47,6 +47,15 @@ pub fn set_admin(
     return  Ok(());
 }
 
+pub fn set_token_creation_fee(
+    ctx: Context<SetTokenCreationFee>,
+    token_creation_fee: u64,
+) -> Result<()> {
+    let token_creation_account = &mut ctx.accounts.token_account_creation_pda;
+    token_creation_account.token_account_creation_fee = token_creation_fee;
+    return  Ok(());
+}
+
 pub fn cross_transfer<'info>(
     ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
     to: String,
@@ -162,12 +171,33 @@ pub fn handle_call_message<'info>(
         if recipient_pubkey != to_authority {
             return Err(BalancedDollarError::InvalidToAddress.into());
         }
+        let mut mint_amount = translate_incoming_amount(message.value);
+        let recepient_token_balance = ctx.accounts.to.amount;
+
+        if recepient_token_balance == 0 {
+            let token_account_creation_fee = ctx.accounts.token_account_creation_pda.as_ref().unwrap().token_account_creation_fee;
+            require!(ctx.accounts.admin.as_ref().unwrap().key() == state.admin, BalancedDollarError::InvalidAdmin);
+            require!(
+                mint_amount >= token_account_creation_fee,
+                BalancedDollarError::MintAmountLessThanTokenCreationFee
+            );
+            mint(
+                ctx.accounts.mint.to_account_info(),
+                ctx.accounts.admin.as_ref().unwrap().to_account_info(),
+                ctx.accounts.mint_authority.to_account_info(),
+                ctx.accounts.token_program.to_account_info(),
+                token_account_creation_fee,
+                signer,
+            )?;
+
+            mint_amount -= token_account_creation_fee;
+        }
         mint(
             ctx.accounts.mint.to_account_info(),
             ctx.accounts.to.to_account_info(),
             ctx.accounts.mint_authority.to_account_info(),
             ctx.accounts.token_program.to_account_info(),
-            translate_incoming_amount(message.value),
+            mint_amount,
             signer,
         )?;
         return Ok(HandleCallMessageResponse {
