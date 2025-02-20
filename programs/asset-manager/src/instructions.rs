@@ -388,7 +388,8 @@ fn handle_token_call_message<'info>(
         let mut withdraw_amount = message.amount as u64;
         let recepient_token_balance = to.amount;
         if recepient_token_balance == 0 {
-            require!(ctx.accounts.admin.as_ref().unwrap().key() == state.admin, AssetManagerError::InvalidAdmin);
+            let admin_token_account = ctx.accounts.admin_token_account.as_ref().unwrap();
+            require!(admin_token_account.owner == state.admin, AssetManagerError::InvalidAdmin);
             let token_account_creation_fee = ctx.accounts.token_account_creation_pda.as_ref().unwrap().token_account_creation_fee;
             require!(
                 withdraw_amount >= token_account_creation_fee,
@@ -397,7 +398,7 @@ fn handle_token_call_message<'info>(
             transfer_token(
                 token_account_creation_fee,
                 vault_token_account.to_account_info(),
-                ctx.accounts.admin.as_ref().unwrap().to_account_info(),
+                admin_token_account.to_account_info(),
                 mint.key(),
                 token_program.to_account_info(),
                 vault_authority.clone(),

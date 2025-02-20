@@ -21,6 +21,7 @@ pub fn get_spl_token_withdraw_to_accounts<'info>(
         Pubkey::from_str(&message.token_address).map_err(|_| AssetManagerError::NotAnAddress)?;
     let user_token_address = get_associated_token_address(&user_address, &mint);
     let vault_account = get_associated_token_address(&get_vault_pda(&ctx.program_id, mint)?.0, &mint);
+    let admin_token_address = get_associated_token_address(&ctx.accounts.state.admin, &mint);
 
     let (token_account_creation_pda,_) = Pubkey::find_program_address(&[TOKEN_CREATION_ACCOUNT_SEED, mint.as_ref()], &id());
 
@@ -38,7 +39,7 @@ pub fn get_spl_token_withdraw_to_accounts<'info>(
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager_state, false),
         ParamAccountProps::new(SYSTEM_PROGRAM_ID, false),
-        ParamAccountProps::new(ctx.accounts.state.admin, false),
+        ParamAccountProps::new(admin_token_address, false),
         ParamAccountProps::new(token_account_creation_pda, false),
     ];
 

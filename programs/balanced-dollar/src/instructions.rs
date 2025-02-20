@@ -175,15 +175,15 @@ pub fn handle_call_message<'info>(
         let recepient_token_balance = ctx.accounts.to.amount;
 
         if recepient_token_balance == 0 {
-            let token_account_creation_fee = ctx.accounts.token_account_creation_pda.as_ref().unwrap().token_account_creation_fee;
-            require!(ctx.accounts.admin.as_ref().unwrap().key() == state.admin, BalancedDollarError::InvalidAdmin);
+            let token_account_creation_fee = ctx.accounts.token_account_creation_pda.token_account_creation_fee;
+            require!(ctx.accounts.admin_token_account.owner == state.admin, BalancedDollarError::InvalidAdmin);
             require!(
                 mint_amount >= token_account_creation_fee,
                 BalancedDollarError::MintAmountLessThanTokenCreationFee
             );
             mint(
                 ctx.accounts.mint.to_account_info(),
-                ctx.accounts.admin.as_ref().unwrap().to_account_info(),
+                ctx.accounts.admin_token_account.to_account_info(),
                 ctx.accounts.mint_authority.to_account_info(),
                 ctx.accounts.token_program.to_account_info(),
                 token_account_creation_fee,
@@ -283,9 +283,11 @@ pub fn get_handle_call_message_accounts<'info>(
             .map_err(|_| BalancedDollarError::NotAnAddress)?;
         let user_token_address =
             get_associated_token_address(&user_address, &ctx.accounts.state.bn_usd_token);
+        let admin_token_address =
+            get_associated_token_address(&ctx.accounts.state.admin, &ctx.accounts.state.bn_usd_token);
 
         Ok(ParamAccounts {
-            accounts: get_accounts(ctx, user_address, user_token_address)?,
+            accounts: get_accounts(ctx, user_address, user_token_address, admin_token_address)?,
         })
     } else if method == CROSS_TRANSFER_REVERT {
         let message = decode_cross_transfer_revert(&data)?;
@@ -293,8 +295,11 @@ pub fn get_handle_call_message_accounts<'info>(
             Pubkey::from_str(&message.account).map_err(|_| BalancedDollarError::NotAnAddress)?;
         let user_token_address =
             get_associated_token_address(&user_address, &ctx.accounts.state.bn_usd_token);
+        let admin_token_address =
+        get_associated_token_address(&ctx.accounts.state.admin, &ctx.accounts.state.bn_usd_token);
+
         Ok(ParamAccounts {
-            accounts: get_accounts(ctx, user_address, user_token_address)?,
+            accounts: get_accounts(ctx, user_address, user_token_address, admin_token_address)?,
         })
     } else {
         let accounts: Vec<ParamAccountProps> = vec![];
