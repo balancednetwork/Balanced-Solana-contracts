@@ -48,6 +48,18 @@ pub fn set_admin(
     return  Ok(());
 }
 
+pub fn set_token_account_creation_fee(
+    ctx: Context<SetTokenAccountCreationFee>,
+    token: Pubkey,
+    token_account_creation_fee: u64
+) -> Result<()> {
+    let token_account_creation_pda: &mut Account<TokenAccountCreationFee> = &mut ctx.accounts.token_account_creation_pda;
+    token_account_creation_pda.token = token;
+    token_account_creation_pda.token_account_creation_fee = token_account_creation_fee;
+    Ok(())
+}
+
+
 pub fn configure_rate_limit(
     ctx: Context<ConfigureRateLimit>,
     token: Pubkey,
@@ -64,7 +76,7 @@ pub fn configure_rate_limit(
         period,
         percentage,
         last_update,
-        current_limit,
+        current_limit
     });
     Ok(())
 }
@@ -134,8 +146,8 @@ pub fn deposit_token<'info>(
     token::transfer(cpi_ctx, amount)?;
 
     
-    let from: Pubkey = from.key();
-    let res = send_deposit_message(ctx, token_addr.to_string(), from.key(), amount, to, data)?;
+    let from_authority: Pubkey = ctx.accounts.from_authority.key();
+    let res = send_deposit_message(ctx, token_addr.to_string(), from_authority.key(), amount, to, data)?;
     Ok(res)
 }
 
@@ -366,17 +378,39 @@ fn handle_token_call_message<'info>(
             .map_err(|_| AssetManagerError::NotAnAddress)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.user_address).map_err(|_| AssetManagerError::NotAnAddress)?;
-        if recipient_pubkey != to.key() {
+        if recipient_pubkey != ctx.accounts.to_native.key() {
             return Err(AssetManagerError::InvalidToAddress.into())
         }
         if token_pubkey != mint.key() {
             return Err(AssetManagerError::InvalidToAddress.into())
         }
+
+        let mut withdraw_amount = message.amount as u64;
+        let recepient_token_balance = to.amount;
+        if recepient_token_balance == 0 {
+            let admin_token_account = ctx.accounts.admin_token_account.as_ref().unwrap();
+            require!(admin_token_account.owner == state.admin, AssetManagerError::InvalidAdmin);
+            let token_account_creation_fee = ctx.accounts.token_account_creation_pda.as_ref().unwrap().token_account_creation_fee;
+            require!(
+                withdraw_amount >= token_account_creation_fee,
+                AssetManagerError::MintAmountLessThanTokenCreationFee
+            );
+            transfer_token(
+                token_account_creation_fee,
+                vault_token_account.to_account_info(),
+                admin_token_account.to_account_info(),
+                mint.key(),
+                token_program.to_account_info(),
+                vault_authority.clone(),
+                bump,
+            )?;
+            withdraw_amount -= token_account_creation_fee;
+        }
         withdraw_token(
             &mut token_state,
             vault_token_account.to_account_info(),
             to.to_account_info(),
-            message.amount as u64,
+            withdraw_amount,
             mint.key(),
             token_program.to_account_info(),
             vault_authority.clone(),
@@ -391,7 +425,7 @@ fn handle_token_call_message<'info>(
         let message = decode_deposit_revert_msg(&data)?;
         let recipient_pubkey =
             Pubkey::from_str(&message.account).map_err(|_| AssetManagerError::NotAnAddress)?;
-        if recipient_pubkey != to.key() {
+        if recipient_pubkey != ctx.accounts.to_native.key() {
            return Err(AssetManagerError::InvalidToAddress.into())
         }
         let token_pubkey = Pubkey::from_str(&message.token_address)
@@ -417,6 +451,30 @@ fn handle_token_call_message<'info>(
     Ok(true)
 }
 
+fn transfer_token<'info>(
+    transfer_amount: u64,
+    vault_token_account: AccountInfo<'info>,
+    recipient: AccountInfo<'info>,
+    mint: Pubkey,
+    token_program: AccountInfo<'info>,
+    authority: AccountInfo<'info>,
+    bump: u8,
+) -> Result<()> {
+    let cpi_accounts = Transfer {
+        from: vault_token_account,
+        to: recipient,
+        authority,
+    };
+    let mint_bytes = mint.to_bytes();
+    let seeds = &[b"vault".as_ref(), mint_bytes.as_ref(), &[bump]];
+    let signer = &[&seeds[..]];
+    token::transfer(
+        CpiContext::new_with_signer(token_program, cpi_accounts, signer),
+        transfer_amount,
+    )?;
+    Ok(())
+}
+
 fn handle_native_call_message<'info>(
     ctx: Context<'_, '_, '_, 'info, HandleCallMessage<'info>>,
     from: String,
@@ -426,11 +484,7 @@ fn handle_native_call_message<'info>(
     let state = ctx.accounts.state.clone();
     let bump = ctx.bumps.vault_native_account.unwrap();
     let method = decode_method(&data)?;
-    let to_native = ctx
-        .accounts
-        .to_native
-        .as_ref()
-        .ok_or(AssetManagerError::InvalidToAddress)?;
+    let to_native = ctx.accounts.to_native.as_ref();
     let vault_native_account = ctx
         .accounts
         .vault_native_account
@@ -567,6 +621,9 @@ pub fn verify_withdraw(token_state: &mut TokenState, amount: u64, balance: u64) 
 pub fn force_rollback<'info>(
     ctx: Context<'_, '_, '_, 'info, ForceRollback<'info>>,
     request_id: u128,
+    source_nid: String,
+    connection_sn: u128,
+    dst_program_id: Pubkey,
 )->Result<()> {
     let bump = ctx.bumps.xcall_authority;
     let seeds = &[Authority::SEED_PREFIX.as_ref(), &[bump]];
@@ -590,7 +647,7 @@ pub fn force_rollback<'info>(
     let cpi_ctx = CpiContext::new_with_signer(xcall_program, cpi_accounts, signer_seeds)
     .with_remaining_accounts(remaining_accounts.to_vec());
         
-    let _result = xcall::cpi::handle_forced_rollback(cpi_ctx, request_id)?;
+    let _result = xcall::cpi::handle_forced_rollback(cpi_ctx, request_id, source_nid, connection_sn, dst_program_id)?;
     Ok(())
 }
 

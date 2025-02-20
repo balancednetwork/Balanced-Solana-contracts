@@ -9,7 +9,7 @@ use xcall_lib::xcall_dapp_type::HandleCallMessageResponse;
 
 use states::*;
 
-declare_id!("D4QDPDykp1bEyfEnG5VbwEbQfJNjU1E2A4b3dvQkrdhZ");
+declare_id!("5G7Q2xM5qU4UWd3z4CW9YSEiVnfZmTUS1mbhSSZwTEJQ");
 
 #[program]
 pub mod asset_manager {
@@ -51,6 +51,14 @@ pub mod asset_manager {
         instructions::configure_rate_limit(ctx, token, period, percentage)
     }
 
+    pub fn set_token_account_creation_fee(
+        ctx: Context<SetTokenAccountCreationFee>,
+        token: Pubkey,
+        token_account_creation_fee: u64
+    ) -> Result<()> {
+        instructions::set_token_account_creation_fee(ctx, token, token_account_creation_fee)
+    }
+
     pub fn get_withdraw_limit(ctx: Context<GetWithdrawLimit>) -> Result<u64> {
         instructions::get_withdraw_limit(ctx)
     }
@@ -87,8 +95,11 @@ pub mod asset_manager {
     pub fn force_rollback<'info>(
         ctx: Context<'_, '_, '_, 'info, ForceRollback<'info>>,
         request_id: u128,
+        source_nid: String,
+        connection_sn: u128,
+        dst_program_id: Pubkey,
     ) -> Result<()> {
-        instructions::force_rollback(ctx, request_id)
+        instructions::force_rollback(ctx, request_id, source_nid, connection_sn, dst_program_id)
     }
 
     pub fn query_handle_call_message_accounts<'info>(

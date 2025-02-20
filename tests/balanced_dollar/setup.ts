@@ -35,7 +35,6 @@ export class TestContext {
     bn_usd: PublicKey,
     xcall_manager_state: PublicKey
   ) {
-    console.log("bn_usd is: ", bn_usd);
     let initializeIx = await balancedDollarProgram.methods
       .initialize(
         xcall,

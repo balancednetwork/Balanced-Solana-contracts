@@ -1,44 +1,42 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Keypair, Connection, PublicKey } from "@solana/web3.js";
+import { Keypair } from "@solana/web3.js";
 import * as rlp from "rlp";
+import { expect } from "chai";
+import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
 import { XcallManager } from "../../target/types/xcall_manager";
-
-import { TransactionHelper, sleep } from "../utils";
+import { TransactionHelper, sleep } from "../utils/index";
 import { TestContext, XcallManagerPDA } from "./setup";
-import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
-const program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
-
-const provider = anchor.AnchorProvider.env();
-anchor.setProvider(provider);
-
 import { Xcall } from "../../types/xcall";
 import { CentralizedConnection } from "../../types/centralized_connection";
 import connectionIdlJson from "../../target/idl/centralized_connection.json";
-const connectionProgram: anchor.Program<CentralizedConnection> =
-  new anchor.Program(
-    connectionIdlJson as anchor.Idl,
-    provider
-  ) as unknown as anchor.Program<CentralizedConnection>;
-import xcallIdlJson from "../../target/idl/xcall.json";
-const xcallProgram: anchor.Program<Xcall> = new anchor.Program(
-  xcallIdlJson as anchor.Idl,
-  provider
-) as unknown as anchor.Program<Xcall>;
-import {
-  CSMessage,
-  CSMessageRequest,
-  CSMessageType,
-  MessageType,
-} from "../utils/types";
+import { CSMessage, CSMessageType, MessageType } from "../utils/types/message";
+import { CSMessageRequest } from "../utils/types/request";
 import { TestContext as XcallContext, XcallPDA } from "../xcall/xcall/setup";
+import xcallIdlJson from "../../target/idl/xcall.json";
 import {
   TestContext as ConnectionContext,
   ConnectionPDA,
 } from "../xcall/centralized_connection/setup";
 
+const provider = anchor.AnchorProvider.env();
+anchor.setProvider(provider);
+
+const connectionProgram: anchor.Program<CentralizedConnection> =
+  new anchor.Program(
+    connectionIdlJson as anchor.Idl,
+    provider
+  ) as unknown as anchor.Program<CentralizedConnection>;
+
+const xcallProgram: anchor.Program<Xcall> = new anchor.Program(
+  xcallIdlJson as anchor.Idl,
+  provider
+) as unknown as anchor.Program<Xcall>;
+
+const program: anchor.Program<XcallManager> = anchor.workspace.XcallManager;
+
 describe("balanced xcall manager", () => {
-  const connection = provider.connection; // new Connection("http://127.0.0.1:8899", "confirmed");
+  const connection = provider.connection;
   const wallet = provider.wallet as anchor.Wallet;
 
   let txnHelpers = new TransactionHelper(connection, wallet.payer);
@@ -53,8 +51,9 @@ describe("balanced xcall manager", () => {
   let networkId = "solana";
   let iconGovernance = "icon/hxcnjsd";
   let iconConnection = "icon/cxjkefnskdjfe";
+  let fromNid = "icon";
 
-  beforeAll(async () => {
+  before(async () => {
     await connectionCtx.initialize();
     console.log("connection initialized");
     sleep(3);
@@ -62,7 +61,6 @@ describe("balanced xcall manager", () => {
     console.log("xcall initialized");
     sleep(3);
 
-    console.log("setting fee");
     await connectionProgram.methods
       .setFee("icon", new anchor.BN(50), new anchor.BN(50))
       .accountsStrict({
@@ -87,11 +85,11 @@ describe("balanced xcall manager", () => {
     const stateAccount = await program.account.xmState.fetch(
       XcallManagerPDA.state().pda
     );
-    expect(stateAccount.xcall.toString()).toBe(
+    expect(stateAccount.xcall.toString()).equals(
       xcallProgram.programId.toString()
     );
-    expect(stateAccount.iconGovernance).toBe("icon/hxcnjsd");
-    expect(stateAccount.admin.toString()).toBe(
+    expect(stateAccount.iconGovernance).equals("icon/hxcnjsd");
+    expect(stateAccount.admin.toString()).equals(
       wallet.payer.publicKey.toString()
     );
   });
@@ -113,7 +111,7 @@ describe("balanced xcall manager", () => {
     const stateAccount = await program.account.xmState.fetch(
       XcallManagerPDA.state().pda
     );
-    expect(stateAccount.proposedProtocolToRemove).toBe(
+    expect(stateAccount.proposedProtocolToRemove).equals(
       protocolToRemove.publicKey.toString()
     );
   });
@@ -124,9 +122,9 @@ describe("balanced xcall manager", () => {
       connectionProgram.programId.toString(),
       extra_protocol.publicKey.toString(),
     ];
-    let destinations = [iconConnection, "icon/icon_extra"]
+    let destinations = [iconConnection, "icon/icon_extra"];
     let setProtocolIx = await program.methods
-      .setProtocols( sources, destinations )
+      .setProtocols(sources, destinations)
       .accountsStrict({
         state: XcallManagerPDA.state().pda,
         admin: ctx.admin.publicKey,
@@ -137,15 +135,13 @@ describe("balanced xcall manager", () => {
     await ctx.connection.sendTransaction(tx);
     await sleep(3);
 
-    
-
     let verified = await program.methods
       .verifyProtocols(sources)
       .accounts({
         state: XcallManagerPDA.state().pda,
       })
       .view();
-    expect(verified).toBe(true);
+    expect(verified).equals(true);
   });
 
   //to do test duplicate protocols
@@ -157,17 +153,17 @@ describe("balanced xcall manager", () => {
     ];
     let destinations = [iconConnection, "icon/icon_extra"];
     let setProtocolIx = await program.methods
-      .setProtocols( sources,  destinations )
+      .setProtocols(sources, destinations)
       .accountsStrict({
         state: XcallManagerPDA.state().pda,
         admin: ctx.admin.publicKey,
       })
       .instruction();
-    
 
     let tx = await ctx.txnHelpers.buildV0Txn([setProtocolIx], [ctx.admin]);
     await ctx.connection.sendTransaction(tx);
     await sleep(3);
+
     let duplicateSources = [
       connectionProgram.programId.toString(),
       connectionProgram.programId.toString(),
@@ -179,14 +175,14 @@ describe("balanced xcall manager", () => {
         state: XcallManagerPDA.state().pda,
       })
       .view();
-    expect(verifiedFalse).toBe(false);
+    expect(verifiedFalse).equals(false);
     let verifiedTrue = await program.methods
       .verifyProtocols(sources)
       .accounts({
         state: XcallManagerPDA.state().pda,
       })
       .view();
-    expect(verifiedTrue).toBe(true);
+    expect(verifiedTrue).equals(true);
   });
 
   it("Test set protocols!", async () => {
@@ -201,7 +197,7 @@ describe("balanced xcall manager", () => {
       .instruction();
 
     let tx = await ctx.txnHelpers.buildV0Txn([setProtocolIx], [ctx.admin]);
-    let txHash = await ctx.connection.sendTransaction(tx);
+    await ctx.connection.sendTransaction(tx);
     await sleep(3);
 
     let verified = await program.methods
@@ -210,7 +206,7 @@ describe("balanced xcall manager", () => {
         state: XcallManagerPDA.state().pda,
       })
       .view();
-    expect(verified).toBe(true);
+    expect(verified).equals(true);
   });
 
   it("Test set admin!", async () => {
@@ -232,7 +228,7 @@ describe("balanced xcall manager", () => {
     const stateAccount = await program.account.xmState.fetch(
       XcallManagerPDA.state().pda
     );
-    expect(stateAccount.admin.toString()).toBe(admin.publicKey.toString());
+    expect(stateAccount.admin.toString()).equals(admin.publicKey.toString());
     txnHelpers.airdrop(admin.publicKey, 1000000000);
     let reverseSetAdminIx = await program.methods
       .setAdmin(ctx.admin.publicKey)
@@ -252,7 +248,7 @@ describe("balanced xcall manager", () => {
     const reverseStateAccount = await program.account.xmState.fetch(
       XcallManagerPDA.state().pda
     );
-    expect(reverseStateAccount.admin.toString()).toBe(
+    expect(reverseStateAccount.admin.toString()).equals(
       ctx.admin.publicKey.toString()
     );
   });
@@ -275,7 +271,7 @@ describe("balanced xcall manager", () => {
     const stateAccount = await program.account.xmState.fetch(
       XcallManagerPDA.state().pda
     );
-    expect(stateAccount.whitelistedActions[0].toString()).toBe(
+    expect(stateAccount.whitelistedActions[0].toString()).equals(
       bytes.toString()
     );
 
@@ -296,7 +292,7 @@ describe("balanced xcall manager", () => {
     const stateAccountRemovedAction = await program.account.xmState.fetch(
       XcallManagerPDA.state().pda
     );
-    expect(stateAccountRemovedAction.whitelistedActions.length).toBe(0);
+    expect(stateAccountRemovedAction.whitelistedActions.length).equals(0);
   });
 
   it("Test proposal removal", async () => {
@@ -316,7 +312,7 @@ describe("balanced xcall manager", () => {
     const stateAccount = await program.account.xmState.fetch(
       XcallManagerPDA.state().pda
     );
-    expect(stateAccount.proposedProtocolToRemove).toBe(
+    expect(stateAccount.proposedProtocolToRemove).equals(
       protocolToRemove.publicKey.toString()
     );
   });
@@ -333,11 +329,9 @@ describe("balanced xcall manager", () => {
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 5;
-    const fromNetwork = "icon";
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
-    //let data = Buffer.from("rollback", "utf-8");
     const data = [
       "ConfigureProtocols",
       [connectionProgram.programId.toString()],
@@ -372,6 +366,7 @@ describe("balanced xcall manager", () => {
     ).encode();
 
     let recvMessageAccounts = await connectionCtx.getRecvMessageAccounts(
+      fromNid,
       connSn,
       nextSequenceNo,
       cs_message,
@@ -380,7 +375,7 @@ describe("balanced xcall manager", () => {
 
     await connectionProgram.methods
       .recvMessage(
-        fromNetwork,
+        fromNid,
         new anchor.BN(connSn),
         Buffer.from(cs_message),
         new anchor.BN(nextSequenceNo)
@@ -388,38 +383,46 @@ describe("balanced xcall manager", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNid, connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
-        authority: ConnectionPDA.authority().pda
+        authority: ConnectionPDA.authority().pda,
       })
       .remainingAccounts([...recvMessageAccounts.slice(4)])
       .signers([ctx.admin])
       .rpc();
-
     await sleep(2);
+
     // call xcall execute_call
     let executeCallAccounts = await xcallCtx.getExecuteCallAccounts(
       nextReqId,
       Buffer.from(rlpEncodedData),
       XcallManagerPDA.state().pda,
-      program.programId
+      program.programId,
+      connSn,
+      fromNid,
+      connectionProgram.programId
     );
+
     await xcallProgram.methods
       .executeCall(
         new anchor.BN(nextReqId),
-        Buffer.from(rlpEncodedData),
+        fromNid,
+        new anchor.BN(connSn),
+        connectionProgram.programId,
+        Buffer.from(rlpEncodedData)
       )
       .accounts({
         signer: ctx.admin.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         admin: xcallConfig.admin,
-        proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
+        proxyRequest: XcallPDA.proxyRequest(
+          fromNid,
+          connSn,
+          connectionProgram.programId
+        ).pda,
       })
-      .remainingAccounts([
-        // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
-        ...executeCallAccounts.slice(4),
-      ])
+      .remainingAccounts([...executeCallAccounts.slice(4)])
       .signers([ctx.admin])
       .rpc();
   });

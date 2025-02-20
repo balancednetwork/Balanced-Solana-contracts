@@ -49,7 +49,6 @@ export class TestContext {
 
   async initialize() {
     try {
-      console.log("program is: ");
       await this.program.methods
         .initialize(xcallProgram.programId, this.signer.publicKey)
         .signers([this.signer])
@@ -57,10 +56,9 @@ export class TestContext {
           signer: this.signer.publicKey,
           systemProgram: SYSTEM_PROGRAM_ID,
           config: ConnectionPDA.config().pda,
-          authority: ConnectionPDA.authority().pda
+          authority: ConnectionPDA.authority().pda,
         })
         .rpc();
-      console.log("cc initialized");
     } catch (err) {
       console.log("error initializing: ", err);
     }
@@ -93,6 +91,7 @@ export class TestContext {
   }
 
   async getRecvMessageAccounts(
+    fromNetwork: string,
     connSn: number,
     sequenceNo: number,
     csMessage: Uint8Array,
@@ -122,7 +121,7 @@ export class TestContext {
 
     let res = await connectionProgram.methods
       .queryRecvMessageAccounts(
-        this.dstNetworkId,
+        fromNetwork,
         new anchor.BN(connSn),
         Buffer.from(csMessage),
         new anchor.BN(sequenceNo),
@@ -151,13 +150,6 @@ export class TestContext {
       "confirmed"
     );
   }
-
-  // async getReceipt(sequenceNo: number) {
-  //   return await this.program.account.receipt.fetch(
-  //     ConnectionPDA.receipt(sequenceNo).pda,
-  //     "confirmed"
-  //   );
-  // }
 }
 
 export class ConnectionPDA {
@@ -186,7 +178,7 @@ export class ConnectionPDA {
       [Buffer.from("receipt"), Buffer.from(networkId), uint128ToArray(sn)],
       connectionProgram.programId
     );
-  
+
     return { pda, bump };
   }
 

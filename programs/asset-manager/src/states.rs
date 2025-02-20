@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::{
+    associated_token,
+    token::{Mint, Token, TokenAccount},
+};
 use xcall::program::Xcall;
 use xcall_manager::{self, program::XcallManager};
 
@@ -8,6 +11,7 @@ pub const STATE_SEED: &'static [u8; 5] = b"state";
 pub const TOKEN_STATE_SEED: &'static [u8; 11] = b"token_state";
 pub const VAULT_SEED: &'static [u8; 5] = b"vault";
 pub const VAULT_NATIVE_SEED: &'static [u8; 12] = b"vault_native";
+pub const TOKEN_CREATION_ACCOUNT_SEED: &'static [u8; 14] = b"token_creation";
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -40,6 +44,18 @@ pub struct ConfigureRateLimit<'info> {
 
     pub system_program: Program<'info, System>,
 }
+
+#[derive(Accounts)]
+#[instruction(token: Pubkey)]
+pub struct SetTokenAccountCreationFee<'info> {
+    #[account(init, payer = admin, seeds=[TOKEN_CREATION_ACCOUNT_SEED, token.as_ref()], bump, space = 8 + TokenAccountCreationFee::INIT_SPACE)]
+    pub token_account_creation_pda: Account<'info, TokenAccountCreationFee>,
+    #[account(mut, seeds=[STATE_SEED], bump)]
+    pub state: Account<'info, State>,
+    #[account(mut, address=state.admin @AssetManagerError::UnauthorizedCaller)]
+    pub admin: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}   
 
 #[derive(Accounts)]
 #[instruction(token: Pubkey)]
@@ -114,6 +130,13 @@ pub struct State {
 
 #[account]
 #[derive(InitSpace)]
+pub struct TokenAccountCreationFee {
+    pub token: Pubkey,
+    pub token_account_creation_fee: u64
+}
+
+#[account]
+#[derive(InitSpace)]
 pub struct TokenState {
     pub token: Pubkey,
     pub period: u64,
@@ -124,13 +147,20 @@ pub struct TokenState {
 
 #[derive(Accounts)]
 pub struct HandleCallMessage<'info> {
+    #[account(mut)]
     pub signer: Signer<'info>,
     #[account(owner=state.xcall @AssetManagerError::OnlyXcall)]
     pub xcall_singer: Signer<'info>,
-    #[account(mut)]
+    #[account(
+        init_if_needed,
+        payer = signer,
+        associated_token::mint = mint,
+        associated_token::authority = to_native
+    )]
     pub to: Option<Account<'info, TokenAccount>>,
+    /// CHECK: this account is validated inside instruction logic
     #[account(mut)]
-    pub to_native: Option<AccountInfo<'info>>,
+    pub to_native: AccountInfo<'info>,
     #[account(seeds = [STATE_SEED], bump)]
     pub state: Account<'info, State>,
     pub token_state: Account<'info, TokenState>,
@@ -145,11 +175,15 @@ pub struct HandleCallMessage<'info> {
     pub valult_authority: Option<AccountInfo<'info>>,
 
     pub token_program: Option<Program<'info, Token>>,
+    pub associated_token_program: Option<Program<'info, associated_token::AssociatedToken>>,
     pub xcall_manager: Program<'info, XcallManager>,
 
     #[account(constraint=xcall_manager_state.key()==state.xcall_manager_state @AssetManagerError::InvalidXcallManagerState)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
     pub system_program: Program<'info, System>,
+    pub admin_token_account: Option<Account<'info, TokenAccount>>,
+    #[account(mut, seeds=[TOKEN_CREATION_ACCOUNT_SEED], bump)]
+    pub token_account_creation_pda: Option<Account<'info, TokenAccountCreationFee>>,
 }
 
 #[derive(Accounts)]
