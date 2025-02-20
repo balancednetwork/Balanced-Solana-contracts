@@ -99,11 +99,10 @@ pub struct HandleCallMessage<'info> {
     #[account(constraint=xcall_manager_state.key()==state.xcall_manager_state @BalancedDollarError::InvalidXcallManagerState)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
     pub system_program: Program<'info, System>,
-    ///CHECK: validated in logic
-    pub admin: Option<AccountInfo<'info>>,
-    #[account(mut, seeds=[TOKEN_CREATION_ACCOUNT_SEED], bump)]
-    pub token_account_creation_pda: Option<Account<'info, TokenAccountCreationFee>>,
 
+    pub admin_token_account: Account<'info, TokenAccount>,
+    #[account(mut, seeds=[TOKEN_CREATION_ACCOUNT_SEED], bump)]
+    pub token_account_creation_pda: Account<'info, TokenAccountCreationFee>,
 }
 
 #[account]
