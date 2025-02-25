@@ -182,7 +182,7 @@ pub struct HandleCallMessage<'info> {
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
     pub system_program: Program<'info, System>,
     pub admin_token_account: Option<Account<'info, TokenAccount>>,
-    #[account(mut, seeds=[TOKEN_CREATION_ACCOUNT_SEED], bump)]
+    #[account(mut, seeds=[TOKEN_CREATION_ACCOUNT_SEED,token_state.token.as_ref()], bump)]
     pub token_account_creation_pda: Option<Account<'info, TokenAccountCreationFee>>,
 }
 

@@ -71,6 +71,8 @@ pub fn get_spl_token_deposit_revert_accounts<'info>(
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager_state, false),
         ParamAccountProps::new(SYSTEM_PROGRAM_ID, false),
+        ParamAccountProps::new(*ctx.program_id, false),
+        ParamAccountProps::new_readonly(*ctx.program_id, false),
     ];
 
     Ok(accounts)
@@ -98,6 +100,8 @@ pub fn get_native_token_withdraw_to_accounts<'info>(
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager_state, false),
         ParamAccountProps::new(SYSTEM_PROGRAM_ID, false),
+        ParamAccountProps::new(*ctx.program_id, false),
+        ParamAccountProps::new_readonly(*ctx.program_id, false),
     ];
 
     Ok(accounts)
@@ -125,6 +129,8 @@ pub fn get_native_token_deposit_revert_accounts<'info>(
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager, false),
         ParamAccountProps::new_readonly(ctx.accounts.state.xcall_manager_state, false),
         ParamAccountProps::new(SYSTEM_PROGRAM_ID, false),
+        ParamAccountProps::new(*ctx.program_id, false),
+        ParamAccountProps::new_readonly(*ctx.program_id, false),
     ];
 
     Ok(accounts)
