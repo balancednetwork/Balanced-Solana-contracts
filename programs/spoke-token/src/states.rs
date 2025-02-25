@@ -9,6 +9,7 @@ use xcall_manager::{self, program::XcallManager};
 use crate::errors::ContractError;
 pub const STATE_SEED: &'static [u8; 5] = b"state";
 pub const AUTHORITY_SEED: &'static [u8; 15] = b"bnusd_authority";
+pub const TOKEN_CREATION_ACCOUNT_SEED: &'static [u8; 14] = b"token_creation";
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -25,6 +26,17 @@ pub struct SetAdmin<'info> {
     pub state: Account<'info, State>,
     #[account(address=state.admin @ContractError::OnlyAdmin)]
     pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct SetTokenCreationFee<'info> {
+    #[account(init, payer = admin, seeds=[TOKEN_CREATION_ACCOUNT_SEED], bump, space = 8 + TokenAccountCreationFee::INIT_SPACE)]
+    pub token_account_creation_pda: Account<'info, TokenAccountCreationFee>,
+    #[account(mut, seeds=[STATE_SEED], bump)]
+    pub state: Account<'info, State>,
+    #[account(mut, address=state.admin @ContractError::OnlyAdmin)]
+    pub admin: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -69,7 +81,6 @@ pub struct HandleCallMessage<'info> {
         associated_token::authority = to_authority
     )]
     pub to: Account<'info, TokenAccount>,
-
     /// CHECK: this account is validated inside instruction logic
     pub to_authority: AccountInfo<'info>,
 
@@ -87,6 +98,11 @@ pub struct HandleCallMessage<'info> {
     #[account(constraint=xcall_manager_state.key()==state.xcall_manager_state @ContractError::InvalidXcallManagerState)]
     pub xcall_manager_state: Account<'info, xcall_manager::XmState>,
     pub system_program: Program<'info, System>,
+
+    pub admin_token_account: Account<'info, TokenAccount>,
+    #[account(mut, seeds=[TOKEN_CREATION_ACCOUNT_SEED], bump)]
+    pub token_account_creation_pda: Account<'info, TokenAccountCreationFee>,
+
 }
 
 #[account]
@@ -100,6 +116,13 @@ pub struct State {
     pub spoke_token_addr: Pubkey,
     pub xcall_manager_state: Pubkey,
 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct TokenAccountCreationFee {
+    pub token_account_creation_fee: u64
+}
+
 
 #[derive(Accounts)]
 pub struct GetParams<'info> {

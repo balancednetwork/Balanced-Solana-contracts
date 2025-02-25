@@ -30,7 +30,11 @@ pub enum ContractError {
     #[msg["Invalid xcall manager state"]]
     InvalidXcallManagerState,
     #[msg["Invalid to address"]]
-    InvalidToAddress
+    InvalidToAddress,
+    #[msg["Invalid Admin"]]
+    InvalidAdmin,
+    #[msg("Mint Amount Less than Token Creation Fee")]
+    MintAmountLessThanTokenCreationFee,
 }
 
 impl From<DecoderError> for ContractError {

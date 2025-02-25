@@ -51,6 +51,14 @@ pub mod asset_manager {
         instructions::configure_rate_limit(ctx, token, period, percentage)
     }
 
+    pub fn set_token_account_creation_fee(
+        ctx: Context<SetTokenAccountCreationFee>,
+        token: Pubkey,
+        token_account_creation_fee: u64
+    ) -> Result<()> {
+        instructions::set_token_account_creation_fee(ctx, token, token_account_creation_fee)
+    }
+
     pub fn get_withdraw_limit(ctx: Context<GetWithdrawLimit>) -> Result<u64> {
         instructions::get_withdraw_limit(ctx)
     }
