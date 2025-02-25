@@ -62,7 +62,11 @@ pub enum AssetManagerError {
     #[msg["Invalid Vault Authority"]]
     InvalidValutAuthority,
     #[msg["Invalid Vault Native Authority"]]
-    InvalidValutNativeAuthority
+    InvalidValutNativeAuthority,
+    #[msg["Invalid Admin"]]
+    InvalidAdmin,
+    #[msg("Mint Amount Less than Token Creation Fee")]
+    MintAmountLessThanTokenCreationFee,
 }
 
 impl From<DecoderError> for AssetManagerError {

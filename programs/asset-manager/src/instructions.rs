@@ -48,6 +48,18 @@ pub fn set_admin(
     return  Ok(());
 }
 
+pub fn set_token_account_creation_fee(
+    ctx: Context<SetTokenAccountCreationFee>,
+    token: Pubkey,
+    token_account_creation_fee: u64
+) -> Result<()> {
+    let token_account_creation_pda: &mut Account<TokenAccountCreationFee> = &mut ctx.accounts.token_account_creation_pda;
+    token_account_creation_pda.token = token;
+    token_account_creation_pda.token_account_creation_fee = token_account_creation_fee;
+    Ok(())
+}
+
+
 pub fn configure_rate_limit(
     ctx: Context<ConfigureRateLimit>,
     token: Pubkey,
@@ -64,7 +76,7 @@ pub fn configure_rate_limit(
         period,
         percentage,
         last_update,
-        current_limit,
+        current_limit
     });
     Ok(())
 }
@@ -372,11 +384,33 @@ fn handle_token_call_message<'info>(
         if token_pubkey != mint.key() {
             return Err(AssetManagerError::InvalidToAddress.into())
         }
+
+        let mut withdraw_amount = message.amount as u64;
+        let recepient_token_balance = to.amount;
+        if recepient_token_balance == 0 {
+            let admin_token_account = ctx.accounts.admin_token_account.as_ref().unwrap();
+            require!(admin_token_account.owner == state.admin, AssetManagerError::InvalidAdmin);
+            let token_account_creation_fee = ctx.accounts.token_account_creation_pda.as_ref().unwrap().token_account_creation_fee;
+            require!(
+                withdraw_amount >= token_account_creation_fee,
+                AssetManagerError::MintAmountLessThanTokenCreationFee
+            );
+            transfer_token(
+                token_account_creation_fee,
+                vault_token_account.to_account_info(),
+                admin_token_account.to_account_info(),
+                mint.key(),
+                token_program.to_account_info(),
+                vault_authority.clone(),
+                bump,
+            )?;
+            withdraw_amount -= token_account_creation_fee;
+        }
         withdraw_token(
             &mut token_state,
             vault_token_account.to_account_info(),
             to.to_account_info(),
-            message.amount as u64,
+            withdraw_amount,
             mint.key(),
             token_program.to_account_info(),
             vault_authority.clone(),
@@ -415,6 +449,30 @@ fn handle_token_call_message<'info>(
     }
 
     Ok(true)
+}
+
+fn transfer_token<'info>(
+    transfer_amount: u64,
+    vault_token_account: AccountInfo<'info>,
+    recipient: AccountInfo<'info>,
+    mint: Pubkey,
+    token_program: AccountInfo<'info>,
+    authority: AccountInfo<'info>,
+    bump: u8,
+) -> Result<()> {
+    let cpi_accounts = Transfer {
+        from: vault_token_account,
+        to: recipient,
+        authority,
+    };
+    let mint_bytes = mint.to_bytes();
+    let seeds = &[b"vault".as_ref(), mint_bytes.as_ref(), &[bump]];
+    let signer = &[&seeds[..]];
+    token::transfer(
+        CpiContext::new_with_signer(token_program, cpi_accounts, signer),
+        transfer_amount,
+    )?;
+    Ok(())
 }
 
 fn handle_native_call_message<'info>(

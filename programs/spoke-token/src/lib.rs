@@ -42,6 +42,16 @@ pub mod spoke_token {
         )
     }
 
+    pub fn set_token_creation_fee(
+        ctx: Context<SetTokenCreationFee>,
+        token_creation_fee: u64,
+    ) -> Result<()> {
+        instructions::set_token_creation_fee(
+            ctx,
+            token_creation_fee
+        )
+    }
+
     pub fn cross_transfer<'info>(
         ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
         to: String,

@@ -47,6 +47,15 @@ pub fn set_admin(
     return  Ok(());
 }
 
+pub fn set_token_creation_fee(
+    ctx: Context<SetTokenCreationFee>,
+    token_creation_fee: u64,
+) -> Result<()> {
+    let token_creation_account = &mut ctx.accounts.token_account_creation_pda;
+    token_creation_account.token_account_creation_fee = token_creation_fee;
+    return  Ok(());
+}
+
 pub fn cross_transfer<'info>(
     ctx: Context<'_, '_, '_, 'info, CrossTransfer<'info>>,
     to: String,
@@ -162,12 +171,34 @@ pub fn handle_call_message<'info>(
         if recipient_pubkey != to_authority {
             return Err(ContractError::InvalidToAddress.into());
         }
+
+        let mut mint_amount = translate_incoming_amount(message.value);
+        let recepient_token_balance = ctx.accounts.to.amount;
+
+        if recepient_token_balance == 0 {
+            let token_account_creation_fee = ctx.accounts.token_account_creation_pda.token_account_creation_fee;
+            require!(ctx.accounts.admin_token_account.owner == state.admin, ContractError::InvalidAdmin);
+            require!(
+                mint_amount >= token_account_creation_fee,
+                ContractError::MintAmountLessThanTokenCreationFee
+            );
+            mint(
+                ctx.accounts.mint.to_account_info(),
+                ctx.accounts.admin_token_account.to_account_info(),
+                ctx.accounts.mint_authority.to_account_info(),
+                ctx.accounts.token_program.to_account_info(),
+                token_account_creation_fee,
+                signer,
+            )?;
+
+            mint_amount -= token_account_creation_fee;
+        }
         mint(
             ctx.accounts.mint.to_account_info(),
             ctx.accounts.to.to_account_info(),
             ctx.accounts.mint_authority.to_account_info(),
             ctx.accounts.token_program.to_account_info(),
-            translate_incoming_amount(message.value),
+            mint_amount,
             signer,
         )?;
         return Ok(HandleCallMessageResponse {
@@ -253,9 +284,11 @@ pub fn get_handle_call_message_accounts<'info>(
             .map_err(|_| ContractError::NotAnAddress)?;
         let user_token_address =
             get_associated_token_address(&user_address, &ctx.accounts.state.spoke_token_addr);
+        let admin_token_address =
+        get_associated_token_address(&ctx.accounts.state.admin, &ctx.accounts.state.spoke_token_addr);
 
         Ok(ParamAccounts {
-            accounts: get_accounts(ctx, user_address, user_token_address)?,
+            accounts: get_accounts(ctx, user_address, user_token_address, admin_token_address)?,
         })
     } else if method == CROSS_TRANSFER_REVERT {
         let message = decode_cross_transfer_revert(&data)?;
@@ -263,8 +296,11 @@ pub fn get_handle_call_message_accounts<'info>(
             Pubkey::from_str(&message.account).map_err(|_| ContractError::NotAnAddress)?;
         let user_token_address =
             get_associated_token_address(&user_address, &ctx.accounts.state.spoke_token_addr);
+        let admin_token_address =
+        get_associated_token_address(&ctx.accounts.state.admin, &ctx.accounts.state.spoke_token_addr);
+
         Ok(ParamAccounts {
-            accounts: get_accounts(ctx, user_address, user_token_address)?,
+            accounts: get_accounts(ctx, user_address, user_token_address, admin_token_address)?,
         })
     } else {
         let accounts: Vec<ParamAccountProps> = vec![];
