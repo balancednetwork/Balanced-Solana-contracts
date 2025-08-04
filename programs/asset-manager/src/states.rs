@@ -149,7 +149,7 @@ pub struct TokenState {
 pub struct HandleCallMessage<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(owner=state.xcall @AssetManagerError::OnlyXcall)]
+    #[account(address=(Pubkey::find_program_address(&[b"config"], &state.xcall).0) @AssetManagerError::OnlyXcall)]
     pub xcall_singer: Signer<'info>,
     #[account(
         init_if_needed,

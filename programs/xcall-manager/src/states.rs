@@ -61,7 +61,7 @@ pub struct VerifyProtocols<'info> {
 #[derive(Accounts)]
 pub struct HandleCallMessage<'info> {
     pub signer: Signer<'info>,
-    #[account(owner=state.xcall @XCallManagerError::OnlyXcall)]
+    #[account(address=(Pubkey::find_program_address(&[b"config"], &state.xcall).0) @XCallManagerError::OnlyXcall)]
     pub xcall_singer: Signer<'info>,
 
     #[account(mut, seeds=[STATE_SEED], bump)]
