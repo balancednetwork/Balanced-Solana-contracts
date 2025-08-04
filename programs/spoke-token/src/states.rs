@@ -70,7 +70,7 @@ pub struct CrossTransfer<'info> {
 pub struct HandleCallMessage<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(owner=state.xcall @ContractError::OnlyXcall)]
+    #[account(address=(Pubkey::find_program_address(&[b"config"], &state.xcall).0) @ContractError::OnlyXcall)]
     pub xcall_singer: Signer<'info>,
     #[account(mut, seeds=[STATE_SEED], bump)]
     pub state: Account<'info, State>,
