@@ -90,14 +90,11 @@ pub struct DepositToken<'info> {
     #[account(mut)]
     pub from_authority: Signer<'info>,
     #[account(
-        mut,
-        constraint = (
-            vault_token_account.owner == valult_authority.clone().unwrap().key()
-            && get_associated_token_address(&valult_authority.clone().unwrap().key(), &from.clone().unwrap().mint)
-            == vault_token_account.key()
-        ) @ AssetManagerError::InvalidValultTokenAccount,
-        owner = token_program.as_ref().unwrap().key(),
-    )]
+            mut,
+            associated_token::mint = from.as_ref().unwrap().mint,
+            associated_token::authority = valult_authority.as_ref().unwrap(),
+            owner = token_program.as_ref().unwrap().key()
+        )]
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
     #[account(seeds = [VAULT_SEED, from.clone().unwrap().mint.as_ref()], bump)]
     pub valult_authority: Option<AccountInfo<'info>>,
@@ -173,11 +170,8 @@ pub struct HandleCallMessage<'info> {
     pub token_state: Account<'info, TokenState>,
     #[account(
             mut,
-            constraint = (
-                vault_token_account.owner == valult_authority.clone().unwrap().key()
-                && get_associated_token_address(&valult_authority.clone().unwrap().key(), &to.clone().unwrap().mint)
-                == vault_token_account.key()
-            ) @ AssetManagerError::InvalidValultTokenAccount,
+            associated_token::mint = to.as_ref().unwrap().mint,
+            associated_token::authority = valult_authority.as_ref().unwrap(),
             owner = token_program.as_ref().unwrap().key()
         )]
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
