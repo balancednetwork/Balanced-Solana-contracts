@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    associated_token,
+    associated_token::{self, get_associated_token_address},
     token::{Mint, Token, TokenAccount},
 };
 use xcall::program::Xcall;
@@ -85,12 +85,16 @@ pub struct GetWithdrawLimit<'info> {
 
 #[derive(Accounts)]
 pub struct DepositToken<'info> {
-    #[account(mut)]
+    #[account(mut, constraint = from.owner == from_authority.key())]
     pub from: Option<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub from_authority: Signer<'info>,
-
-    #[account(mut, constraint=vault_token_account.owner==valult_authority.clone().unwrap().key() @AssetManagerError::InvalidValultTokenAccount )]
+    #[account(
+            mut,
+            associated_token::mint = from.as_ref().unwrap().mint,
+            associated_token::authority = valult_authority.as_ref().unwrap(),
+            owner = token_program.as_ref().unwrap().key()
+        )]
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
     #[account(seeds = [VAULT_SEED, from.clone().unwrap().mint.as_ref()], bump)]
     pub valult_authority: Option<AccountInfo<'info>>,
@@ -164,7 +168,12 @@ pub struct HandleCallMessage<'info> {
     #[account(seeds = [STATE_SEED], bump)]
     pub state: Account<'info, State>,
     pub token_state: Account<'info, TokenState>,
-    #[account(mut, constraint=vault_token_account.owner==valult_authority.clone().unwrap().key() @AssetManagerError::InvalidValultTokenAccount)]
+    #[account(
+            mut,
+            associated_token::mint = to.as_ref().unwrap().mint,
+            associated_token::authority = valult_authority.as_ref().unwrap(),
+            owner = token_program.as_ref().unwrap().key()
+        )]
     pub vault_token_account: Option<Account<'info, TokenAccount>>,
     #[account(mut, seeds = [VAULT_NATIVE_SEED], bump)]
     pub vault_native_account: Option<AccountInfo<'info>>,
