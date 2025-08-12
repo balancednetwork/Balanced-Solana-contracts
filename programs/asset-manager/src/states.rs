@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    associated_token::{self, get_associated_token_address},
+    associated_token::{self},
     token::{Mint, Token, TokenAccount},
 };
 use xcall::program::Xcall;
@@ -153,11 +153,9 @@ pub struct TokenState {
 pub struct HandleCallMessage<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(address=(Pubkey::find_program_address(&[b"config"], &state.xcall).0) @AssetManagerError::OnlyXcall)]
+    #[account(address=Pubkey::find_program_address(&[b"config"], &state.xcall).0 @AssetManagerError::OnlyXcall)]
     pub xcall_singer: Signer<'info>,
     #[account(
-        init_if_needed,
-        payer = signer,
         associated_token::mint = mint,
         associated_token::authority = to_native
     )]
